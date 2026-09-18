@@ -76,11 +76,37 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
   const [deciding, setDeciding] = useState(false);
   const [showTrace, setShowTrace] = useState(false);
 
+  // In-place editing of drafted materials
+  const [coverLetterText, setCoverLetterText] = useState("");
+  const [tailoredResumeText, setTailoredResumeText] = useState("");
+  const [editingCoverLetter, setEditingCoverLetter] = useState(false);
+  const [editingResume, setEditingResume] = useState(false);
+  const [savingCoverLetter, setSavingCoverLetter] = useState(false);
+  const [savingResume, setSavingResume] = useState(false);
+  const [copiedSection, setCopiedSection] = useState<string | null>(null);
+
   async function load() {
     setLoading(true);
     const res = await fetch(`/api/jobs/${id}`);
     const d = await res.json();
     setData(d);
+    if (d.evaluation) {
+      setCoverLetterText(d.evaluation.coverLetter || "");
+      setTailoredResumeText(d.evaluation.tailoredResume || "");
+
+      // If awaiting approval and edit box is empty, prefill with smart suggested draft directions
+      if (d.evaluation.stage === "awaiting_approval" && !editNote) {
+        const points: string[] = [];
+        if (d.evaluation.matchedSkills && d.evaluation.matchedSkills.length > 0) {
+          points.push(`- Emphasize matched skills: ${d.evaluation.matchedSkills.join(", ")}`);
+        }
+        if (d.evaluation.fitRationale && d.evaluation.fitRationale.length > 0) {
+          points.push(`- Highlight fit: ${d.evaluation.fitRationale[0].replace(/^[-*]\s*/, "")}`);
+        }
+        points.push(`- Align candidate project accomplishments with ${d.job.title}`);
+        setEditNote(points.join("\n"));
+      }
+    }
     setLoading(false);
   }
 
@@ -115,6 +141,43 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
       setDeciding(false);
     }
   }
+
+  async function saveCoverLetter() {
+    setSavingCoverLetter(true);
+    try {
+      await fetch(`/api/jobs/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ coverLetter: coverLetterText }),
+      });
+      setEditingCoverLetter(false);
+      await load();
+    } finally {
+      setSavingCoverLetter(false);
+    }
+  }
+
+  async function saveTailoredResume() {
+    setSavingResume(true);
+    try {
+      await fetch(`/api/jobs/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tailoredResume: tailoredResumeText }),
+      });
+      setEditingResume(false);
+      await load();
+    } finally {
+      setSavingResume(false);
+    }
+  }
+
+  function copyToClipboard(text: string, section: string) {
+    navigator.clipboard.writeText(text);
+    setCopiedSection(section);
+    setTimeout(() => setCopiedSection(null), 2000);
+  }
+
 
   if (loading || !data) return <p className="text-sm text-neutral-500">Loading…</p>;
   if (!data.evaluation) return <p className="text-sm text-red-600">No evaluation found.</p>;
@@ -252,85 +315,187 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
 
       {/* HITL gate */}
       {ev.stage === "awaiting_approval" && (
-        <div className="border border-amber-300 bg-amber-50 rounded-lg p-4 mb-6">
-          <div className="font-medium mb-2">Human approval required before any draft is produced</div>
+        <div className="border border-amber-300 bg-amber-50 rounded-xl p-5 mb-6 shadow-sm">
+          <div className="flex items-center justify-between mb-2">
+            <div className="font-semibold text-amber-950 text-base">
+              Human Approval Required Before Drafting
+            </div>
+            <span className="text-xs bg-amber-200 text-amber-900 font-medium px-2 py-0.5 rounded">
+              Awaiting Decision
+            </span>
+          </div>
+          <p className="text-xs text-amber-800 mb-3 leading-relaxed">
+            The agent has matched your skills and verified constraints. Review or customize the draft instructions below before generation. Clicking <strong>Edit &amp; Approve</strong> applies your custom notes directly to the LLM when creating the Cover Letter and Tailored Resume.
+          </p>
+          <label className="block text-xs font-semibold text-amber-900 mb-1">
+            Draft Instructions &amp; Focus Points (Editable):
+          </label>
           <textarea
             value={editNote}
             onChange={(e) => setEditNote(e.target.value)}
-            placeholder="Optional edit note (used if you choose Edit)"
-            className="w-full border border-neutral-300 rounded-md px-3 py-2 text-sm mb-3 bg-white text-neutral-900 placeholder:text-neutral-400"
-            rows={2}
+            placeholder="e.g., Emphasize SQL & Python reporting; highlight my 2 years of dashboard experience..."
+            className="w-full border border-amber-300 rounded-lg px-3 py-2 text-sm mb-4 bg-white text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-amber-500 shadow-inner"
+            rows={3}
           />
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2.5">
             <button
               disabled={deciding}
               onClick={() => decide("approve")}
-              className="text-sm bg-green-700 text-white px-3 py-1.5 rounded-md disabled:opacity-50"
+              className="text-sm bg-green-700 hover:bg-green-800 text-white font-medium px-4 py-2 rounded-lg disabled:opacity-50 transition-colors shadow-sm cursor-pointer"
             >
-              Approve
+              ✓ Approve (Standard)
             </button>
             <button
               disabled={deciding}
               onClick={() => decide("edit")}
-              className="text-sm bg-blue-700 text-white px-3 py-1.5 rounded-md disabled:opacity-50"
+              className="text-sm bg-blue-700 hover:bg-blue-800 text-white font-medium px-4 py-2 rounded-lg disabled:opacity-50 transition-colors shadow-sm cursor-pointer"
             >
-              Edit &amp; Approve
+              ✏️ Edit &amp; Approve (Use Custom Notes)
             </button>
             <button
               disabled={deciding}
               onClick={() => decide("reject")}
-              className="text-sm bg-neutral-700 text-white px-3 py-1.5 rounded-md disabled:opacity-50"
+              className="text-sm bg-neutral-600 hover:bg-neutral-700 text-white font-medium px-3.5 py-2 rounded-lg disabled:opacity-50 transition-colors cursor-pointer"
             >
-              Reject
+              ✕ Reject Job
             </button>
           </div>
         </div>
       )}
 
       {ev.draft && (
-        <div className="border border-green-200 bg-green-50 rounded-lg p-4 mb-4">
+        <div className="border border-green-200 bg-green-50 rounded-xl p-4 mb-4 shadow-sm">
           <div className="flex justify-between items-center mb-2">
-            <div className="font-medium">Grounded evidence (produced only after your approval)</div>
+            <div className="font-semibold text-green-950">Grounded Evidence (Deterministic Resume Matches)</div>
             <button
-              onClick={() => navigator.clipboard.writeText(ev.draft!)}
-              className="text-xs text-green-700 hover:text-green-900 underline"
+              onClick={() => copyToClipboard(ev.draft!, "evidence")}
+              className="text-xs bg-green-100 hover:bg-green-200 text-green-800 font-medium px-2.5 py-1 rounded transition-colors cursor-pointer"
             >
-              Copy
+              {copiedSection === "evidence" ? "✓ Copied" : "Copy"}
             </button>
           </div>
-          <pre className="whitespace-pre-wrap text-sm font-mono text-neutral-900">{ev.draft}</pre>
+          <pre className="whitespace-pre-wrap text-xs font-mono text-neutral-900 bg-white/60 p-3 rounded border border-green-100">{ev.draft}</pre>
         </div>
       )}
 
       {ev.coverLetter && (
-        <div className="border border-blue-200 bg-blue-50 rounded-lg p-4 mb-4">
-          <div className="flex justify-between items-center mb-2">
-            <div className="font-medium text-blue-900">📝 Cover Letter (AI-drafted, grounded in your resume)</div>
-            <button
-              onClick={() => navigator.clipboard.writeText(ev.coverLetter!)}
-              className="text-xs text-blue-700 hover:text-blue-900 underline"
-            >
-              Copy
-            </button>
+        <div className="border border-blue-200 bg-blue-50 rounded-xl p-4 mb-4 shadow-sm">
+          <div className="flex justify-between items-center mb-3">
+            <div className="font-semibold text-blue-950 flex items-center gap-1.5">
+              <span>📝</span> Cover Letter (AI-Drafted &amp; Grounded)
+            </div>
+            <div className="flex items-center gap-2">
+              {editingCoverLetter ? (
+                <>
+                  <button
+                    disabled={savingCoverLetter}
+                    onClick={saveCoverLetter}
+                    className="text-xs bg-blue-700 hover:bg-blue-800 text-white font-medium px-2.5 py-1 rounded transition-colors disabled:opacity-50 cursor-pointer"
+                  >
+                    {savingCoverLetter ? "Saving..." : "💾 Save"}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setCoverLetterText(ev.coverLetter || "");
+                      setEditingCoverLetter(false);
+                    }}
+                    className="text-xs bg-neutral-200 hover:bg-neutral-300 text-neutral-800 px-2.5 py-1 rounded transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => setEditingCoverLetter(true)}
+                    className="text-xs bg-blue-100 hover:bg-blue-200 text-blue-800 font-medium px-2.5 py-1 rounded transition-colors cursor-pointer"
+                  >
+                    ✏️ Edit
+                  </button>
+                  <button
+                    onClick={() => copyToClipboard(coverLetterText, "coverLetter")}
+                    className="text-xs bg-blue-100 hover:bg-blue-200 text-blue-800 font-medium px-2.5 py-1 rounded transition-colors cursor-pointer"
+                  >
+                    {copiedSection === "coverLetter" ? "✓ Copied" : "Copy"}
+                  </button>
+                </>
+              )}
+            </div>
           </div>
-          <div className="whitespace-pre-wrap text-sm text-neutral-900 leading-relaxed">{ev.coverLetter}</div>
+          {editingCoverLetter ? (
+            <textarea
+              value={coverLetterText}
+              onChange={(e) => setCoverLetterText(e.target.value)}
+              className="w-full border border-blue-300 rounded-lg p-3 text-sm bg-white text-neutral-900 leading-relaxed font-sans focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-inner"
+              rows={10}
+            />
+          ) : (
+            <div className="whitespace-pre-wrap text-sm text-neutral-900 leading-relaxed bg-white/70 p-3 rounded-lg border border-blue-100">
+              {coverLetterText}
+            </div>
+          )}
         </div>
       )}
 
       {ev.tailoredResume && (
-        <div className="border border-purple-200 bg-purple-50 rounded-lg p-4 mb-6">
-          <div className="flex justify-between items-center mb-2">
-            <div className="font-medium text-purple-900">📄 Tailored Resume (AI-rewritten for this role)</div>
-            <button
-              onClick={() => navigator.clipboard.writeText(ev.tailoredResume!)}
-              className="text-xs text-purple-700 hover:text-purple-900 underline"
-            >
-              Copy
-            </button>
+        <div className="border border-purple-200 bg-purple-50 rounded-xl p-4 mb-6 shadow-sm">
+          <div className="flex justify-between items-center mb-3">
+            <div className="font-semibold text-purple-950 flex items-center gap-1.5">
+              <span>📄</span> Tailored Resume (AI-Rewritten for 100% Match)
+            </div>
+            <div className="flex items-center gap-2">
+              {editingResume ? (
+                <>
+                  <button
+                    disabled={savingResume}
+                    onClick={saveTailoredResume}
+                    className="text-xs bg-purple-700 hover:bg-purple-800 text-white font-medium px-2.5 py-1 rounded transition-colors disabled:opacity-50 cursor-pointer"
+                  >
+                    {savingResume ? "Saving..." : "💾 Save"}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setTailoredResumeText(ev.tailoredResume || "");
+                      setEditingResume(false);
+                    }}
+                    className="text-xs bg-neutral-200 hover:bg-neutral-300 text-neutral-800 px-2.5 py-1 rounded transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => setEditingResume(true)}
+                    className="text-xs bg-purple-100 hover:bg-purple-200 text-purple-800 font-medium px-2.5 py-1 rounded transition-colors cursor-pointer"
+                  >
+                    ✏️ Edit
+                  </button>
+                  <button
+                    onClick={() => copyToClipboard(tailoredResumeText, "tailoredResume")}
+                    className="text-xs bg-purple-100 hover:bg-purple-200 text-purple-800 font-medium px-2.5 py-1 rounded transition-colors cursor-pointer"
+                  >
+                    {copiedSection === "tailoredResume" ? "✓ Copied" : "Copy"}
+                  </button>
+                </>
+              )}
+            </div>
           </div>
-          <pre className="whitespace-pre-wrap text-sm font-mono text-neutral-900">{ev.tailoredResume}</pre>
+          {editingResume ? (
+            <textarea
+              value={tailoredResumeText}
+              onChange={(e) => setTailoredResumeText(e.target.value)}
+              className="w-full border border-purple-300 rounded-lg p-3 text-xs font-mono bg-white text-neutral-900 leading-relaxed focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-inner"
+              rows={14}
+            />
+          ) : (
+            <pre className="whitespace-pre-wrap text-xs font-mono text-neutral-900 bg-white/70 p-3 rounded-lg border border-purple-100">
+              {tailoredResumeText}
+            </pre>
+          )}
         </div>
       )}
+
 
       {/* Trace viewer — the evidence artifact */}
       <button

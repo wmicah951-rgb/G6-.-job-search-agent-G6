@@ -61,3 +61,52 @@ export async function GET(
       : null,
   });
 }
+
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  await ensureSchema();
+  const { id } = await params;
+  const body = await req.json();
+  const { coverLetter, tailoredResume, draft } = body;
+
+  const c = db();
+  const evalRes = await c.execute({
+    sql: "SELECT state_json FROM evaluations WHERE job_id = ?",
+    args: [id],
+  });
+  if (evalRes.rows.length === 0) {
+    return NextResponse.json({ error: "Evaluation not found." }, { status: 404 });
+  }
+
+  const state = JSON.parse(evalRes.rows[0].state_json as string);
+  if (coverLetter !== undefined) state.coverLetter = coverLetter;
+  if (tailoredResume !== undefined) state.tailoredResume = tailoredResume;
+  if (draft !== undefined) state.draft = draft;
+
+  const updates: string[] = ["state_json = ?", "updated_at = datetime('now')"];
+  const args: any[] = [JSON.stringify(state)];
+
+  if (coverLetter !== undefined) {
+    updates.push("cover_letter = ?");
+    args.push(coverLetter);
+  }
+  if (tailoredResume !== undefined) {
+    updates.push("tailored_resume = ?");
+    args.push(tailoredResume);
+  }
+  if (draft !== undefined) {
+    updates.push("draft = ?");
+    args.push(draft);
+  }
+
+  args.push(id);
+  await c.execute({
+    sql: `UPDATE evaluations SET ${updates.join(", ")} WHERE job_id = ?`,
+    args,
+  });
+
+  return NextResponse.json({ success: true, state });
+}
+
