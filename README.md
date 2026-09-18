@@ -3,10 +3,13 @@
 A real agentic Job Search Agent (Group Assignment 1, Path C — code) built as a
 Next.js app, deployable to Vercel with Turso (libSQL) as the database.
 
-**Full architecture writeup for the class submission (diagram, tool/action
-inventory, decision engine, guardrails, data model, testing evidence,
-reflection draft) lives in [`docs/architecture/`](docs/architecture/00-index.md)
-— start there.**
+**👉 Read [`G6-AGENT.md`](G6-AGENT.md) first** — one plain-language file
+covering everything the agent does, in nine simple sections. That's the one
+to have open when explaining this in class.
+
+For the full file-by-file technical writeup (diagram, tool/action inventory,
+decision engine, guardrails, data model, testing evidence, reflection draft),
+see [`docs/architecture/`](docs/architecture/00-index.md).
 
 ## What makes this an agent, not a workflow
 
