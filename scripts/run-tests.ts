@@ -56,7 +56,7 @@ async function printTrace(jobId: string, label: string) {
         ? "Emphasize willingness to grow into missing skills; still worth a shot."
         : null;
     console.log(`\n  --- HUMAN-IN-THE-LOOP: simulating decision = "${decision}" ---`);
-    const afterApproval = applyHumanDecision(current, decision, note, jobText);
+    const afterApproval = await applyHumanDecision(current, decision, note, jobText, null);
     const newSteps = afterApproval.trace.slice(current.trace.length);
     for (const t of newSteps) {
       console.log(`\n[Step ${t.step}] selected_action = ${t.selectedAction}`);

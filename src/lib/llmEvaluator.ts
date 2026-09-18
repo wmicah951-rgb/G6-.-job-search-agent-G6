@@ -21,6 +21,7 @@ import { deepseekProvider } from "./llm/deepseekProvider";
 import type { LlmFitResult, LlmProvider } from "./llm/types";
 
 export type { LlmFitResult, LlmMatch } from "./llm/types";
+export type { LlmDraftResult } from "./llm/types";
 
 const PROVIDERS: Record<string, LlmProvider> = {
   anthropic: anthropicProvider,
@@ -71,4 +72,25 @@ export async function testLlmConnection(): Promise<{ ok: boolean; message: strin
   const provider = selectProvider();
   if (!provider) return { ok: false, message: "No LLM provider configured (set ANTHROPIC_API_KEY or DEEPSEEK_API_KEY)." };
   return provider.testConnection();
+}
+
+// Called ONLY after human Approve/Edit — drafts a real cover letter and
+// tailored resume grounded in the evidence quotes already verified against
+// resume.md. Falls back to null if no LLM is configured, so the agent
+// code can still produce the old deterministic bullet-point draft.
+export async function draftApplicationMaterials(
+  matchedEvidence: Record<string, string>,
+  missingSkills: string[],
+  jobText: string,
+  resumeText: string,
+  editNote: string | null
+): Promise<import("./llm/types").LlmDraftResult | null> {
+  const provider = selectProvider();
+  if (!provider) return null;
+  try {
+    return await provider.draftApplicationMaterials(matchedEvidence, missingSkills, jobText, resumeText, editNote);
+  } catch (err) {
+    console.error("[LLM Draft] Failed, falling back to deterministic draft:", err);
+    return null;
+  }
 }

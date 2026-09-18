@@ -14,11 +14,23 @@ export interface LlmFitResult {
   reasoning: string;
 }
 
+export interface LlmDraftResult {
+  coverLetter: string;
+  tailoredResume: string;
+}
+
 export interface LlmProvider {
   name: string;
   model: string;
   isConfigured(): boolean;
   evaluateFit(resumeText: string, jobText: string): Promise<LlmFitResult>;
+  draftApplicationMaterials(
+    matchedEvidence: Record<string, string>,
+    missingSkills: string[],
+    jobText: string,
+    resumeText: string,
+    editNote: string | null
+  ): Promise<LlmDraftResult>;
   testConnection(): Promise<{ ok: boolean; message: string }>;
 }
 
@@ -94,3 +106,69 @@ export function userPrompt(resume: string, job: string): string {
 // long a scraped posting or resume is. Shared by every provider.
 export const MAX_INPUT_CHARS = 6000;
 export const TIMEOUT_MS = 15000;
+
+// ---------- Drafting prompt/schema (used after human approval) ----------
+export const DRAFT_SYSTEM_PROMPT =
+  "You are a professional career-services writer drafting application materials " +
+  "for a specific candidate applying to a specific job. You produce TWO things:\n" +
+  "1. A complete cover letter (3–4 paragraphs, professional but warm tone, " +
+  "addressed 'Dear Hiring Manager').\n" +
+  "2. A tailored version of the candidate's resume, reformatted and reworded to " +
+  "emphasize the skills and experiences most relevant to THIS specific posting.\n\n" +
+  "CRITICAL RULES — these are non-negotiable:\n" +
+  "• Every factual claim about the candidate MUST come from the EVIDENCE QUOTES " +
+  "or the ORIGINAL RESUME provided below. You may rephrase for flow, but you " +
+  "must NOT invent experiences, skills, metrics, job titles, or qualifications " +
+  "that don't appear in the source material.\n" +
+  "• For skills the candidate is MISSING, you may mention willingness to learn " +
+  "or grow into them — but never claim the candidate already has them.\n" +
+  "• Keep the cover letter to 250–350 words.\n" +
+  "• The tailored resume should be a complete, ready-to-submit document " +
+  "(contact info, summary, experience, skills, education) — not just a list " +
+  "of changes. Reorder and emphasize sections to match what this role values most.\n" +
+  "• If the user provided an edit note, incorporate that guidance into both documents.";
+
+export const DRAFT_TOOL_NAME = "record_application_draft";
+export const DRAFT_TOOL_DESCRIPTION =
+  "Record the drafted cover letter and tailored resume for the candidate's application.";
+
+export const DRAFT_JSON_SCHEMA = {
+  type: "object" as const,
+  properties: {
+    coverLetter: {
+      type: "string",
+      description:
+        "A complete, polished cover letter (3–4 paragraphs, 250–350 words). " +
+        "Every factual claim traces to the evidence quotes or original resume.",
+    },
+    tailoredResume: {
+      type: "string",
+      description:
+        "A complete, ready-to-submit resume tailored to this specific role. " +
+        "Includes contact info, professional summary, experience, skills, " +
+        "and education — reordered and emphasized to match the posting.",
+    },
+  },
+  required: ["coverLetter", "tailoredResume"],
+};
+
+export function draftUserPrompt(
+  matchedEvidence: Record<string, string>,
+  missingSkills: string[],
+  jobText: string,
+  resumeText: string,
+  editNote: string | null
+): string {
+  const evidenceLines = Object.entries(matchedEvidence)
+    .map(([skill, quote]) => `• ${skill}: "${quote}"`)
+    .join("\n");
+  return (
+    `JOB POSTING:\n"""\n${jobText.slice(0, MAX_INPUT_CHARS)}\n"""\n\n` +
+    `VERIFIED EVIDENCE QUOTES (each already confirmed as a verbatim resume substring):\n${evidenceLines}\n\n` +
+    `SKILLS THE CANDIDATE IS MISSING FOR THIS ROLE:\n${missingSkills.length ? missingSkills.join(", ") : "None identified"}\n\n` +
+    `CANDIDATE'S ORIGINAL FULL RESUME:\n"""\n${resumeText.slice(0, MAX_INPUT_CHARS)}\n"""\n\n` +
+    (editNote ? `HUMAN EDIT NOTE (incorporate this guidance):\n${editNote}\n\n` : "") +
+    "Draft the cover letter and tailored resume now."
+  );
+}
+

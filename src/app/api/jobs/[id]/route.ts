@@ -52,6 +52,8 @@ export async function GET(
           injectionSnippets: JSON.parse((evaluation.injection_snippets as string) ?? "[]"),
           approvalNote: evaluation.approval_note,
           draft: evaluation.draft,
+          coverLetter: (evaluation.cover_letter as string) || state?.coverLetter || null,
+          tailoredResume: (evaluation.tailored_resume as string) || state?.tailoredResume || null,
           profileName: evaluation.profile_name,
           trace: JSON.parse(evaluation.trace_json as string),
           state,

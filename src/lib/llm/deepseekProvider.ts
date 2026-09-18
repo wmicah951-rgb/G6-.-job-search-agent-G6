@@ -4,10 +4,16 @@ import {
   FIT_SYSTEM_PROMPT,
   FIT_TOOL_DESCRIPTION,
   FIT_TOOL_NAME,
+  DRAFT_JSON_SCHEMA,
+  DRAFT_SYSTEM_PROMPT,
+  DRAFT_TOOL_DESCRIPTION,
+  DRAFT_TOOL_NAME,
+  draftUserPrompt,
+  userPrompt,
   MAX_INPUT_CHARS,
   TIMEOUT_MS,
-  userPrompt,
   type LlmFitResult,
+  type LlmDraftResult,
   type LlmProvider,
 } from "./types";
 
@@ -72,6 +78,43 @@ export const deepseekProvider: LlmProvider = {
         throw new Error("DeepSeek response did not include the expected structured tool call.");
       }
       return JSON.parse(toolCall.function.arguments) as LlmFitResult;
+    } finally {
+      clearTimeout(timeout);
+    }
+  },
+
+  async draftApplicationMaterials(matchedEvidence, missingSkills, jobText, resumeText, editNote) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000); // drafting can take longer
+    try {
+      const response = await getClient().chat.completions.create(
+        {
+          model: MODEL,
+          max_tokens: 2500,
+          messages: [
+            { role: "system", content: DRAFT_SYSTEM_PROMPT },
+            { role: "user", content: draftUserPrompt(matchedEvidence, missingSkills, jobText, resumeText, editNote) },
+          ],
+          tools: [
+            {
+              type: "function",
+              function: {
+                name: DRAFT_TOOL_NAME,
+                description: DRAFT_TOOL_DESCRIPTION,
+                parameters: DRAFT_JSON_SCHEMA,
+              },
+            },
+          ],
+          tool_choice: { type: "function", function: { name: DRAFT_TOOL_NAME } },
+        },
+        { signal: controller.signal }
+      );
+
+      const toolCall = response.choices[0]?.message?.tool_calls?.[0];
+      if (!toolCall || toolCall.type !== "function") {
+        throw new Error("DeepSeek response did not include the expected structured draft tool call.");
+      }
+      return JSON.parse(toolCall.function.arguments) as LlmDraftResult;
     } finally {
       clearTimeout(timeout);
     }

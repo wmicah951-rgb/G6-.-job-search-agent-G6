@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
     args: [jobId],
   });
   const evalRes = await c.execute({
-    sql: "SELECT trace_json, state_json FROM evaluations WHERE job_id = ?",
+    sql: "SELECT trace_json, state_json, resume_snapshot FROM evaluations WHERE job_id = ?",
     args: [jobId],
   });
 
@@ -31,6 +31,10 @@ export async function POST(req: NextRequest) {
   }
 
   const jobText = jobRes.rows[0].raw_text as string;
+  // The resume snapshot from evaluation time — used for LLM drafting so the
+  // draft is grounded in the exact resume that was evaluated, not whatever
+  // profile happens to be active now (which may have changed since).
+  const resumeText = (evalRes.rows[0].resume_snapshot as string) || null;
 
   const prior: EvaluationResult = {
     state: JSON.parse(evalRes.rows[0].state_json as string),
@@ -46,20 +50,18 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Drafting grounds itself in prior.state.matchedEvidence — the quotes already
-  // verified against the resume at evaluation time — not whatever profile
-  // happens to be active right now, so switching or editing a profile between
-  // evaluation and approval can never change what an already-decided job's
-  // draft is grounded in.
-  const result = applyHumanDecision(prior, decision as any, editNote, jobText);
+  const result = await applyHumanDecision(prior, decision as any, editNote, jobText, resumeText);
 
   await c.execute({
-    sql: `UPDATE evaluations SET stage = ?, approval_note = ?, draft = ?, trace_json = ?,
-          state_json = ?, updated_at = datetime('now') WHERE job_id = ?`,
+    sql: `UPDATE evaluations SET stage = ?, approval_note = ?, draft = ?,
+          cover_letter = ?, tailored_resume = ?,
+          trace_json = ?, state_json = ?, updated_at = datetime('now') WHERE job_id = ?`,
     args: [
       result.state.stage,
       result.state.approvalNote,
       result.state.draft,
+      result.state.coverLetter,
+      result.state.tailoredResume,
       JSON.stringify(result.trace),
       JSON.stringify(result.state),
       jobId,
@@ -68,3 +70,4 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({ evaluation: result });
 }
+

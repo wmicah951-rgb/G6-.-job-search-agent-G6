@@ -16,7 +16,7 @@
 // deterministic code, completely untouched by whatever the LLM returns. The
 // LLM is a tool the agent calls, never the decision-maker.
 
-import { evaluateFitWithLlm, isLlmConfigured } from "./llmEvaluator";
+import { evaluateFitWithLlm, isLlmConfigured, draftApplicationMaterials } from "./llmEvaluator";
 
 export type Stage =
   | "start"
@@ -65,6 +65,8 @@ export interface AgentState {
   clarificationQuestion: string | null;
   approvalNote: string | null;
   draft: string | null;
+  coverLetter: string | null;
+  tailoredResume: string | null;
 }
 
 export interface TraceStep {
@@ -507,6 +509,8 @@ export async function runAgent(
     clarificationQuestion: null,
     approvalNote: null,
     draft: null,
+    coverLetter: null,
+    tailoredResume: null,
   };
 
   // Computed once up front and reused by both the fit-rationale and
@@ -723,12 +727,13 @@ export function applyClarificationAnswer(
 // Note: no resumeText parameter — drafting uses state.matchedEvidence, the
 // quotes already verified against the resume at evaluation time, so a draft
 // can never be affected by anything that happened to the resume/profile since.
-export function applyHumanDecision(
+export async function applyHumanDecision(
   prior: EvaluationResult,
   decision: "approve" | "edit" | "reject",
   editNote: string | null,
-  jobText: string
-): EvaluationResult {
+  jobText: string,
+  resumeText: string | null
+): Promise<EvaluationResult> {
   const trace = [...prior.trace];
   let step = trace.length;
   let state = { ...prior.state };
@@ -792,13 +797,16 @@ export function applyHumanDecision(
 
   // Draft, grounded ONLY in facts extracted from resume.md — never fabricated.
   const draftBefore = { ...state };
-  const draft = draftApplication(state.matchedEvidence, jobText, state.matchedSkills, state.approvalNote);
-  state = { ...state, stage: "drafted", draft };
+  const { draft, coverLetter, tailoredResume } = await draftApplication(
+    state.matchedEvidence, state.missingSkills, jobText, state.matchedSkills, state.approvalNote, resumeText
+  );
+  state = { ...state, stage: "drafted", draft, coverLetter, tailoredResume };
   log(
-    `Drafting using matched_skills=[${state.matchedSkills.join(", ")}] and resume.md as the only source of candidate facts.`,
+    `Drafting using matched_skills=[${state.matchedSkills.join(", ")}] and resume.md as the only source of candidate facts.${coverLetter ? " LLM-powered cover letter and tailored resume generated." : " Deterministic bullet-point draft (no LLM configured)."}`,
     ["draft_application"],
     "draft_application",
-    "Draft produced. Every claim traces back to a line in resume.md; nothing outside the resume was asserted.",
+    "Draft produced. Every claim traces back to a line in resume.md; nothing outside the resume was asserted." +
+      (coverLetter ? " Full cover letter and tailored resume included." : ""),
     draftBefore,
     state
   );
@@ -806,16 +814,15 @@ export function applyHumanDecision(
   return { state, trace };
 }
 
-function draftApplication(
+async function draftApplication(
   matchedEvidence: Record<string, string>,
+  missingSkills: string[],
   jobText: string,
   matchedSkills: string[],
-  editNote: string | null
-): string {
-  // Ground every bullet in the evidence quote already verified at evaluation time
-  // (see performFitEvaluation), so the draft can never claim something not
-  // present in resume.md, regardless of whether that quote came from the
-  // deterministic matcher or the LLM.
+  editNote: string | null,
+  resumeText: string | null
+): Promise<{ draft: string; coverLetter: string | null; tailoredResume: string | null }> {
+  // Always produce the deterministic bullet-point draft as a baseline
   const bullets: string[] = [];
   for (const skill of matchedSkills) {
     const evidenceLine = matchedEvidence[skill];
@@ -827,7 +834,7 @@ function draftApplication(
   const titleMatch = jobText.match(/^#?\s*(.+)$/m);
   const roleTitle = titleMatch ? titleMatch[1].trim() : "this role";
 
-  return [
+  const draft = [
     `Draft cover-letter bullets for ${roleTitle}`,
     "",
     "Grounded matches (each line quoted directly from resume.md — nothing invented):",
@@ -837,4 +844,16 @@ function draftApplication(
   ]
     .filter(Boolean)
     .join("\n");
+
+  // Try LLM-powered drafting for a real cover letter + tailored resume
+  if (resumeText) {
+    const llmDraft = await draftApplicationMaterials(
+      matchedEvidence, missingSkills, jobText, resumeText, editNote
+    );
+    if (llmDraft) {
+      return { draft, coverLetter: llmDraft.coverLetter, tailoredResume: llmDraft.tailoredResume };
+    }
+  }
+
+  return { draft, coverLetter: null, tailoredResume: null };
 }

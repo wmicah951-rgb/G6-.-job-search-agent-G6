@@ -4,10 +4,16 @@ import {
   FIT_SYSTEM_PROMPT,
   FIT_TOOL_DESCRIPTION,
   FIT_TOOL_NAME,
+  DRAFT_JSON_SCHEMA,
+  DRAFT_SYSTEM_PROMPT,
+  DRAFT_TOOL_DESCRIPTION,
+  DRAFT_TOOL_NAME,
+  draftUserPrompt,
   MAX_INPUT_CHARS,
   TIMEOUT_MS,
   userPrompt,
   type LlmFitResult,
+  type LlmDraftResult,
   type LlmProvider,
 } from "./types";
 
@@ -68,6 +74,38 @@ export const anthropicProvider: LlmProvider = {
       );
       if (!toolUse) throw new Error("Anthropic response did not include the expected structured tool call.");
       return toolUse.input as LlmFitResult;
+    } finally {
+      clearTimeout(timeout);
+    }
+  },
+
+  async draftApplicationMaterials(matchedEvidence, missingSkills, jobText, resumeText, editNote) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000);
+    try {
+      const response = await getClient().messages.create(
+        {
+          model: MODEL,
+          max_tokens: 2500,
+          system: DRAFT_SYSTEM_PROMPT,
+          tools: [
+            {
+              name: DRAFT_TOOL_NAME,
+              description: DRAFT_TOOL_DESCRIPTION,
+              input_schema: DRAFT_JSON_SCHEMA,
+            },
+          ],
+          tool_choice: { type: "tool", name: DRAFT_TOOL_NAME },
+          messages: [{ role: "user", content: draftUserPrompt(matchedEvidence, missingSkills, jobText, resumeText, editNote) }],
+        },
+        { signal: controller.signal }
+      );
+
+      const toolUse = response.content.find(
+        (b): b is Anthropic.ToolUseBlock => b.type === "tool_use"
+      );
+      if (!toolUse) throw new Error("Anthropic response did not include the expected structured draft tool call.");
+      return toolUse.input as LlmDraftResult;
     } finally {
       clearTimeout(timeout);
     }

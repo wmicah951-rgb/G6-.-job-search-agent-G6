@@ -26,6 +26,8 @@ type Evaluation = {
   injectionSnippets: string[];
   approvalNote: string | null;
   draft: string | null;
+  coverLetter: string | null;
+  tailoredResume: string | null;
   profileName: string | null;
   trace: TraceStep[];
 };
@@ -286,9 +288,47 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
       )}
 
       {ev.draft && (
-        <div className="border border-green-200 bg-green-50 rounded-lg p-4 mb-6">
-          <div className="font-medium mb-2">Draft (produced only after your approval)</div>
+        <div className="border border-green-200 bg-green-50 rounded-lg p-4 mb-4">
+          <div className="flex justify-between items-center mb-2">
+            <div className="font-medium">Grounded evidence (produced only after your approval)</div>
+            <button
+              onClick={() => navigator.clipboard.writeText(ev.draft!)}
+              className="text-xs text-green-700 hover:text-green-900 underline"
+            >
+              Copy
+            </button>
+          </div>
           <pre className="whitespace-pre-wrap text-sm font-mono text-neutral-900">{ev.draft}</pre>
+        </div>
+      )}
+
+      {ev.coverLetter && (
+        <div className="border border-blue-200 bg-blue-50 rounded-lg p-4 mb-4">
+          <div className="flex justify-between items-center mb-2">
+            <div className="font-medium text-blue-900">📝 Cover Letter (AI-drafted, grounded in your resume)</div>
+            <button
+              onClick={() => navigator.clipboard.writeText(ev.coverLetter!)}
+              className="text-xs text-blue-700 hover:text-blue-900 underline"
+            >
+              Copy
+            </button>
+          </div>
+          <div className="whitespace-pre-wrap text-sm text-neutral-900 leading-relaxed">{ev.coverLetter}</div>
+        </div>
+      )}
+
+      {ev.tailoredResume && (
+        <div className="border border-purple-200 bg-purple-50 rounded-lg p-4 mb-6">
+          <div className="flex justify-between items-center mb-2">
+            <div className="font-medium text-purple-900">📄 Tailored Resume (AI-rewritten for this role)</div>
+            <button
+              onClick={() => navigator.clipboard.writeText(ev.tailoredResume!)}
+              className="text-xs text-purple-700 hover:text-purple-900 underline"
+            >
+              Copy
+            </button>
+          </div>
+          <pre className="whitespace-pre-wrap text-sm font-mono text-neutral-900">{ev.tailoredResume}</pre>
         </div>
       )}
 

@@ -61,6 +61,17 @@ export async function ensureSchema() {
       FOREIGN KEY (job_id) REFERENCES jobs(id)
     );
   `);
+
+  // Migrations — ALTER TABLE is not idempotent, so catch "duplicate column"
+  // errors silently. These columns were added after the initial schema.
+  const migrations = [
+    "ALTER TABLE evaluations ADD COLUMN cover_letter TEXT",
+    "ALTER TABLE evaluations ADD COLUMN tailored_resume TEXT",
+  ];
+  for (const sql of migrations) {
+    try { await c.execute(sql); } catch { /* column already exists — fine */ }
+  }
+
   await ensureDefaultProfile(c);
 }
 
