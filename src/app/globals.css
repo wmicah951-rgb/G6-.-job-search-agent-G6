@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+/*
+ * This app only ever ships a light theme (no dark-theme styling exists for the
+ * nav, cards, badges, etc.). Previously this file flipped --foreground to
+ * near-white under prefers-color-scheme: dark, but form inputs/textareas never
+ * set their own text/background color, so they inherited that near-white text
+ * with no matching dark background — white text on a white box, unreadable.
+ * Forcing color-scheme: light here stops both the CSS variable flip and the
+ * browser's native dark-mode rendering of form controls.
+ */
+:root {
+  color-scheme: light;
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Belt-and-suspenders: every text input/textarea gets an explicit light
+   background + dark text + visible caret, so no future theme change or
+   browser default can make typed text invisible again. */
+input,
+textarea,
+select {
+  background-color: #ffffff;
+  color: #171717;
+  caret-color: #171717;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #9ca3af;
+}
