@@ -86,6 +86,24 @@ async function ensureDefaultProfile(c: Client) {
   });
 }
 
+export function isTursoConfigured(): boolean {
+  return !!process.env.TURSO_DATABASE_URL;
+}
+
+// A cheap (SELECT 1) live check — unlike the LLM connection test, this has no
+// meaningful cost, so the system-status panel can safely run it on every load.
+export async function testDbConnection(): Promise<{ ok: boolean; message: string }> {
+  try {
+    await db().execute("SELECT 1");
+    return {
+      ok: true,
+      message: isTursoConfigured() ? "Connected to Turso." : "Using local file DB (local.db).",
+    };
+  } catch (err) {
+    return { ok: false, message: String(err).slice(0, 200) };
+  }
+}
+
 export async function getActiveProfile(): Promise<{
   id: string;
   name: string;

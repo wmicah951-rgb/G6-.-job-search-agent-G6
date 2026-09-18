@@ -33,6 +33,31 @@ export function isLlmConfigured(): boolean {
   return !!process.env.ANTHROPIC_API_KEY;
 }
 
+export function getModelName(): string {
+  return MODEL;
+}
+
+// A minimal (max_tokens: 5) call used ONLY when a human explicitly clicks
+// "Test connection" on the system-status panel — never automatically on page
+// load, so simply viewing the dashboard never spends a token. This confirms
+// the API key/workspace configuration actually works, as distinct from
+// isLlmConfigured() which only checks that a key is present.
+export async function testLlmConnection(): Promise<{ ok: boolean; message: string }> {
+  if (!isLlmConfigured()) {
+    return { ok: false, message: "No ANTHROPIC_API_KEY configured." };
+  }
+  try {
+    await getClient().messages.create({
+      model: MODEL,
+      max_tokens: 5,
+      messages: [{ role: "user", content: "Reply with: OK" }],
+    });
+    return { ok: true, message: `Connected (${MODEL}).` };
+  } catch (err) {
+    return { ok: false, message: String(err).slice(0, 200) };
+  }
+}
+
 let client: Anthropic | null = null;
 function getClient(): Anthropic {
   if (!client) {

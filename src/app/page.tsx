@@ -43,6 +43,91 @@ function fitScoreColor(score: number): string {
   return "bg-red-100 text-red-800";
 }
 
+type SystemStatus = {
+  database: { ok: boolean; mode: "turso" | "local-file"; message: string };
+  llm: { configured: boolean; model: string };
+  scraper: { available: boolean };
+};
+
+type LlmTestResult = { ok: boolean; message: string } | null;
+
+// Small colored-dot badge shared by every row in the status panel — green for
+// a confirmed-working state, neutral gray for an intentionally-off state
+// (e.g. LLM simply not configured), red for configured-but-failing.
+function StatusDot({ color }: { color: "green" | "gray" | "red" }) {
+  const bg = color === "green" ? "bg-green-500" : color === "red" ? "bg-red-500" : "bg-neutral-400";
+  return <span className={`inline-block w-2 h-2 rounded-full ${bg}`} />;
+}
+
+function SystemStatusPanel() {
+  const [status, setStatus] = useState<SystemStatus | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [llmTest, setLlmTest] = useState<LlmTestResult>(null);
+  const [testing, setTesting] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/system-status")
+      .then((r) => r.json())
+      .then(setStatus)
+      .finally(() => setLoading(false));
+  }, []);
+
+  async function testLlm() {
+    setTesting(true);
+    setLlmTest(null);
+    try {
+      const res = await fetch("/api/system-status/test-llm", { method: "POST" });
+      setLlmTest(await res.json());
+    } finally {
+      setTesting(false);
+    }
+  }
+
+  if (loading || !status) {
+    return <div className="border border-neutral-200 bg-white rounded-lg p-3 mb-4 text-xs text-neutral-500">Checking system status…</div>;
+  }
+
+  return (
+    <div className="border border-neutral-200 bg-white rounded-lg p-3 mb-4">
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
+        <div className="flex items-center gap-2">
+          <StatusDot color={status.database.ok ? "green" : "red"} />
+          <span className="text-neutral-900">
+            Database: {status.database.mode === "turso" ? "Turso" : "Local file"}
+          </span>
+          <span className="text-xs text-neutral-500">({status.database.message})</span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <StatusDot color={llmTest ? (llmTest.ok ? "green" : "red") : "gray"} />
+          <span className="text-neutral-900">
+            LLM matching: {status.llm.configured ? status.llm.model : "not configured (deterministic matching)"}
+          </span>
+          {status.llm.configured && (
+            <button
+              onClick={testLlm}
+              disabled={testing}
+              className="text-xs text-blue-700 underline disabled:opacity-50"
+            >
+              {testing ? "Testing…" : "Test connection"}
+            </button>
+          )}
+          {llmTest && (
+            <span className={`text-xs ${llmTest.ok ? "text-green-700" : "text-red-700"}`}>
+              {llmTest.message}
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <StatusDot color={status.scraper.available ? "green" : "red"} />
+          <span className="text-neutral-900">Job-posting scraper: available (best-effort)</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const [jobs, setJobs] = useState<JobRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,6 +141,8 @@ export default function Dashboard() {
 
   return (
     <div>
+      <SystemStatusPanel />
+
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-xl font-semibold">Evaluated postings</h1>
         <a
