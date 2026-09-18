@@ -63,6 +63,6 @@ found during QA:
   posting with unusual wording could slip past either extractor silently).
   A more robust version would flag low-confidence extractions instead of
   guessing.
-- The fit-score threshold (0.34) and the skill alias dictionary are reasonable
+- The fit-score threshold (0.45) and the skill alias dictionary are reasonable
   defaults but arbitrary — they haven't been tuned against a large real-world
   posting set.

@@ -62,7 +62,7 @@ assignment, and this text version is the source of truth either way).
  │     hardConstraintViolations.length > 0                              │
  │        └──► reject_hard_constraint   (STOP — no human step at all)   │
  │                                                                       │
- │     fitScore < LOW_FIT_THRESHOLD (0.34)                              │
+ │     fitScore < LOW_FIT_THRESHOLD (0.45)                              │
  │        └──► reject_low_fit           (STOP — no human step at all)   │
  │                                                                       │
  │     otherwise                                                        │
