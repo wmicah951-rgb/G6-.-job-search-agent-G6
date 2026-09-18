@@ -161,6 +161,12 @@ export default function UploadPage() {
         whichever profile is marked <span className="font-medium">active</span>.
       </p>
 
+      <p className="text-xs bg-amber-50 border border-amber-200 text-amber-900 rounded-md px-3 py-2 mb-4">
+        This site is public and shared by the whole group. Use <b>fictional</b> info only —
+        no real phone number, address or email. You can set the fit bar in preferences
+        with a line like <code>Minimum fit: 60%</code>.
+      </p>
+
       <div className="border border-neutral-200 bg-white rounded-lg p-3 mb-4">
         <label className="block text-xs font-medium text-neutral-500 mb-1">Profile</label>
         <div className="flex flex-wrap items-center gap-2">

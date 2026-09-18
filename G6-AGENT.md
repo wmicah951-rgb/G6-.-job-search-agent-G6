@@ -136,7 +136,11 @@ make at each point:
   separate so you always know *why*
 - **ask a human** — pause and wait, nothing happens until someone responds
 - **write the draft** — only reachable after a human says yes, and only
-  allowed to use facts that are literally quoted from the résumé
+  allowed to use facts that are literally quoted from the résumé; when the AI
+  model is doing the drafting (see Layer 9) it also reports back, per missing
+  skill, exactly what it did about it — bridged it using something from your
+  edit note, only mentioned willingness to learn it, or left it out entirely —
+  so you're never left guessing what happened to a gap
 - **discard** — the human said no; nothing gets written
 
 ## Layer 5 — The guardrails (why you can trust it)
@@ -192,7 +196,8 @@ never quietly get grounded in a resume you changed after the fact.
   what's missing, *why it's a genuine fit* (a separate, positive-only
   explanation — not just the same list flipped around), any deal-breakers,
   any trick it caught, the Approve/Edit/Reject buttons, the resulting draft,
-  and a button to see the full step-by-step trace.
+  and a button to see the full step-by-step trace. Once a draft exists, the
+  cover letter and tailored resume can each be copied or downloaded as a PDF.
 - **Resume & Preferences** — profile management, described in Layer 6.
 
 ## Layer 8 — The evidence (this is what proves it's a real agent)
@@ -243,3 +248,82 @@ basic keyword-matching approach. This is completely optional and swappable:
 All the real credentials (database + AI model keys) live in the project's
 environment configuration, already set up and working on the deployed
 version — see the main `README.md` for exactly which ones and where.
+
+---
+
+## Layer 9b — How the AI "brain" reads the posting (the gates in plain words)
+
+Two of the agent's gates now use the AI model as a **reader**, not a decision-maker.
+Before anything else, the model reads the posting once and answers three
+questions: *Is anything in here aimed at an AI/screener instead of applicants?
+Is the job remote, hybrid, or on-site? Does it need a security clearance?*
+
+- **Prompt-injection gate.** The posting is flagged if the AI model **or** a
+  built-in pattern list (the "floor" that still works with no AI configured)
+  spots instructions aimed at a screener — "ignore the above", "rank this
+  applicant first", "no need for anyone to look at the details", hidden HTML
+  comments, and so on. Every passage the model points to must appear word for
+  word in the posting or it is thrown away. When caught, the job page shows a big
+  purple **PROMPT INJECTION CAUGHT** banner with the exact refused text, the home
+  board shows a badge, the agent keeps evaluating the real requirements, and a
+  human still has to approve.
+- **Work-arrangement gate.** The model works out remote / hybrid / on-site from
+  any cue ("three days in our Denver office" = hybrid, "report daily to
+  headquarters" = on-site). On-site breaks a "remote or hybrid only" rule and is
+  rejected; remote or hybrid passes. The agent only **asks you** (`ASK_USER`) when
+  neither the model nor the built-in cues can tell — so it stops nagging.
+- **Same rules for every brain.** The model is a plug: `LLM_PROVIDER=deepseek`,
+  `anthropic`, or `custom` (any OpenAI-compatible model set by `LLM_BASE_URL`,
+  `LLM_API_KEY`, `LLM_MODEL`, including a local Ollama). `npx tsx scripts/conformance.ts`
+  runs the same postings through whichever brain is set and checks that every gate
+  fires identically — with no AI at all it still passes the required tests.
+- **Downloads.** Approved drafts download as typeset PDFs: the résumé with a bold
+  name, ruled section headings, bold role lines and bulleted achievements; the
+  cover letter as a normal business letter.
+- **Delete.** Every posting on the home board has a Delete button (with a confirm).
+
+
+---
+
+## Layer 10 — The fit percentage, in plain words (and how to change the bar)
+
+**Brain vs. harness.** The AI model (the *brain*) only **reads** and answers
+narrow questions. Our code (the *harness*) does all the **deciding**. Swap the
+brain (DeepSeek, Claude, any OpenAI-compatible model) and the rules stay the same.
+
+**How the percent is worked out**
+1. The brain lists only the real *screening requirements* in the posting: skills,
+   tools, domain knowledge, degrees, certifications, years of experience.
+   It must **not** count job duties ("build dashboards"), soft skills
+   ("good communicator"), the company blurb or benefits.
+2. Each requirement is either **required** (counts 1) or **preferred** — "a plus",
+   "nice to have", "bonus" (counts ½).
+3. For each one it must show a **word-for-word quote from the résumé**. No quote =
+   it does not count as matched (and is never used in a draft).
+4. `score = points matched ÷ points possible`.
+
+**Where the bar is.** `preferences.md` has a line `Minimum fit: 60%`. Jobs scoring
+below it are auto-rejected as *low fit*. Change the number (10–90) to be pickier
+or looser. It is per profile, so each teammate can set their own.
+
+**Years of experience.** The résumé is read for "Total professional experience:
+~2 years", then "N years of experience", then the date ranges of the jobs
+("Jan 2021 – Mar 2023", "2019 – Present"). Overlapping jobs are counted once.
+
+**Swap the brain.** In `.env.local`: `LLM_PROVIDER=deepseek | anthropic | custom`
+(custom = `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL`). Leave it empty for no AI at all.
+
+## Layer 11 — How to test everything (copy/paste)
+
+| What | Command | Proves |
+|---|---|---|
+| The 4 required class tests + extras J005–J009 | `npx tsx scripts/run-tests.ts` | Different action sequences per input |
+| Same tests on whatever brain is set | `npx tsx scripts/conformance.ts` | Every brain behaves identically |
+| Whole app over HTTP (needs `npm run start`) | `node scripts/local-e2e.mjs` | Gates, ASK_USER, Approve / Edit / Reject, the "add skill" bridge, 409 guards, delete |
+
+**Human-in-the-loop, tested:** Reject → no draft, and approving afterwards is
+refused (409). Edit with a note → draft made; the note is recorded; a skill
+the candidate says they have (via the "add skill" button) is reported
+`bridged_from_note`; with no note the gap is **never** claimed as experience.
+
+**Privacy note:** this project is public. Profiles must contain **fictional** information only.

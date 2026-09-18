@@ -6,6 +6,9 @@ even if skills match well)
 - Will NOT apply to roles requiring an active security clearance (candidate has none)
 - Remote or hybrid only — no roles that are 100% on-site with no remote option
 
+## Fit bar
+- Minimum fit: 60%   (jobs scoring below this are auto-rejected; change the number to be pickier or looser)
+
 ## Soft preferences (nice-to-have, not disqualifying)
 - Prefers titles containing "Analyst" or "Junior" over "Senior"/"Lead"
 - Prefers companies under 2,000 employees

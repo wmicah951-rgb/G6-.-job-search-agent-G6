@@ -71,3 +71,22 @@ Sending, submitting, or contacting anyone is out of scope by construction —
 there is no code anywhere in this app that sends an HTTP request to a job board,
 an email service, or any third party on the candidate's behalf. The only output
 is text rendered back to the human in their own browser.
+
+## Update: the injection and work-arrangement gates use the brain as a reader
+
+`assessPosting()` (agent.ts) asks the configured model one structured question
+per posting: injection passages, work arrangement (with an evidence quote) and
+clearance. It returns *observations only*:
+
+- Injection = built-in regex floor **OR** model-reported passages. A model
+  passage counts only if it is a literal substring of the posting (same
+  trust-but-verify rule as résumé quotes). No model configured / call fails =
+  the regex floor alone; nothing else changes.
+- Arrangement: the model's verified reading wins, regex cues (`regexArrangement`)
+  are the fallback. `checkHardConstraints` turns "on-site" into a violation when
+  the candidate's location rule (parsed tolerantly by `parseLocationRule`, not one
+  exact phrase) forbids it. `detectLocationAmbiguity` fires `ask_user_clarification`
+  only when the arrangement is still `unknown`.
+- Neither call can approve, reject, draft or skip a step; the branch logic and the
+  approval gate are unchanged, so J001-J004 keep their four distinct sequences.
+

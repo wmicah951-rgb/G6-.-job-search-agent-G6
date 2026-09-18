@@ -11,7 +11,7 @@ let client: Client | null = null;
 
 export function db(): Client {
   if (client) return client;
-  const url = process.env.TURSO_DATABASE_URL ?? "file:local.db";
+  const url = process.env.TURSO_DATABASE_URL || "file:local.db";
   const authToken = process.env.TURSO_AUTH_TOKEN;
   client = createClient(
     authToken ? { url, authToken } : { url }

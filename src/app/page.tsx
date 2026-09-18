@@ -42,7 +42,7 @@ const STAGE_COLOR: Record<string, string> = {
 // the agent decided, not just an arbitrary gradient.
 function fitScoreColor(score: number): string {
   if (score >= 0.7) return "bg-green-100 text-green-800";
-  if (score >= 0.45) return "bg-amber-100 text-amber-800";
+  if (score >= 0.6) return "bg-amber-100 text-amber-800";
   return "bg-red-100 text-red-800";
 }
 
@@ -156,6 +156,15 @@ export default function Dashboard() {
       .then((d) => setActiveProfileName(d.profiles?.find((p: { isActive: boolean; name: string }) => p.isActive)?.name ?? null));
   }, []);
 
+  async function deleteJob(e: React.MouseEvent, id: string, title: string) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!window.confirm(`Delete "${title}"? This removes the posting and its evaluation.`)) return;
+    const res = await fetch(`/api/jobs/${id}`, { method: "DELETE" });
+    if (res.ok) setJobs((prev) => prev.filter((j) => j.id !== id));
+    else window.alert("Could not delete that posting.");
+  }
+
   return (
     <div className="w-full max-w-6xl mx-auto font-sans">
       <SystemStatusPanel />
@@ -214,8 +223,8 @@ export default function Dashboard() {
               </div>
               <div className="flex flex-wrap items-center gap-2 shrink-0">
                 {!!j.injection_detected && (
-                  <span className="text-xs bg-purple-100 text-purple-800 font-medium px-2.5 py-1 rounded-full border border-purple-200">
-                    injection flagged
+                  <span className="text-xs bg-purple-600 text-white font-bold px-2.5 py-1 rounded-full">
+                    ⚠ prompt injection caught
                   </span>
                 )}
                 {j.fit_score !== null && (
@@ -234,6 +243,15 @@ export default function Dashboard() {
                     {STAGE_LABEL[j.stage] ?? j.stage}
                   </span>
                 )}
+                <button
+                  type="button"
+                  onClick={(e) => deleteJob(e, j.id, j.title)}
+                  title="Delete this posting"
+                  aria-label={`Delete ${j.title}`}
+                  className="text-xs text-red-700 hover:bg-red-50 border border-red-200 px-2 py-1 rounded-lg cursor-pointer"
+                >
+                  🗑 Delete
+                </button>
               </div>
             </div>
           </a>

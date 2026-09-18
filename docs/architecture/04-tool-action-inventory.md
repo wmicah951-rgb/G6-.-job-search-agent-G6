@@ -43,3 +43,13 @@ Each row above corresponds to something that shows up as `selectedAction` in a
 real trace (see [08-testing-evidence.md](08-testing-evidence.md)) — this is the
 literal set of choices `runAgent()` had available at each decision point, taken
 directly from the `availableActions` arrays logged alongside every trace step.
+
+## Added supporting tools
+
+| Function | Purpose |
+|---|---|
+| `assessPosting(jobText)` -> `assessPostingWithLlm` | One structured model call returning injection passages, work arrangement (+ quote) and clearance. Every quote is verified against the posting before use |
+| `regexArrangement(jobText)` / `parseLocationRule(prefs)` | Deterministic fallbacks for the work-arrangement gate and tolerant parsing of the candidate's remote/hybrid rule |
+| `makeOpenAiCompatProvider(cfg)` (`llm/openaiCompatProvider.ts`) | One implementation for every OpenAI-compatible model (DeepSeek preset, `custom` via env). Forced tool-calling with a JSON-mode fallback so any brain behaves the same |
+| `renderMarkdownPdf(text, name, kind)` (`lib/pdfRender.ts`) | Typesets the drafted résumé / cover letter into a formatted PDF |
+

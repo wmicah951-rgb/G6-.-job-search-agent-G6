@@ -45,6 +45,8 @@ export async function GET(
           fitMethod: state?.fitMethod ?? "deterministic",
           fitReasoning: state?.fitReasoning ?? null,
           clarificationQuestion: state?.clarificationQuestion ?? null,
+          injectionSources: state?.injectionSources ?? [],
+          workArrangement: state?.workArrangement ?? "unknown",
           hardConstraintViolations: JSON.parse(
             (evaluation.hard_constraint_violations as string) ?? "[]"
           ),
@@ -54,6 +56,7 @@ export async function GET(
           draft: evaluation.draft,
           coverLetter: (evaluation.cover_letter as string) || state?.coverLetter || null,
           tailoredResume: (evaluation.tailored_resume as string) || state?.tailoredResume || null,
+          gapNotes: state?.gapNotes ?? [],
           profileName: evaluation.profile_name,
           trace: JSON.parse(evaluation.trace_json as string),
           state,
@@ -110,3 +113,20 @@ export async function PATCH(
   return NextResponse.json({ success: true, state });
 }
 
+
+// Removes a posting and its evaluation (evaluation first: it references the job).
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  await ensureSchema();
+  const { id } = await params;
+  const c = db();
+  const existing = await c.execute({ sql: "SELECT id FROM jobs WHERE id = ?", args: [id] });
+  if (existing.rows.length === 0) {
+    return NextResponse.json({ error: "Job not found." }, { status: 404 });
+  }
+  await c.execute({ sql: "DELETE FROM evaluations WHERE job_id = ?", args: [id] });
+  await c.execute({ sql: "DELETE FROM jobs WHERE id = ?", args: [id] });
+  return NextResponse.json({ ok: true });
+}

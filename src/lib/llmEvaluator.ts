@@ -6,7 +6,7 @@
 // agent.ts, untouched by anything this module returns.
 //
 // The actual model ("brain") is swappable via the LLM_PROVIDER env var
-// (currently "anthropic" or "deepseek") without touching agent.ts or any API
+// ("anthropic", "deepseek", or "custom" = any OpenAI-compatible endpoint) without touching agent.ts or any API
 // route — they only ever call the functions exported from this file, never a
 // provider file directly. See src/lib/llm/types.ts for the shared contract
 // every provider implements.
@@ -17,22 +17,23 @@
 // LLM calls, exactly as it did before this file existed.
 
 import { anthropicProvider } from "./llm/anthropicProvider";
-import { deepseekProvider } from "./llm/deepseekProvider";
-import type { LlmFitResult, LlmProvider } from "./llm/types";
+import { customProvider, deepseekProvider } from "./llm/deepseekProvider";
+import type { LlmFitResult, LlmPostingAssessment, LlmProvider } from "./llm/types";
 
 export type { LlmFitResult, LlmMatch } from "./llm/types";
-export type { LlmDraftResult } from "./llm/types";
+export type { LlmDraftResult, LlmGapNote } from "./llm/types";
 
 const PROVIDERS: Record<string, LlmProvider> = {
   anthropic: anthropicProvider,
   deepseek: deepseekProvider,
+  custom: customProvider,
 };
 
 // LLM_PROVIDER picks explicitly (set it to switch the "brain" at any time,
 // e.g. LLM_PROVIDER=deepseek or LLM_PROVIDER=anthropic). With no explicit
 // choice, whichever provider has an API key present wins, checked in this
 // order — so setting exactly one key "just works" with no other config.
-const AUTO_DETECT_ORDER = ["deepseek", "anthropic"];
+const AUTO_DETECT_ORDER = ["deepseek", "anthropic", "custom"];
 
 function selectProvider(): LlmProvider | null {
   const explicit = process.env.LLM_PROVIDER?.toLowerCase();
@@ -54,6 +55,15 @@ export function isLlmConfigured(): boolean {
 export function getModelName(): string {
   const provider = selectProvider();
   return provider ? `${provider.name}:${provider.model}` : "none";
+}
+
+// Observations about the posting itself (injection attempts, work arrangement,
+// clearance). The agent's gates decide; this only reports, and callers verify
+// every quote against the posting text before trusting it.
+export async function assessPostingWithLlm(jobText: string): Promise<LlmPostingAssessment> {
+  const provider = selectProvider();
+  if (!provider) throw new Error("No LLM provider configured.");
+  return provider.assessPosting(jobText);
 }
 
 export async function evaluateFitWithLlm(

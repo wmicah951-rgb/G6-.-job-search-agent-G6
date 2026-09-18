@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, use as usePromise } from "react";
+import { renderMarkdownPdf, type PdfKind } from "@/lib/pdfRender";
 
 type TraceStep = {
   step: number;
@@ -24,10 +25,13 @@ type Evaluation = {
   hardConstraintViolations: string[];
   injectionDetected: boolean;
   injectionSnippets: string[];
+  injectionSources: string[];
+  workArrangement: string;
   approvalNote: string | null;
   draft: string | null;
   coverLetter: string | null;
   tailoredResume: string | null;
+  gapNotes: { skill: string; status: string; note: string }[];
   profileName: string | null;
   trace: TraceStep[];
 };
@@ -56,7 +60,7 @@ const STAGE_COLOR: Record<string, string> = {
 
 function fitScoreColor(score: number): string {
   if (score >= 0.7) return "text-green-700";
-  if (score >= 0.45) return "text-amber-700";
+  if (score >= 0.6) return "text-amber-700";
   return "text-red-700";
 }
 
@@ -254,6 +258,14 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
     navigator.clipboard.writeText(text);
     setCopiedSection(section);
     setTimeout(() => setCopiedSection(null), 2000);
+  }
+
+  function downloadAsPdf(text: string, filename: string, kind: PdfKind = "plain") {
+    renderMarkdownPdf(text, filename, kind);
+  }
+
+  function safeFilename(base: string): string {
+    return base.replace(/[^a-z0-9\- ]/gi, "").trim().replace(/\s+/g, "-").slice(0, 80) || "document";
   }
 
   function toggleAllMaterials(expand: boolean) {
@@ -492,37 +504,23 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
         </div>
       </div>
 
-      {/* BIG, PROMINENT SKILLS EVALUATION SECTION */}
+      {/* SKILLS EVALUATION SECTION — kept plain and text-first on purpose */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-6" id="skills-section">
-        {/* Matched Skills - BIG PROMINENT CARD */}
-        <div className="border-2 border-green-200 bg-green-50/80 rounded-2xl p-5 sm:p-6 shadow-xs flex flex-col">
-          <div className="flex items-center justify-between mb-2">
-            <div className="font-bold text-green-950 text-base sm:text-lg flex items-center gap-2">
-              <span className="text-green-700 text-lg">✓</span>
-              <span>Matched Skills ({ev.matchedSkills.length})</span>
-            </div>
-            <span className="text-xs bg-green-200 text-green-900 font-bold px-2.5 py-1 rounded-full">
-              Verified Fit
-            </span>
-          </div>
-          <p className="text-xs text-green-900 mb-4 leading-relaxed">
-            Skills identified in the job posting that were directly matched with verified quotes from your resume.
+        {/* Matched Skills */}
+        <div className="border border-neutral-200 bg-white rounded-xl p-4 sm:p-5 flex flex-col">
+          <h3 className="font-semibold text-neutral-900 text-sm sm:text-base mb-1">
+            Matched Skills ({ev.matchedSkills.length})
+          </h3>
+          <p className="text-xs text-neutral-500 mb-3">
+            Directly matched to a verified quote from your resume.
           </p>
 
           {ev.matchedSkills.length > 0 ? (
-            <div className="flex flex-wrap gap-2 mb-4">
-              {ev.matchedSkills.map((skill, idx) => (
-                <div
-                  key={idx}
-                  className="bg-white border border-green-300 text-green-950 text-xs sm:text-sm font-semibold px-3 py-1.5 rounded-xl shadow-2xs flex items-center gap-1.5"
-                >
-                  <span className="text-green-600 font-bold">✓</span>
-                  <span>{skill}</span>
-                </div>
-              ))}
-            </div>
+            <p className="text-sm text-neutral-800 leading-relaxed mb-3">
+              {ev.matchedSkills.join(" · ")}
+            </p>
           ) : (
-            <p className="text-sm text-neutral-500 italic mb-4">No direct keyword skill matches detected.</p>
+            <p className="text-sm text-neutral-500 italic mb-3">No direct keyword skill matches detected.</p>
           )}
 
           {ev.stage === "awaiting_approval" && ev.matchedSkills.length > 0 && (
@@ -533,61 +531,61 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                 setEditNote((prev) => (prev ? `${prev}\n${addition}` : addition));
                 triggerToast("Added verified skills to draft instructions!");
               }}
-              className="mt-auto text-xs bg-white hover:bg-green-100 text-green-900 font-bold px-3 py-2 rounded-xl border border-green-300 transition-colors cursor-pointer text-center shadow-2xs"
+              className="mt-auto text-xs text-neutral-600 hover:text-neutral-900 underline underline-offset-2 cursor-pointer text-left"
             >
               + Emphasize all matched skills in draft instructions
             </button>
           )}
         </div>
 
-        {/* Missing Skills - BIG PROMINENT CARD WITH INTERACTIVE BRIDGING */}
-        <div className="border-2 border-amber-200 bg-amber-50/80 rounded-2xl p-5 sm:p-6 shadow-xs flex flex-col">
-          <div className="flex items-center justify-between mb-2">
-            <div className="font-bold text-amber-950 text-base sm:text-lg flex items-center gap-2">
-              <span className="text-amber-600 text-lg">⚠️</span>
-              <span>Missing Skills &amp; Gaps ({ev.missingSkills.length})</span>
-            </div>
-            <span className="text-xs bg-amber-200 text-amber-900 font-bold px-2.5 py-1 rounded-full">
-              {ev.missingSkills.length === 0 ? "100% Match" : "Actionable Gaps"}
-            </span>
-          </div>
-          <p className="text-xs text-amber-900 mb-4 leading-relaxed">
-            Skills mentioned in posting not explicitly found on resume. If you have these skills or <strong>similar equivalent experience</strong>, click below to specify them so the agent can tailor your materials for a 100% fit!
+        {/* Missing Skills — with interactive bridging + post-draft gap feedback */}
+        <div className="border border-neutral-200 bg-white rounded-xl p-4 sm:p-5 flex flex-col">
+          <h3 className="font-semibold text-neutral-900 text-sm sm:text-base mb-1">
+            Missing Skills &amp; Gaps ({ev.missingSkills.length})
+          </h3>
+          <p className="text-xs text-neutral-500 mb-3">
+            Mentioned in the posting but not found on your resume. If you have similar experience, add it below so the agent can bridge the gap.
           </p>
 
           {ev.missingSkills.length > 0 ? (
-            <div className="space-y-2.5 mb-4">
-              {ev.missingSkills.map((skill, idx) => (
-                <div
-                  key={idx}
-                  className="bg-white border border-amber-300 rounded-xl p-3 shadow-2xs flex flex-wrap items-center justify-between gap-2"
-                >
-                  <span className="text-xs sm:text-sm font-semibold text-neutral-900">{skill}</span>
-                  {ev.stage === "awaiting_approval" && (
-                    <button
-                      type="button"
-                      onClick={() => addMissingSkillToDraft(skill)}
-                      className="text-xs bg-amber-100 hover:bg-amber-200 text-amber-950 font-bold px-3 py-1.5 rounded-lg border border-amber-300 transition-colors cursor-pointer flex items-center gap-1 shadow-2xs"
-                      title="Add to draft instructions to explain equivalent experience"
-                    >
-                      <span>➕</span>
-                      <span>I have this or similar skill</span>
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
+            <ul className="divide-y divide-neutral-100 mb-3">
+              {ev.missingSkills.map((skill, idx) => {
+                const gapNote = ev.gapNotes?.find(
+                  (g) => g.skill.trim().toLowerCase() === skill.trim().toLowerCase()
+                );
+                return (
+                  <li key={idx} className="py-2 flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <span className="text-sm text-neutral-900">{skill}</span>
+                      {gapNote && (
+                        <p className="text-xs text-neutral-500 mt-0.5">
+                          {gapNote.status === "not_addressed" ? "Not addressed in draft: " : "In draft: "}
+                          {gapNote.note}
+                        </p>
+                      )}
+                    </div>
+                    {ev.stage === "awaiting_approval" && (
+                      <button
+                        type="button"
+                        onClick={() => addMissingSkillToDraft(skill)}
+                        className="text-xs text-amber-800 hover:underline whitespace-nowrap cursor-pointer shrink-0"
+                        title="Add to draft instructions to explain equivalent experience"
+                      >
+                        + I have this or similar
+                      </button>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
           ) : (
-            <div className="bg-white/80 border border-green-300 rounded-xl p-4 text-center mb-4">
-              <span className="text-green-700 font-bold text-sm">🎉 100% Skill Coverage!</span>
-              <p className="text-xs text-green-900 mt-1">No missing skills were identified for this posting.</p>
-            </div>
+            <p className="text-sm text-neutral-500 mb-3">No missing skills identified — full coverage.</p>
           )}
 
           {/* Quick custom skill bridge input */}
           {ev.stage === "awaiting_approval" && ev.missingSkills.length > 0 && (
-            <div className="mt-auto pt-3 border-t border-amber-200/80">
-              <label className="block text-xs font-bold text-amber-950 mb-1">
+            <div className="mt-auto pt-3 border-t border-neutral-100">
+              <label className="block text-xs font-medium text-neutral-700 mb-1">
                 Have a similar skill or equivalent tool?
               </label>
               <div className="flex gap-2">
@@ -595,7 +593,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                   value={customSkillInput}
                   onChange={(e) => setCustomSkillInput(e.target.value)}
                   placeholder="e.g. I have 2 yrs MySQL & Snowflake which is similar to Postgres..."
-                  className="flex-1 border border-amber-300 rounded-xl px-3 py-1.5 text-xs bg-white text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-amber-500 shadow-inner"
+                  className="flex-1 border border-neutral-300 rounded-lg px-3 py-1.5 text-xs bg-white text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-400"
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && customSkillInput.trim()) {
                       addCustomBridgeToDraft("", customSkillInput);
@@ -611,7 +609,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                       setCustomSkillInput("");
                     }
                   }}
-                  className="text-xs bg-amber-800 hover:bg-amber-900 text-white font-bold px-3 py-1.5 rounded-xl transition-colors cursor-pointer shrink-0 shadow-2xs"
+                  className="text-xs bg-neutral-800 hover:bg-neutral-900 text-white font-medium px-3 py-1.5 rounded-lg transition-colors cursor-pointer shrink-0"
                 >
                   + Add to Draft
                 </button>
@@ -666,16 +664,27 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
         </div>
       )}
 
-      {/* Injection Refusal */}
+      {/* Injection Refusal — loud on purpose: this is a security gate firing */}
       {ev.injectionDetected && (
-        <div className="border border-purple-200 bg-purple-50 rounded-2xl p-4 mb-6 text-sm text-purple-900 shadow-xs">
-          <div className="font-semibold text-purple-950 mb-1">Prompt injection detected and refused</div>
-          <p className="mb-2 text-xs leading-relaxed text-purple-800">
-            This posting contained embedded text attempting to instruct the agent directly. It was treated strictly as data and ignored.
+        <div className="border-2 border-purple-500 bg-purple-50 rounded-2xl p-5 mb-6 text-sm text-purple-950 shadow-md" role="alert">
+          <div className="font-bold text-purple-950 text-base mb-1 flex items-center gap-2">
+            <span>⚠️</span>
+            <span>PROMPT INJECTION CAUGHT — instructions in this posting were NOT followed</span>
+          </div>
+          <p className="mb-3 text-xs leading-relaxed text-purple-900">
+            This posting contains text aimed at an AI/screening system instead of at applicants. It was treated strictly
+            as data. The evaluation below used only the real requirements, and a human decision is still required
+            before anything is drafted.
+            {ev.injectionSources && ev.injectionSources.length > 0 && (
+              <> Detected by: <strong>{ev.injectionSources.join(" + ")}</strong>.</>
+            )}
           </p>
-          <ul className="list-disc list-inside font-mono text-xs space-y-1">
+          <div className="text-xs font-semibold mb-1">Refused text:</div>
+          <ul className="space-y-1">
             {ev.injectionSnippets.map((s, i) => (
-              <li key={i}>{s}</li>
+              <li key={i} className="font-mono text-xs bg-white border border-purple-200 rounded-lg px-3 py-1.5 break-words">
+                {s}
+              </li>
             ))}
           </ul>
         </div>
@@ -899,6 +908,12 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                     </>
                   )}
                   <button
+                    onClick={() => downloadAsPdf(evidenceText, `${safeFilename(data.job.title)}-evidence.pdf`)}
+                    className="text-xs bg-white hover:bg-green-100 text-green-900 font-medium px-3 py-1 rounded-lg border border-green-300 transition-colors cursor-pointer"
+                  >
+                    Download PDF
+                  </button>
+                  <button
                     onClick={() => copyToClipboard(evidenceText, "evidence")}
                     className="text-xs bg-green-700 hover:bg-green-800 text-white font-medium px-3 py-1 rounded-lg transition-colors cursor-pointer shadow-xs"
                   >
@@ -986,6 +1001,12 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                     </>
                   )}
                   <button
+                    onClick={() => downloadAsPdf(coverLetterText, `${safeFilename(data.job.title)}-cover-letter.pdf`, "letter")}
+                    className="text-xs bg-white hover:bg-blue-100 text-blue-900 font-medium px-3 py-1 rounded-lg border border-blue-300 transition-colors cursor-pointer"
+                  >
+                    Download PDF
+                  </button>
+                  <button
                     onClick={() => copyToClipboard(coverLetterText, "coverLetter")}
                     className="text-xs bg-blue-700 hover:bg-blue-800 text-white font-medium px-3 py-1 rounded-lg transition-colors cursor-pointer shadow-xs"
                   >
@@ -1072,6 +1093,12 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                       )}
                     </>
                   )}
+                  <button
+                    onClick={() => downloadAsPdf(tailoredResumeText, `${safeFilename(data.job.title)}-tailored-resume.pdf`, "resume")}
+                    className="text-xs bg-white hover:bg-purple-100 text-purple-900 font-medium px-3 py-1 rounded-lg border border-purple-300 transition-colors cursor-pointer"
+                  >
+                    Download PDF
+                  </button>
                   <button
                     onClick={() => copyToClipboard(tailoredResumeText, "tailoredResume")}
                     className="text-xs bg-purple-700 hover:bg-purple-800 text-white font-medium px-3 py-1 rounded-lg transition-colors cursor-pointer shadow-xs"

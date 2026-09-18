@@ -16,7 +16,14 @@
 // deterministic code, completely untouched by whatever the LLM returns. The
 // LLM is a tool the agent calls, never the decision-maker.
 
-import { evaluateFitWithLlm, isLlmConfigured, draftApplicationMaterials } from "./llmEvaluator";
+import {
+  evaluateFitWithLlm,
+  isLlmConfigured,
+  draftApplicationMaterials,
+  assessPostingWithLlm,
+} from "./llmEvaluator";
+
+export type WorkArrangement = "remote" | "hybrid" | "onsite" | "unknown";
 
 export type Stage =
   | "start"
@@ -38,6 +45,14 @@ export interface AgentState {
   stage: Stage;
   injectionDetected: boolean;
   injectionSnippets: string[];
+  // Where the injection verdict came from: "regex", "llm", or both.
+  injectionSources: string[];
+  // Work arrangement the agent worked out for the posting (LLM inference when
+  // available, regex cues otherwise). "unknown" only when nothing hints at it.
+  workArrangement: WorkArrangement;
+  // Minimum fit (0-1) below which the job is auto-rejected. Read from the
+  // candidate's preferences.md ("Minimum fit: 60%"), default 0.6.
+  minFit?: number;
   fitScore: number | null;
   matchedSkills: string[];
   missingSkills: string[];
@@ -67,6 +82,11 @@ export interface AgentState {
   draft: string | null;
   coverLetter: string | null;
   tailoredResume: string | null;
+  // Only populated when the LLM drafted the materials (see draftApplication()
+  // below): one entry per missingSkills item, reporting exactly how (or
+  // whether) that gap was handled in the cover letter/resume, so the UI can
+  // tell the human what the AI actually did instead of leaving them to guess.
+  gapNotes: { skill: string; status: string; note: string }[];
 }
 
 export interface TraceStep {
@@ -143,49 +163,150 @@ function extractCandidateYears(resumeText: string): number {
     parseFloat(m[1])
   );
   if (yrs.length) return yrs.reduce((a, b) => a + b, 0);
-  return 0;
+  const stated = resumeText.match(
+    /(\d+(?:\.\d+)?)\+?\s*years?\s+(?:of\s+)?(?:professional\s+|work\s+)?experience/i
+  );
+  if (stated) return parseFloat(stated[1]);
+  return yearsFromDateRanges(resumeText);
 }
 
-// ---------- Prompt-injection heuristics ----------
+// Real resumes list jobs as "Jan 2021 - Mar 2023" / "2019 - Present". Count
+// the months covered by the UNION of those ranges (overlapping jobs are not
+// double-counted), so a normal resume is not read as "0 years".
+function yearsFromDateRanges(text: string): number {
+  const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+  const now = new Date();
+  const nowIdx = now.getFullYear() * 12 + now.getMonth();
+  const mon = "(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\\.?,?\\s+";
+  const re = new RegExp(
+    `(?:${mon})?((?:19|20)\\d{2})\\s*(?:-|–|—|to)\\s*(?:(?:${mon})?((?:19|20)\\d{2})|(present|current|now))`,
+    "gi"
+  );
+  const ranges: [number, number][] = [];
+  for (const m of text.matchAll(re)) {
+    const start = parseInt(m[2], 10) * 12 + (m[1] ? MONTHS.indexOf(m[1].toLowerCase()) : 0);
+    const end = m[5]
+      ? nowIdx
+      : parseInt(m[4], 10) * 12 + (m[3] ? MONTHS.indexOf(m[3].toLowerCase()) : 11);
+    if (end >= start && end - start <= 12 * 50) ranges.push([start, end]);
+  }
+  ranges.sort((a, b) => a[0] - b[0]);
+  let months = 0;
+  let curEnd = -Infinity;
+  for (const [a, b] of ranges) {
+    if (a > curEnd) months += b - a;
+    else if (b > curEnd) months += b - curEnd;
+    curEnd = Math.max(curEnd, b);
+  }
+  return Math.round((months / 12) * 10) / 10;
+}
+
+// ---------- Prompt-injection heuristics (the regex FLOOR) ----------
+// The LLM assessment (see assessPosting below) is the primary detector; these
+// patterns are the floor that still catches the obvious attacks when no LLM is
+// configured or the call fails. Aimed at text that addresses an AI/screener,
+// not ordinary job-ad language.
 const INJECTION_PATTERNS: RegExp[] = [
-  /ignore (all|any|the)?\s*(previous|prior|above)?\s*instructions/i,
-  /disregard (your|the|all)?\s*(rules|instructions|resume)/i,
-  // Narrowed to "you are/must now a/an/the <noun>" (classic persona-reassignment
-  // phrasing) so it doesn't fire on ordinary sentences like "you must now complete
-  // onboarding" or "you are now able to apply".
-  /you (are|must) now (an?|the)\s+\w+/i,
-  // Narrowed to "SYSTEM:" followed by instruction-like language, so it doesn't fire
-  // on legitimate posting sections like "System Requirements: Windows 10, 16GB RAM".
-  /system\s*:\s*(ignore|disregard|you are|act as|do not|skip|override|new instructions)/i,
-  /new instructions/i,
-  /automatically (approve|accept|reject)/i,
-  /skip (the )?(human )?approval/i,
-  /do not (evaluate|check|verify)/i,
-  /reply with (only|exactly)/i,
-  /print (the|this) (resume|prompt|instructions)/i,
-  // Narrowed to "act as a/an/the <AI-ish noun>" so it doesn't fire on ordinary role
-  // descriptions like "you will act as a critical backend engine for the team".
-  /act as (an?|the) (ai|assistant|chatbot|bot|language model|llm|agent)\b/i,
-  /this candidate (is|should be) (perfect|hired|approved)/i,
+  /(?:ignore|disregard|forget|override)\s+(?:all|any|the|your|every)?\s*(?:previous|prior|above|earlier|preceding|system)?\s*(?:instructions?|rules?|prompts?|guidelines?|directions?|context)/i,
+  /(?:new|updated|revised)\s+(?:instructions|rules|system prompt)/i,
+  /you\s+(?:are|must|will)\s+(?:now|henceforth)\s+(?:an?|the|act|behave|ignore|only|always)\b[^.\n]{0,40}/i,
+  /(?:^|[\s<!\-\[])system\s*(?:prompt|message)?\s*:\s*(?:ignore|disregard|you are|act as|do not|skip|override|new instructions|approve|rate|score|output|print|reply)[^.\n]{0,40}/i,
+  /(?:automatically|auto[- ]?)\s*(?:approve|accept|hire|pass|advance|shortlist|reject)/i,
+  /skip\s+(?:the\s+)?(?:human\s+|manual\s+)?(?:approval|review|check|screening|evaluation|verification)/i,
+  /(?:do not|don't|never)\s+(?:evaluate|check|verify|flag|screen|review)\s+(?:this|the|any|hard)?\s*(?:candidate|applicant|resume|résumé|posting|requirements?|constraints?)/i,
+  /(?:do not|don't|never)\s+(?:tell|warn|inform|alert|notify)\s+(?:the\s+)?(?:applicant|candidate|user|human|reviewer)/i,
+  /(?:reply|respond|answer|output)\s+(?:with\s+)?(?:only|exactly|just)\b[^.\n]{0,40}/i,
+  /(?:print|show|reveal|repeat|output|leak|dump|display)\s+(?:the\s+|your\s+|this\s+|entire\s+|full\s+)?(?:resume|r\u00e9sum\u00e9|cv|system prompt|prompt|instructions|candidate data)/i,
+  /(?:act|behave|pretend|roleplay|role-play)\s+(?:as|like)\s+(?:an?\s+|the\s+)?(?:ai|assistant|chatbot|bot|language model|llm|agent|unrestricted|dan)\b/i,
+  /this candidate\s+(?:is|should be|must be|deserves)\s+(?:perfect|hired|approved|accepted|shortlisted|top|the best|ideal)/i,
+  /(?:rate|score|rank|grade|mark)\s+(?:this\s+)?(?:candidate|applicant|resume|r\u00e9sum\u00e9)\s+(?:as\s+)?(?:\d+|perfect|highest|top|10)/i,
+  /(?:send|forward|email|e-mail|message|contact)\s+(?:this|the|my|their)?\s*(?:resume|r\u00e9sum\u00e9|cv|data|results?|application)\s+to\s+\S+@\S+/i,
+  /(?:^|\W)(?:jailbreak|prompt injection|developer mode)(?:\W|$)/i,
 ];
 
 function scanForInjection(jobText: string): { detected: boolean; snippets: string[] } {
   const snippets: string[] = [];
   for (const re of INJECTION_PATTERNS) {
     const m = jobText.match(re);
-    if (m) snippets.push(m[0]);
+    if (m) snippets.push(m[0].trim());
   }
   return { detected: snippets.length > 0, snippets };
+}
+
+// ---------- LLM posting assessment (the brain OBSERVES; code DECIDES) ----------
+const norm = (t: string) => t.replace(/\s+/g, " ").trim().toLowerCase();
+
+interface PostingAssessment {
+  injectionSnippets: string[]; // verified verbatim in the posting
+  arrangement: WorkArrangement;
+  arrangementQuote: string;
+  clearanceRequired: boolean;
+}
+
+// Any snippet/quote the model returns is kept ONLY if it literally appears in
+// the posting (same trust-but-verify rule as the resume quotes).
+async function assessPosting(jobText: string): Promise<PostingAssessment | null> {
+  if (!isLlmConfigured()) return null;
+  try {
+    const a = await assessPostingWithLlm(jobText);
+    const hay = norm(jobText);
+    const snippets = (a.injection?.snippets ?? []).filter((sn) => sn && hay.includes(norm(sn)));
+    const quote = a.workArrangement?.evidenceQuote ?? "";
+    let arrangement: WorkArrangement = a.workArrangement?.value ?? "unknown";
+    if (arrangement !== "unknown" && quote && !hay.includes(norm(quote))) arrangement = "unknown";
+    return {
+      injectionSnippets: a.injection?.detected ? snippets : [],
+      arrangement,
+      arrangementQuote: arrangement === "unknown" ? "" : quote,
+      clearanceRequired: !!a.clearanceRequired && /clearance/i.test(jobText),
+    };
+  } catch {
+    return null;
+  }
+}
+
+// ---------- Work arrangement (regex cues; the LLM's reading takes priority) ----------
+function regexArrangement(jobText: string): WorkArrangement {
+  if (
+    /no\s+(?:remote|hybrid)|not\s+(?:a\s+)?(?:remote|hybrid)|on-?site only|in-?office only|100%\s*(?:on-?site|in[- ]office)|must relocate|no work[- ]from[- ]home/i.test(
+      jobText
+    )
+  )
+    return "onsite";
+  if (
+    /hybrid|\b(?:[1-4]|one|two|three|four)\s*days?\s*(?:a|per|\/|each)\s*week\b[^.\n]{0,40}(?:office|on-?site|in[- ]person)|(?:office|on-?site|in[- ]person)[^.\n]{0,40}\b(?:[1-4]|one|two|three|four)\s*days?\s*(?:a|per|\/|each)\s*week/i.test(
+      jobText
+    )
+  )
+    return "hybrid";
+  if (/remote|work from home|work-from-home|\bwfh\b|distributed team|telecommut/i.test(jobText)) return "remote";
+  if (/on-?site|in[- ]office|in[- ]person|in our [A-Z][a-z]+ office/i.test(jobText)) return "onsite";
+  return "unknown";
+}
+
+// The candidate's location rule, parsed tolerantly from preferences (not only
+// the exact phrase "remote or hybrid only").
+function parseLocationRule(preferencesText: string): "remote_or_hybrid" | "remote_only" | null {
+  const p = preferencesText.toLowerCase();
+  if (/remote[- ]only|fully remote only|only remote/.test(p) && !/hybrid/.test(p)) return "remote_only";
+  if (
+    /remote\s*(?:or|\/|,|and)\s*hybrid|hybrid\s*(?:or|\/|,|and)\s*remote|no\s+(?:roles?\s+(?:that\s+are\s+)?)?(?:100%\s*)?on-?site|not\s+(?:be\s+)?on-?site|no in-?office/.test(
+      p
+    )
+  )
+    return "remote_or_hybrid";
+  return null;
 }
 
 // ---------- Hard constraints ----------
 function checkHardConstraints(
   jobText: string,
   candidateYears: number,
-  preferencesText: string
+  preferencesText: string,
+  arrangement: WorkArrangement,
+  clearanceRequired: boolean
 ): string[] {
   const violations: string[] = [];
-  const lowerJob = jobText.toLowerCase();
   const lowerPrefs = preferencesText.toLowerCase();
 
   const requiredYears = extractRequiredYears(jobText);
@@ -204,35 +325,30 @@ function checkHardConstraints(
 
   if (
     lowerPrefs.includes("will not apply to roles requiring an active security clearance") &&
-    /security clearance/i.test(jobText)
+    (/security clearance/i.test(jobText) || clearanceRequired)
   ) {
     violations.push("Role requires an active security clearance");
   }
 
-  if (
-    lowerPrefs.includes("remote or hybrid only") &&
-    /on-?site only|no remote|in-?office only|must relocate/i.test(jobText) &&
-    !/remote|hybrid/i.test(jobText)
-  ) {
-    violations.push("Role is on-site only with no remote/hybrid option");
+  const rule = parseLocationRule(preferencesText);
+  if (rule && (arrangement === "onsite" || (rule === "remote_only" && arrangement === "hybrid"))) {
+    violations.push(
+      arrangement === "onsite"
+        ? "Role is on-site only with no remote/hybrid option"
+        : "Role is hybrid, but your preferences require fully remote"
+    );
   }
 
   return violations;
 }
 
 // ---------- ASK_USER: hard constraints the agent can't confidently evaluate ----------
-// checkHardConstraints() above only flags a location violation when the posting
-// explicitly says something like "on-site only" — if a posting never mentions
-// work arrangement at all, that function silently treats it as no violation,
-// which is really the agent guessing on the candidate's behalf. This function
-// catches exactly that gap: a posting that says nothing about remote/hybrid/
-// on-site while the candidate has a hard "remote or hybrid only" rule. When
-// true, the agent should ask rather than assume either way.
-function detectLocationAmbiguity(jobText: string, preferencesText: string): string | null {
-  const lowerPrefs = preferencesText.toLowerCase();
-  if (!lowerPrefs.includes("remote or hybrid only")) return null;
-  const mentionsWorkArrangement = /remote|hybrid|on-?site|in-?office|relocate/i.test(jobText);
-  if (mentionsWorkArrangement) return null;
+// Asks ONLY when the candidate has a location rule AND neither the LLM nor the
+// regex cues can work out the posting's arrangement at all. Anything that can
+// be inferred is decided by the gate, not by bothering the user.
+function detectLocationAmbiguity(arrangement: WorkArrangement, preferencesText: string): string | null {
+  if (!parseLocationRule(preferencesText)) return null;
+  if (arrangement !== "unknown") return null;
   return (
     "This posting never states whether the role is remote, hybrid, or on-site, " +
     "but your preferences require remote-or-hybrid-only. Should this posting be " +
@@ -291,19 +407,26 @@ async function performFitEvaluation(
       const matchedEvidence: Record<string, string> = {};
       const matched: string[] = [];
       let droppedCount = 0;
+      let matchedWeight = 0;
 
       for (const m of llmResult.matchedRequirements) {
         if (m.evidenceQuote && lowerResume.includes(m.evidenceQuote.toLowerCase())) {
           matched.push(m.requirement);
           matchedEvidence[m.requirement] = m.evidenceQuote;
+          matchedWeight += m.priority === "preferred" ? 0.5 : 1;
         } else {
           droppedCount += 1;
         }
       }
 
-      const missing = llmResult.missingRequirements;
-      const total = matched.length + missing.length;
-      const score = total === 0 ? 0 : Math.round((matched.length / total) * 100) / 100;
+      // Required items weigh 1, preferred ("a plus") weigh 0.5. A dropped
+      // (unverifiable) match counts as a miss, not as free credit.
+      const missingRequired = llmResult.missingRequirements;
+      const missingPreferred = llmResult.missingPreferredRequirements ?? [];
+      const missing = [...missingRequired, ...missingPreferred];
+      const total =
+        matchedWeight + droppedCount + missingRequired.length + 0.5 * missingPreferred.length;
+      const score = total === 0 ? 0 : Math.round((matchedWeight / total) * 100) / 100;
 
       return {
         score,
@@ -422,10 +545,18 @@ function explainFit(
 // Raised from an earlier 0.34 after live testing with the optional LLM
 // matcher: the LLM extracts a smaller, coarser set of distinct requirements
 // per posting than the fixed keyword dictionary does, so each match/miss
-// swings the ratio further. 0.45 ("well under half the named requirements
+// swings the ratio further. 0.6 ("well under half the named requirements
 // met") reproduces the correct reject/pass split for the required test set
 // under BOTH the deterministic and LLM matchers.
-const LOW_FIT_THRESHOLD = 0.45;
+const LOW_FIT_THRESHOLD = 0.6;
+
+// Editable from preferences.md, e.g. a line "Minimum fit: 50%". Anything
+// outside 10-90% is ignored so a typo can't disable the gate.
+export function parseMinFit(prefsText: string): number {
+  const m = prefsText.match(/minimum\s+fit[^0-9\n]*(\d{1,3})\s*%/i);
+  const pct = m ? parseInt(m[1], 10) : NaN;
+  return pct >= 10 && pct <= 90 ? pct / 100 : LOW_FIT_THRESHOLD;
+}
 
 type LogFn = (
   observation: string,
@@ -455,11 +586,12 @@ function decideAfterConstraints(state: AgentState, log: LogFn): AgentState {
     return state;
   }
 
-  if ((state.fitScore ?? 0) < LOW_FIT_THRESHOLD) {
+  const minFit = state.minFit ?? LOW_FIT_THRESHOLD;
+  if ((state.fitScore ?? 0) < minFit) {
     const before = { ...state };
     state = { ...state, stage: "rejected_low_fit" };
     log(
-      `Fit score ${state.fitScore} is below the low-fit threshold (${LOW_FIT_THRESHOLD}).`,
+      `Fit score ${state.fitScore} is below the low-fit threshold (${minFit}).`,
       ["reject_hard_constraint", "reject_low_fit", "request_human_approval"],
       "reject_low_fit",
       "Job down-ranked and rejected automatically for low skill fit (constraints were fine). No draft produced.",
@@ -472,7 +604,7 @@ function decideAfterConstraints(state: AgentState, log: LogFn): AgentState {
   const before = { ...state };
   state = { ...state, stage: "awaiting_approval" };
   log(
-    `Constraints passed. fit_score=${state.fitScore} >= threshold ${LOW_FIT_THRESHOLD}.`,
+    `Constraints passed. fit_score=${state.fitScore} >= threshold ${minFit}.`,
     ["reject_hard_constraint", "reject_low_fit", "request_human_approval"],
     "request_human_approval",
     "Evaluation surfaced to human for Approve / Edit / Reject. Agent paused — no draft produced yet.",
@@ -497,6 +629,9 @@ export async function runAgent(
     stage: "start",
     injectionDetected: false,
     injectionSnippets: [],
+    injectionSources: [],
+    workArrangement: "unknown",
+    minFit: parseMinFit(preferencesText),
     fitScore: null,
     matchedSkills: [],
     missingSkills: [],
@@ -511,6 +646,7 @@ export async function runAgent(
     draft: null,
     coverLetter: null,
     tailoredResume: null,
+    gapNotes: [],
   };
 
   // Computed once up front and reused by both the fit-rationale and
@@ -537,22 +673,38 @@ export async function runAgent(
     });
   }
 
+  // The brain reads the posting ONCE (injection cues, work arrangement,
+  // clearance). It only observes — the gates below decide.
+  const assessment = await assessPosting(jobText);
+
   // --- Decision point 1: scan for injection (treat job text as DATA, never instructions) ---
   {
     const before = { ...state };
-    const { detected, snippets } = scanForInjection(jobText);
+    const regexHit = scanForInjection(jobText);
+    const llmSnippets = assessment?.injectionSnippets ?? [];
+    const seen = new Set<string>();
+    const snippets = [...regexHit.snippets, ...llmSnippets].filter((sn) => {
+      const k = norm(sn);
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
+    const sources = [regexHit.detected ? "regex" : "", llmSnippets.length ? "llm" : ""].filter(Boolean);
+    const detected = snippets.length > 0;
     state = {
       ...state,
       stage: "scanned",
       injectionDetected: detected,
       injectionSnippets: snippets,
+      injectionSources: sources,
     };
     log(
-      `Raw job posting text received (${jobText.length} chars). Treated as untrusted data only.`,
+      `Raw job posting text received (${jobText.length} chars). Treated as untrusted data only.` +
+        (assessment ? " Read by the AI model and the regex floor." : " Read by the regex floor (no AI model available)."),
       ["scan_for_injection", "evaluate_fit", "check_hard_constraints", "reject_hard_constraint", "reject_low_fit", "request_human_approval", "draft_application"],
       "scan_for_injection",
       detected
-        ? `Embedded instruction-like text detected — logging and continuing normal evaluation, NOT obeying it.`
+        ? `Embedded instruction-like text detected (${sources.join(" + ")}) — logging and continuing normal evaluation, NOT obeying it.`
         : "No embedded instructions detected.",
       before,
       state
@@ -613,14 +765,27 @@ export async function runAgent(
   // --- Decision point 3: check hard constraints ---
   {
     const before = { ...state };
-    const violations = checkHardConstraints(jobText, candidateYears, preferencesText);
+    // The AI model's reading of the arrangement wins; regex cues are the fallback.
+    const arrangement: WorkArrangement =
+      assessment && assessment.arrangement !== "unknown"
+        ? assessment.arrangement
+        : regexArrangement(jobText);
+    const violations = checkHardConstraints(
+      jobText,
+      candidateYears,
+      preferencesText,
+      arrangement,
+      assessment?.clearanceRequired ?? false
+    );
     state = {
       ...state,
       stage: "constraints_checked",
       hardConstraintViolations: violations,
+      workArrangement: arrangement,
     };
     log(
-      `Candidate years of experience: ~${candidateYears}. Preferences hard constraints checked against posting.`,
+      `Candidate years of experience: ~${candidateYears}. Preferences hard constraints checked against posting. Work arrangement read as "${arrangement}"` +
+        (assessment?.arrangementQuote ? ` (evidence: "${assessment.arrangementQuote}").` : "."),
       ["reject", "request_human_approval"],
       "check_hard_constraints",
       violations.length
@@ -640,7 +805,7 @@ export async function runAgent(
   // fires for postings where guessing would mean silently deciding for the
   // candidate instead of asking them.
   if (state.hardConstraintViolations.length === 0) {
-    const clarificationQuestion = detectLocationAmbiguity(jobText, preferencesText);
+    const clarificationQuestion = detectLocationAmbiguity(state.workArrangement, preferencesText);
     if (clarificationQuestion) {
       const before = { ...state };
       state = { ...state, stage: "awaiting_clarification", clarificationQuestion };
@@ -797,10 +962,10 @@ export async function applyHumanDecision(
 
   // Draft, grounded ONLY in facts extracted from resume.md — never fabricated.
   const draftBefore = { ...state };
-  const { draft, coverLetter, tailoredResume } = await draftApplication(
+  const { draft, coverLetter, tailoredResume, gapNotes } = await draftApplication(
     state.matchedEvidence, state.missingSkills, jobText, state.matchedSkills, state.approvalNote, resumeText
   );
-  state = { ...state, stage: "drafted", draft, coverLetter, tailoredResume };
+  state = { ...state, stage: "drafted", draft, coverLetter, tailoredResume, gapNotes };
   log(
     `Drafting using matched_skills=[${state.matchedSkills.join(", ")}] and resume.md as the only source of candidate facts.${coverLetter ? " LLM-powered cover letter and tailored resume generated." : " Deterministic bullet-point draft (no LLM configured)."}`,
     ["draft_application"],
@@ -821,7 +986,12 @@ async function draftApplication(
   matchedSkills: string[],
   editNote: string | null,
   resumeText: string | null
-): Promise<{ draft: string; coverLetter: string | null; tailoredResume: string | null }> {
+): Promise<{
+  draft: string;
+  coverLetter: string | null;
+  tailoredResume: string | null;
+  gapNotes: { skill: string; status: string; note: string }[];
+}> {
   // Always produce the deterministic bullet-point draft as a baseline
   const bullets: string[] = [];
   for (const skill of matchedSkills) {
@@ -851,9 +1021,14 @@ async function draftApplication(
       matchedEvidence, missingSkills, jobText, resumeText, editNote
     );
     if (llmDraft) {
-      return { draft, coverLetter: llmDraft.coverLetter, tailoredResume: llmDraft.tailoredResume };
+      return {
+        draft,
+        coverLetter: llmDraft.coverLetter,
+        tailoredResume: llmDraft.tailoredResume,
+        gapNotes: llmDraft.addressedGaps ?? [],
+      };
     }
   }
 
-  return { draft, coverLetter: null, tailoredResume: null };
+  return { draft, coverLetter: null, tailoredResume: null, gapNotes: [] };
 }

@@ -1,5 +1,11 @@
 import Anthropic from "@anthropic-ai/sdk";
 import {
+  ASSESS_JSON_SCHEMA,
+  ASSESS_SYSTEM_PROMPT,
+  ASSESS_TOOL_DESCRIPTION,
+  ASSESS_TOOL_NAME,
+  assessUserPrompt,
+  type LlmPostingAssessment,
   FIT_JSON_SCHEMA,
   FIT_SYSTEM_PROMPT,
   FIT_TOOL_DESCRIPTION,
@@ -42,6 +48,34 @@ export const anthropicProvider: LlmProvider = {
 
   isConfigured() {
     return !!process.env.ANTHROPIC_API_KEY;
+  },
+
+  async assessPosting(jobText) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
+    try {
+      const response = await getClient().messages.create(
+        {
+          model: MODEL,
+          max_tokens: 600,
+          temperature: 0,
+          system: ASSESS_SYSTEM_PROMPT,
+          tools: [
+            { name: ASSESS_TOOL_NAME, description: ASSESS_TOOL_DESCRIPTION, input_schema: ASSESS_JSON_SCHEMA },
+          ],
+          tool_choice: { type: "tool", name: ASSESS_TOOL_NAME },
+          messages: [{ role: "user", content: assessUserPrompt(jobText) }],
+        },
+        { signal: controller.signal }
+      );
+      const toolUse = response.content.find(
+        (b): b is Anthropic.ToolUseBlock => b.type === "tool_use"
+      );
+      if (!toolUse) throw new Error("Anthropic response did not include the expected assessment tool call.");
+      return toolUse.input as LlmPostingAssessment;
+    } finally {
+      clearTimeout(timeout);
+    }
   },
 
   async evaluateFit(resumeText, jobText) {
