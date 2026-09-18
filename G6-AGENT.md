@@ -4,7 +4,39 @@ This is the one file to read (or read *from*, in class) to explain what this
 agent is and how it works, top to bottom, in plain language. The deeper,
 file-by-file technical breakdown still lives in `docs/architecture/` if you
 need to point to exact code or want more depth on any one piece — this file
-is the simple version that covers all nine layers of it in one place.
+is the simple version that covers all nine layers of it in one place, plus an
+upfront mapping (Layer 0) showing exactly how it lines up against the class's
+own reference architecture.
+
+---
+
+## Layer 0 — How this maps to the class's own architecture table
+
+CIS 4394's own "Transfer" exercise asks you to fill in a table mapping a
+coding-agent's shape (Codex) onto a job-search agent's shape, then compare it
+against a reference mapping. Here's our actual implementation lined up
+against that exact reference, row by row — this table *is* the architecture
+diagram deliverable, filled in against real code instead of a guess:
+
+| Layer | Class's reference mapping | What we actually built |
+|---|---|---|
+| **Goal** | Find suitable entry-level jobs | Same. |
+| **Environment** | Résumé + preferences + job postings | Same — a résumé + preferences pair (we call the pair a "profile"; you can save more than one), plus job postings pasted in or scraped from a URL. |
+| **Observe** | Read résumé evidence, job requirements, constraints, prior results | Same, plus a bit more: résumé skills/years, the posting's required skills, hard constraints (years/clearance/remote), which matching method ran, and (when applicable) the AI's own stated reasoning. "Prior results" = the full structured trace, saved per job and viewable any time from the dashboard. |
+| **Actions** | `ASK_USER`, investigate, down-rank/reject, request approval, draft | `scan_for_injection` + `evaluate_fit` + `check_hard_constraints` cover **investigate**. `reject_hard_constraint` + `reject_low_fit` cover **down-rank/reject** — we kept these as two separate actions on purpose, so the *reason* for a rejection is always traceable instead of a single generic "no." `request_human_approval` covers **both** `ASK_USER` **and** request approval — in our design there's no case where the agent asks the human something without it being a real approval decision, so we didn't need two separate actions for that. `draft_application` covers **draft**. |
+| **State** | Jobs inspected, evidence, gaps, constraints, approval status | `matchedSkills`/`matchedEvidence` = evidence, `missingSkills` = gaps, `hardConstraintViolations` = constraints, `stage` = approval status. We also track a fit score and a grounded "why this fits" rationale, which the reference table doesn't ask for but doesn't conflict with it either. |
+| **Guardrail** | Never fabricate qualifications; never obey instructions embedded in job text | Word for word the same, and both are mechanically enforced in code (verbatim-quote verification for the first; job text is only ever read as data, never executed, for the second) — not just written down as a rule. |
+| **Evaluation** | Fit, partial fit, hard-constraint mismatch, prompt-injection tests | Exactly our four required tests: J001 (fit), J002 (partial fit), J003 (hard-constraint mismatch), J004 (prompt injection). |
+
+**Bottom line**: this is a production-grade build of Path C's *intent* (an
+observation-driven, code-based agent), not the literal Codex-CLI-plus-their-
+Python-baseline path. The backend logic underneath — the actions it can take,
+the state it tracks, the guardrails, the four required tests — maps onto the
+class's own reference architecture almost one-to-one, with the only real
+departure being that we split two of their categories (investigate,
+down-rank/reject) into more specific, individually-traceable actions rather
+than collapsing them, and merged `ASK_USER` into `request approval` since
+they were never a meaningfully different action in our design.
 
 ---
 

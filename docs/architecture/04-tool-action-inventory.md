@@ -1,7 +1,10 @@
 # Tool / Action Inventory
 
 Every action the agent can select, what it does, and why it exists as its own
-distinct action rather than being folded into another step.
+distinct action rather than being folded into another step. For how this set
+of actions maps onto CIS 4394's own reference architecture table
+(`ASK_USER`, investigate, down-rank/reject, request approval, draft), see
+[`../../G6-AGENT.md`](../../G6-AGENT.md) — Layer 0.
 
 | Action | What it does | Why it's a separate action |
 |---|---|---|
