@@ -2,6 +2,7 @@
 
 import { useEffect, useState, use as usePromise } from "react";
 import { renderMarkdownPdf, type PdfKind } from "@/lib/pdfRender";
+import VerificationPanel from "@/components/VerificationPanel";
 
 type TraceStep = {
   step: number;
@@ -32,8 +33,48 @@ type Evaluation = {
   coverLetter: string | null;
   tailoredResume: string | null;
   gapNotes: { skill: string; status: string; note: string }[];
+  missingPreferredSkills: string[];
+  matchStrength: Record<string, "full" | "partial">;
+  draftVerification: DraftVerification | null;
+  coverLetterVerification: DraftVerification | null;
+  minFit: number | null;
+  state?: { matchedEvidence?: Record<string, string> } | null;
   profileName: string | null;
   trace: TraceStep[];
+};
+
+type VerifiedClaim = {
+  id: number;
+  text: string;
+  verdict:
+    | "structural"
+    | "grounded"
+    | "reworded"
+    | "from_your_note"
+    | "disclaimed"
+    | "subjective"
+    | "unsupported";
+  score: number;
+  provenance: string;
+  sourceQuote: string | null;
+  unsupportedFacts: string[];
+  reason: string;
+};
+
+type DraftVerification = {
+  method: string;
+  checkedAt: string;
+  totals: {
+    claims: number;
+    grounded: number;
+    reworded: number;
+    fromNote: number;
+    disclaimed: number;
+    subjective: number;
+    unsupported: number;
+  };
+  claims: VerifiedClaim[];
+  droppedFromOriginal: string[];
 };
 
 const STAGE_LABEL: Record<string, string> = {
@@ -87,6 +128,8 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
   const [deciding, setDeciding] = useState(false);
   const [decidingLabel, setDecidingLabel] = useState("");
   const [customSkillInput, setCustomSkillInput] = useState("");
+  const [overrideReason, setOverrideReason] = useState("");
+  const [overriding, setOverriding] = useState(false);
 
   // In-place editing states
   const [evidenceText, setEvidenceText] = useState("");
@@ -163,6 +206,30 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
   function triggerToast(msg: string) {
     setSaveToast(msg);
     setTimeout(() => setSaveToast(null), 3000);
+  }
+
+  // Human overrules the agent's automatic low-fit rejection. The agent's verdict and
+  // score are unchanged; this only reopens the job at the approval gate and records
+  // who made that call.
+  async function applyAnyway() {
+    setOverriding(true);
+    try {
+      const res = await fetch("/api/agent/override", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jobId: id, reason: overrideReason.trim() || null }),
+      });
+      if (!res.ok) {
+        const d = await res.json();
+        window.alert(d.error ?? "Could not reopen this job.");
+        return;
+      }
+      await load();
+      triggerToast("Reopened — the decision is yours now.");
+      document.getElementById("approval-section")?.scrollIntoView({ behavior: "smooth" });
+    } finally {
+      setOverriding(false);
+    }
   }
 
   async function decide(decision: "approve" | "edit" | "reject") {
@@ -339,7 +406,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
             <h3 className="font-bold text-lg text-neutral-900 mb-2">AI Agent at Work</h3>
             <p className="text-sm text-neutral-700 mb-3">{decidingLabel}</p>
             <p className="text-xs text-neutral-400">
-              Generating tailored cover letter and rewriting resume to a 100% fit (~10–15s).
+              Writing the cover letter and re-tailoring your resume from resume.md, then verifying every claim against it (~10–20s).
             </p>
           </div>
         </div>
@@ -512,13 +579,31 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
             Matched Skills ({ev.matchedSkills.length})
           </h3>
           <p className="text-xs text-neutral-500 mb-3">
-            Directly matched to a verified quote from your resume.
+            Each one backed by a word-for-word quote from your resume.{" "}
+            <span className="text-amber-700 font-medium">Partial</span> means you have it
+            at internship, coursework or &quot;basics&quot; level — it counts for half.
           </p>
 
           {ev.matchedSkills.length > 0 ? (
-            <p className="text-sm text-neutral-800 leading-relaxed mb-3">
-              {ev.matchedSkills.join(" · ")}
-            </p>
+            <div className="flex flex-wrap gap-1.5 mb-3">
+              {ev.matchedSkills.map((skill) => {
+                const partial = ev.matchStrength?.[skill] === "partial";
+                return (
+                  <span
+                    key={skill}
+                    title={ev.state?.matchedEvidence?.[skill] ?? undefined}
+                    className={`text-xs px-2 py-1 rounded-lg border ${
+                      partial
+                        ? "bg-amber-50 text-amber-900 border-amber-300"
+                        : "bg-green-50 text-green-900 border-green-300"
+                    }`}
+                  >
+                    {skill}
+                    {partial && <span className="ml-1 font-semibold">(partial)</span>}
+                  </span>
+                );
+              })}
+            </div>
           ) : (
             <p className="text-sm text-neutral-500 italic mb-3">No direct keyword skill matches detected.</p>
           )}
@@ -557,6 +642,11 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                   <li key={idx} className="py-2 flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <span className="text-sm text-neutral-900">{skill}</span>
+                      {ev.missingPreferredSkills?.includes(skill) && (
+                        <span className="ml-1.5 text-[10px] bg-neutral-100 text-neutral-600 border border-neutral-300 px-1.5 py-0.5 rounded">
+                          nice to have
+                        </span>
+                      )}
                       {gapNote && (
                         <p className="text-xs text-neutral-500 mt-0.5">
                           {gapNote.status === "not_addressed" ? "Not addressed in draft: " : "In draft: "}
@@ -714,6 +804,61 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
         </div>
       )}
 
+      {/* Human override of the agent's own low-fit auto-rejection.
+          The agent still rejected it on its own — that branch is untouched. This is a
+          separate human decision taken afterwards, recorded as its own trace step. */}
+      {ev.stage === "rejected_low_fit" && (
+        <div className="border-2 border-neutral-300 bg-white rounded-2xl p-5 sm:p-6 mb-8 shadow-md">
+          <div className="font-bold text-neutral-900 text-base sm:text-lg mb-1">
+            The agent ruled this out — but you get the final say
+          </div>
+          <p className="text-sm text-neutral-700 leading-relaxed mb-3">
+            It scored{" "}
+            <strong>{Math.round((ev.fitScore ?? 0) * 100)}%</strong>, under your{" "}
+            <strong>{Math.round((ev.minFit ?? 0.6) * 100)}%</strong> bar, so it was
+            auto-rejected without drafting anything. A score is a screening shortcut, not
+            a verdict on you — if you have internship, coursework or adjacent experience
+            that closes these gaps, say so and carry on.
+          </p>
+
+          {ev.missingSkills.length > 0 && (
+            <div className="bg-neutral-50 border border-neutral-200 rounded-xl p-3 mb-3">
+              <p className="text-xs font-semibold text-neutral-700 mb-1.5">
+                What it says you are missing:
+              </p>
+              <p className="text-sm text-neutral-800">{ev.missingSkills.join(" · ")}</p>
+            </div>
+          )}
+
+          <label className="block text-sm font-semibold text-neutral-800 mb-1.5">
+            Why you want it anyway (optional — this is passed to the draft)
+          </label>
+          <textarea
+            value={overrideReason}
+            onChange={(e) => setOverrideReason(e.target.value)}
+            placeholder={
+              ev.missingSkills.length
+                ? `e.g. I used ${ev.missingSkills[0]} in a university capstone project, and the rest of the role matches what I do now.`
+                : "e.g. I have adjacent experience that the posting does not name."
+            }
+            className="w-full border border-neutral-300 rounded-xl p-3 text-sm bg-white text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-800 shadow-inner resize-y min-h-[90px] mb-3"
+          />
+
+          <button
+            disabled={overriding}
+            onClick={applyAnyway}
+            className="text-sm bg-neutral-900 hover:bg-neutral-800 text-white font-bold px-5 py-2.5 rounded-xl disabled:opacity-50 transition-all shadow-sm cursor-pointer"
+          >
+            {overriding ? "Reopening…" : "Apply anyway — I'll bridge the gaps"}
+          </button>
+          <p className="text-xs text-neutral-500 mt-2">
+            This does not change the score or hide the gaps. It reopens the job at the
+            approval gate and records in the decision trace that <em>you</em> overrode the
+            agent, not that the agent changed its mind.
+          </p>
+        </div>
+      )}
+
       {/* HITL Approval Gate with BIGGER DRAFT WHITE BOX and PRESETS */}
       {ev.stage === "awaiting_approval" && (
         <div
@@ -730,7 +875,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
             </span>
           </div>
           <p className="text-xs sm:text-sm text-amber-900 mb-4 leading-relaxed">
-            The agent has matched your background and verified hard constraints. Review or customize the drafting instructions in the white box below. The LLM uses these focus points to craft your tailored Cover Letter and rewrite your Resume for a 100% match.
+            The agent has matched your background and verified hard constraints. Review or customize the drafting instructions in the white box below. The LLM uses these focus points to write a cover letter and re-tailor your resume. Every factual claim it produces is then checked back against your resume, and anything it cannot trace is flagged for you — never silently removed.
           </p>
 
           {/* Quick preset buttons to quickly populate/modify instructions */}
@@ -945,6 +1090,15 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
             </div>
           )}
 
+          {/* Verification receipts for the cover letter */}
+          {ev.coverLetter && ev.coverLetterVerification && (
+            <VerificationPanel
+              verification={ev.coverLetterVerification}
+              title="Cover letter"
+              accent="blue"
+            />
+          )}
+
           {/* 2. Cover Letter Card */}
           {ev.coverLetter && (
             <div className="border border-blue-200 bg-blue-50/70 rounded-2xl p-4 sm:p-5 mb-5 shadow-xs transition-all">
@@ -1038,6 +1192,16 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
             </div>
           )}
 
+          {/* Verification receipts for the tailored resume — rendered ABOVE the draft
+              so the human sees what to check before they read the polished version. */}
+          {ev.tailoredResume && ev.draftVerification && (
+            <VerificationPanel
+              verification={ev.draftVerification}
+              title="Tailored resume"
+              accent="purple"
+            />
+          )}
+
           {/* 3. Tailored Resume Card */}
           {ev.tailoredResume && (
             <div className="border border-purple-200 bg-purple-50/70 rounded-2xl p-4 sm:p-5 mb-5 shadow-xs transition-all">
@@ -1053,7 +1217,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                   >
                     ▼
                   </span>
-                  <span>3. 📄 Tailored Resume (AI-Rewritten for 100% Fit)</span>
+                  <span>3. 📄 Tailored Resume (rewritten from YOUR resume for this role)</span>
                 </div>
                 <div className="flex items-center gap-2">
                   {!collapsedResume && (

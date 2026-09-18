@@ -22,6 +22,7 @@ import {
   draftApplicationMaterials,
   assessPostingWithLlm,
 } from "./llmEvaluator";
+import { verifyDraft, type DraftVerification } from "./draftVerifier";
 
 export type WorkArrangement = "remote" | "hybrid" | "onsite" | "unknown";
 
@@ -56,6 +57,13 @@ export interface AgentState {
   fitScore: number | null;
   matchedSkills: string[];
   missingSkills: string[];
+  // Subset of missingSkills the posting only asked for as a nice-to-have, so
+  // the UI can label "a plus" gaps differently from hard requirements.
+  missingPreferredSkills?: string[];
+  // Per matched requirement: "full" = real hands-on experience, "partial" =
+  // internship / coursework / "basics" level (scored at half credit rather
+  // than being thrown away as a miss).
+  matchStrength?: Record<string, "full" | "partial">;
   // Verified verbatim resume.md quote backing each entry in matchedSkills. Populated
   // by performFitEvaluation() regardless of whether it used the LLM or the
   // deterministic matcher, so drafting/rationale never need to re-derive evidence —
@@ -87,6 +95,13 @@ export interface AgentState {
   // whether) that gap was handled in the cover letter/resume, so the UI can
   // tell the human what the AI actually did instead of leaving them to guess.
   gapNotes: { skill: string; status: string; note: string }[];
+  // Deterministic "trust but verify" pass over the generated material (see
+  // src/lib/draftVerifier.ts). Populated only when an LLM actually drafted
+  // something. Every claim is classified against resume.md and the human's
+  // edit note; anything containing an unsourced hard fact is flagged for the
+  // human rather than silently removed.
+  draftVerification: DraftVerification | null;
+  coverLetterVerification: DraftVerification | null;
 }
 
 export interface TraceStep {
@@ -380,7 +395,13 @@ export interface FitEvaluation {
   score: number;
   matched: string[];
   missing: string[];
+  // The subset of `missing` that the posting only listed as nice-to-have, kept
+  // separate so the UI can label a "a plus" gap differently from a hard one.
+  missingPreferred?: string[];
   matchedEvidence: Record<string, string>;
+  // Per matched requirement: "full" real experience vs "partial" (internship /
+  // coursework / "basics" level, scored at half credit).
+  matchStrength?: Record<string, "full" | "partial">;
   method: "llm" | "deterministic";
   reasoning: string | null;
   note: string;
@@ -406,21 +427,30 @@ async function performFitEvaluation(
       const lowerResume = resumeText.toLowerCase();
       const matchedEvidence: Record<string, string> = {};
       const matched: string[] = [];
+      const matchStrength: Record<string, "full" | "partial"> = {};
       let droppedCount = 0;
       let matchedWeight = 0;
+      let partialCount = 0;
 
       for (const m of llmResult.matchedRequirements) {
         if (m.evidenceQuote && lowerResume.includes(m.evidenceQuote.toLowerCase())) {
+          const strength = m.strength === "partial" ? "partial" : "full";
           matched.push(m.requirement);
           matchedEvidence[m.requirement] = m.evidenceQuote;
-          matchedWeight += m.priority === "preferred" ? 0.5 : 1;
+          matchStrength[m.requirement] = strength;
+          // Weight table: required+full 1.0, required+partial 0.5,
+          // preferred+full 0.5, preferred+partial 0.25. Partial experience
+          // (internship, coursework, "basics") earns half credit instead of
+          // being scored as a flat miss.
+          matchedWeight +=
+            (m.priority === "preferred" ? 0.5 : 1) * (strength === "partial" ? 0.5 : 1);
+          if (strength === "partial") partialCount += 1;
         } else {
           droppedCount += 1;
         }
       }
 
-      // Required items weigh 1, preferred ("a plus") weigh 0.5. A dropped
-      // (unverifiable) match counts as a miss, not as free credit.
+      // A dropped (unverifiable) match counts as a miss, not as free credit.
       const missingRequired = llmResult.missingRequirements;
       const missingPreferred = llmResult.missingPreferredRequirements ?? [];
       const missing = [...missingRequired, ...missingPreferred];
@@ -428,17 +458,28 @@ async function performFitEvaluation(
         matchedWeight + droppedCount + missingRequired.length + 0.5 * missingPreferred.length;
       const score = total === 0 ? 0 : Math.round((matchedWeight / total) * 100) / 100;
 
+      const notes: string[] = ["LLM semantic matching."];
+      if (partialCount > 0) {
+        notes.push(
+          `${partialCount} requirement(s) matched at PARTIAL strength (internship/coursework/basics level) and scored at half credit.`
+        );
+      }
+      if (droppedCount > 0) {
+        notes.push(
+          `${droppedCount} proposed match(es) dropped for lacking a verbatim resume.md quote.`
+        );
+      }
+
       return {
         score,
         matched,
         missing,
+        missingPreferred,
         matchedEvidence,
+        matchStrength,
         method: "llm",
         reasoning: llmResult.reasoning,
-        note:
-          droppedCount > 0
-            ? `LLM semantic matching (${droppedCount} proposed match(es) dropped for lacking a verbatim resume.md quote).`
-            : "LLM semantic matching.",
+        note: notes.join(" "),
       };
     } catch (err) {
       // Fall through to the deterministic path below. The specific error is
@@ -631,6 +672,8 @@ export async function runAgent(
     injectionSnippets: [],
     injectionSources: [],
     workArrangement: "unknown",
+    draftVerification: null,
+    coverLetterVerification: null,
     minFit: parseMinFit(preferencesText),
     fitScore: null,
     matchedSkills: [],
@@ -746,7 +789,9 @@ export async function runAgent(
       fitScore: fit.score,
       matchedSkills: fit.matched,
       missingSkills: fit.missing,
+      missingPreferredSkills: fit.missingPreferred ?? [],
       matchedEvidence: fit.matchedEvidence,
+      matchStrength: fit.matchStrength ?? {},
       fitMethod: fit.method,
       fitReasoning: fit.reasoning,
       fitRationale,
@@ -888,6 +933,48 @@ export function applyClarificationAnswer(
   return { state, trace };
 }
 
+// ---------- Human overrules the agent's own low-fit auto-rejection ----------
+//
+// The agent rejecting a below-threshold posting is CORRECT and stays exactly as it is —
+// that auto-reject is one of the four required action sequences, and it still runs on
+// every posting without asking anyone. This is a separate, explicitly human action taken
+// AFTER the agent has finished and stated its verdict.
+//
+// It exists because a fit score is a screening heuristic, not a judgement about a
+// person. A candidate with internship or coursework experience can be a reasonable
+// applicant at 45% while the score still correctly says "most requirements unmet". The
+// human is the one allowed to make that call, and the trace records that they did — the
+// agent never silently lowers its own bar.
+export function applyLowFitOverride(
+  prior: EvaluationResult,
+  reason: string | null
+): EvaluationResult {
+  const trace = [...prior.trace];
+  let step = trace.length;
+  let state = { ...prior.state };
+
+  const before = { ...state };
+  state = { ...state, stage: "awaiting_approval", approvalNote: reason };
+  step += 1;
+  trace.push({
+    step,
+    stateBefore: { ...before },
+    observation:
+      `Human reviewed the agent's low-fit rejection (fit_score=${before.fitScore}, ` +
+      `threshold=${before.minFit ?? LOW_FIT_THRESHOLD}) and chose to pursue the role anyway.` +
+      (reason ? ` Stated reason: "${reason}"` : " No reason given."),
+    availableActions: ["human_override_low_fit", "keep_rejected"],
+    selectedAction: "human_override_low_fit",
+    result:
+      "Agent's automatic low-fit rejection OVERRIDDEN BY HUMAN. The fit score is " +
+      "unchanged and the gaps still stand — the job simply moves to the approval gate " +
+      "so the human can decide what to draft. No draft exists yet.",
+    stateAfter: { ...state },
+  });
+
+  return { state, trace };
+}
+
 // ---------- Called after a human makes an Approve/Edit/Reject decision ----------
 // Note: no resumeText parameter — drafting uses state.matchedEvidence, the
 // quotes already verified against the resume at evaluation time, so a draft
@@ -970,11 +1057,51 @@ export async function applyHumanDecision(
     `Drafting using matched_skills=[${state.matchedSkills.join(", ")}] and resume.md as the only source of candidate facts.${coverLetter ? " LLM-powered cover letter and tailored resume generated." : " Deterministic bullet-point draft (no LLM configured)."}`,
     ["draft_application"],
     "draft_application",
-    "Draft produced. Every claim traces back to a line in resume.md; nothing outside the resume was asserted." +
-      (coverLetter ? " Full cover letter and tailored resume included." : ""),
+    "Draft produced from resume.md and the human's note." +
+      (coverLetter
+        ? " Full cover letter and tailored resume included — both now go to verification."
+        : " Deterministic bullets only: each is a literal resume.md quote, so it needs no further verification."),
     draftBefore,
     state
   );
+
+  // --- Verification: the model wrote it, deterministic code checks it ---------
+  // Only meaningful for LLM-generated prose. The deterministic bullet draft is
+  // built from literal resume quotes, so there is nothing to catch there.
+  if (resumeText && (tailoredResume || coverLetter)) {
+    const verifyBefore = { ...state };
+    // The posting's title, so an "applying for the X role" sentence is not flagged
+    // for repeating words that are naturally absent from the resume.
+    const titleLine = jobText.match(/^#?\s*(.+)$/m);
+    const verifyOpts = { jobTitle: titleLine ? titleLine[1].trim() : "" };
+    const draftVerification = tailoredResume
+      ? verifyDraft(tailoredResume, resumeText, state.approvalNote, verifyOpts)
+      : null;
+    const coverLetterVerification = coverLetter
+      ? verifyDraft(coverLetter, resumeText, state.approvalNote, verifyOpts)
+      : null;
+    state = { ...state, draftVerification, coverLetterVerification };
+
+    const flagged =
+      (draftVerification?.totals.unsupported ?? 0) +
+      (coverLetterVerification?.totals.unsupported ?? 0);
+    const checked =
+      (draftVerification?.totals.claims ?? 0) + (coverLetterVerification?.totals.claims ?? 0);
+    const dropped = draftVerification?.droppedFromOriginal.length ?? 0;
+
+    log(
+      `Checking every factual claim in the generated material against resume.md${
+        state.approvalNote ? " and the human's note" : ""
+      }. Rewording is allowed; unsourced specifics are not.`,
+      ["verify_draft"],
+      "verify_draft",
+      flagged === 0
+        ? `${checked} claim(s) checked — all trace to the resume or the human's note. ${dropped} original line(s) not carried into the tailored resume.`
+        : `${checked} claim(s) checked — ${flagged} contain a number or name found in NEITHER the resume nor the human's note. Flagged for the human; the draft was NOT silently altered.`,
+      verifyBefore,
+      state
+    );
+  }
 
   return { state, trace };
 }

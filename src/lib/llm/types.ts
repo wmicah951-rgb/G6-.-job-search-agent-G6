@@ -9,6 +9,11 @@ export interface LlmMatch {
   // "required" (default) counts fully toward the fit score; "preferred"
   // (nice-to-have / "a plus") counts half.
   priority?: "required" | "preferred";
+  // "full" (default) = the resume shows real, direct experience. "partial" =
+  // the resume shows it at internship / academic / "basics" / adjacent-tool
+  // level. Partial earns HALF credit instead of being scored as a flat miss,
+  // which is what used to happen to intern and coursework experience.
+  strength?: "full" | "partial";
 }
 
 export interface LlmFitResult {
@@ -21,7 +26,11 @@ export interface LlmFitResult {
 
 export interface LlmGapNote {
   skill: string;
-  status: "mentioned_willingness" | "bridged_from_note" | "not_addressed";
+  status:
+    | "mentioned_willingness"
+    | "bridged_from_note"
+    | "found_in_resume"
+    | "not_addressed";
   note: string;
 }
 
@@ -145,7 +154,22 @@ export const FIT_SYSTEM_PROMPT =
   "it as a match if you can copy an evidenceQuote that is a verbatim, " +
   "character-for-character substring of the resume text provided below and that " +
   "quote genuinely supports THAT specific requirement — if you cannot find a " +
-  "genuinely relevant exact quote, put it in missingRequirements instead.";
+  "genuinely relevant exact quote, put it in missingRequirements instead. " +
+  "IMPORTANT — shallow experience in the SAME skill is NOT a miss. Use strength " +
+  "'partial' when the resume names THE SAME skill, tool or technology the requirement " +
+  "asks for, but at limited depth: internship, academic/coursework/capstone, " +
+  "'basics'/'familiar with'/'exposure to', or an assisting rather than owning role. " +
+  "Example: requirement 'A/B testing' against a resume line 'A/B test reporting basics' " +
+  "is PARTIAL, not a miss. Example: requirement 'Python (pandas, scikit-learn)' against " +
+  "'Python (pandas, matplotlib)' is PARTIAL — same language, narrower library coverage. " +
+  "Use strength 'full' when the resume shows real, direct, hands-on experience. " +
+  "STRICT LIMIT — 'partial' is ONLY for the same named skill at lower depth. A DIFFERENT " +
+  "skill, a different tool, or a merely related field is a MISS, never a partial. " +
+  "Example: requirement 'machine learning / deep learning model building' against a " +
+  "resume line 'basic regression analysis in R' is a MISS — regression analysis is a " +
+  "different skill from building ML/DL models. Example: requirement 'Tableau' against a " +
+  "resume showing only Power BI is a MISS — a different product. Never stretch a quote to " +
+  "cover a requirement it does not genuinely support; when in doubt, call it missing.";
 
 export const FIT_TOOL_NAME = "record_fit_evaluation";
 export const FIT_TOOL_DESCRIPTION =
@@ -169,6 +193,13 @@ export const FIT_JSON_SCHEMA = {
             type: "string",
             enum: ["required", "preferred"],
             description: "'preferred' for nice-to-have / 'a plus' items, else 'required'.",
+          },
+          strength: {
+            type: "string",
+            enum: ["full", "partial"],
+            description:
+              "'partial' when the resume only shows this at internship / coursework / " +
+              "'basics' / adjacent-tool level; 'full' for real hands-on experience.",
           },
           evidenceQuote: {
             type: "string",
@@ -233,17 +264,28 @@ export const DRAFT_SYSTEM_PROMPT =
   "then '## SECTION' headings (SUMMARY, SKILLS, EXPERIENCE, PROJECTS, EDUCATION, CERTIFICATIONS), " +
   "each role as '**Company — Job Title** | dates' followed by '- ' bullets, skills as " +
   "'**Category:** item, item'. Use **bold** only for names, titles and skill categories. " +
+  "• The source resume contains internal bookkeeping annotations in parentheses — year " +
+  "counts like '(1.3 yrs)', '(0.3 yrs)', '(~2.0 years)'. These are notes for the screening " +
+  "system, NOT part of the resume. NEVER copy them into your output; write dates as " +
+  "'Jun 2024 - Present' with no year-count in parentheses.\n" +
+  "• Keep parentheses to a minimum and NEVER nest them. At most one short parenthetical " +
+  "per skill entry, three items maximum inside it. Prefer 'SQL, Python, Power BI' over " +
+  "'SQL (Postgres, basic query tuning), Python (pandas, matplotlib, numpy)'.\n" +
   "Cover letter = plain paragraphs separated by blank lines, no headings, starting with " +
   "'Dear Hiring Manager,' and ending with a sign-off and the candidate's name. " +
   "No tables, no code fences, no HTML.\n" +
   "• If the user provided an edit note, incorporate that guidance into both documents.\n" +
   "• For EVERY skill listed under SKILLS THE CANDIDATE IS MISSING, report back in " +
   "`addressedGaps` exactly how you handled it — one entry per missing skill, reusing " +
-  "the skill's exact wording. status is 'bridged_from_note' if the human edit note gave " +
-  "you a real equivalent/related experience to use for it, 'mentioned_willingness' if you " +
-  "only noted willingness/interest to learn it (no bridging experience was given), or " +
-  "'not_addressed' if you left it out of the materials entirely. note is one short plain " +
-  "sentence explaining what you actually did (or didn't do) for that skill.";
+  "the skill's exact wording. status is one of:\n" +
+  "  - 'bridged_from_note' ONLY if a HUMAN EDIT NOTE was supplied above AND it gave you a " +
+  "real equivalent/related experience you used for this skill. If no edit note was " +
+  "supplied, this status is FORBIDDEN — you have nothing to bridge from.\n" +
+  "  - 'found_in_resume' if, on reading the original resume, the candidate actually does " +
+  "have supporting experience for it after all (quote-worthy), so you used that.\n" +
+  "  - 'mentioned_willingness' if you only noted willingness/interest to learn it.\n" +
+  "  - 'not_addressed' if you left it out of the materials entirely.\n" +
+  "note is one short plain sentence explaining what you actually did (or didn't do).";
 
 export const DRAFT_TOOL_NAME = "record_application_draft";
 export const DRAFT_TOOL_DESCRIPTION =
@@ -279,7 +321,12 @@ export const DRAFT_JSON_SCHEMA = {
           },
           status: {
             type: "string",
-            enum: ["mentioned_willingness", "bridged_from_note", "not_addressed"],
+            enum: [
+              "mentioned_willingness",
+              "bridged_from_note",
+              "found_in_resume",
+              "not_addressed",
+            ],
           },
           note: {
             type: "string",

@@ -57,6 +57,14 @@ export async function GET(
           coverLetter: (evaluation.cover_letter as string) || state?.coverLetter || null,
           tailoredResume: (evaluation.tailored_resume as string) || state?.tailoredResume || null,
           gapNotes: state?.gapNotes ?? [],
+          // Nice-to-have gaps, so the UI can label them differently from hard ones.
+          missingPreferredSkills: state?.missingPreferredSkills ?? [],
+          // "full" vs "partial" (internship/coursework/basics) per matched requirement.
+          matchStrength: state?.matchStrength ?? {},
+          // Deterministic verification of the generated material (draftVerifier.ts).
+          draftVerification: state?.draftVerification ?? null,
+          coverLetterVerification: state?.coverLetterVerification ?? null,
+          minFit: state?.minFit ?? null,
           profileName: evaluation.profile_name,
           trace: JSON.parse(evaluation.trace_json as string),
           state,

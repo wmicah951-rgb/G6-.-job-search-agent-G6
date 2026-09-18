@@ -327,3 +327,72 @@ the candidate says they have (via the "add skill" button) is reported
 `bridged_from_note`; with no note the gap is **never** claimed as experience.
 
 **Privacy note:** this project is public. Profiles must contain **fictional** information only.
+
+---
+
+## Layer 12 — Partial credit, so internships and coursework count
+
+A requirement used to be all-or-nothing: you either had it or you didn't. That
+scored a résumé saying "A/B test reporting basics" as a **total miss** on a job
+asking for "A/B testing", which is wrong and pushes real candidates below the bar.
+
+Each matched requirement now carries a **strength**:
+
+| | full | partial | missing |
+|---|---|---|---|
+| **required** | 1.0 | 0.5 | 0 |
+| **preferred** ("a plus") | 0.5 | 0.25 | 0 |
+
+**Partial** means the résumé names *the same* skill at lower depth — internship,
+coursework, capstone, "basics", "exposure to", or an assisting rather than owning
+role. The job page shows these with an amber `(partial)` tag.
+
+**The strict limit matters as much as the credit.** Partial is only for the same
+named skill. A *different* skill is a miss, never a partial. "Basic regression
+analysis in R" does **not** partially satisfy "machine learning / deep learning
+model building", and Power BI does not partially satisfy Tableau. Without that
+limit the score inflates and you walk into an interview defending a stretch.
+
+## Layer 13 — Verifying what the AI wrote (the receipts)
+
+The cover letter and tailored résumé are written by the model, which is asked to
+rephrase. So we cannot demand word-for-word quotes there the way we do for skill
+matching. Instead, after every draft the agent runs a `verify_draft` step:
+
+> **Rewording can only clear a sentence. Only an unsourced hard fact can flag one.**
+
+A sentence is never flagged for sounding different. It is flagged when it contains
+a **number, employer, tool or credential that appears in neither your résumé nor
+the note you typed**. Every sentence gets labelled:
+
+- **From your resume** / **Reworded** — traced back to a line you wrote.
+- **From your note** — came from the bridging experience you supplied.
+- **States a gap** — names a skill in order to say you *don't* have it yet. Honest.
+- **Opinion** — framing with no checkable claim.
+- **Check this** — red. A specific it cannot source.
+
+Flagged lines are shown to you and **never silently deleted**. You decide. The
+panel also lists lines from your original résumé that did **not** make it into the
+tailored version, so nothing disappears quietly.
+
+Run `npx tsx scripts/verify-tests.ts` to see this proven. The hardest test is a
+heavily reworded but completely honest résumé that must produce **zero** flags —
+because a checker that cries wolf is one you stop reading.
+
+## Layer 14 — "Apply anyway": you can overrule the agent
+
+A low score is a screening shortcut, not a verdict on you. The agent still
+auto-rejects everything under your bar on its own — that branch is untouched and
+is one of the four required class tests.
+
+But a rejected job is no longer a dead end. Its page offers **"Apply anyway — I'll
+bridge the gaps"**, with a box to say why. That:
+
+- adds a `human_override_low_fit` step to the decision trace, so the record shows
+  **you** overrode the agent — never that the agent lowered its own bar;
+- leaves the fit score and the gap list exactly as they were;
+- reopens the job at the normal approval gate, where your reason is passed into
+  the draft so it can bridge the gaps honestly.
+
+Hard-constraint rejections (years, clearance, on-site) are **not** overridable
+here — those are your own stated non-negotiables, not a heuristic.

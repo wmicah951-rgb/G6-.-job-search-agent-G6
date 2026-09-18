@@ -71,6 +71,7 @@ for (const [id, stage] of expect) {
 }
 
 // 4c. HITL: REJECT ends with no draft, then approving is refused (409)
+const H2 = { "Content-Type": "application/json" };
 const post2 = (body) => j("/api/agent/approve", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
 const rej = await post2({ jobId: made.J001, decision: "reject" });
 check("REJECT -> rejected_by_human and no draft", rej.b.evaluation.state.stage === "rejected_by_human" && !rej.b.evaluation.state.coverLetter && !rej.b.evaluation.state.draft);
@@ -108,6 +109,34 @@ ids.push(gd2.b.id);
 const gd3 = await post2({ jobId: gd2.b.id, decision: "approve" });
 const gn3 = (gd3.b.evaluation.state.gapNotes || []).find((g) => /tableau/i.test(g.skill));
 check("with NO note, the gap is never claimed as experience (not bridged)", !!gn3 && gn3.status !== "bridged_from_note", "status=" + (gn3 && gn3.status));
+
+// 4f. LOW-FIT OVERRIDE: the agent rejects, the human overrules, a draft follows
+const lowFitPosting = `# Senior-ish Data Analyst
+Remote. Requirements: SQL, Python (pandas), Excel, Power BI, Tableau, dbt, Snowflake, statistics. 1-3 years of experience.`;
+const lf = await post(t("low fit for override"), lowFitPosting);
+ids.push(lf.b.id);
+check("posting below the bar is auto-rejected by the agent", lf.b.evaluation.state.stage === "rejected_low_fit", `stage=${lf.b.evaluation.state.stage} fit=${lf.b.evaluation.state.fitScore}`);
+check("approving an auto-rejected low-fit job is refused (409)", (await post2({ jobId: lf.b.id, decision: "approve" })).s === 409);
+const ov = await j("/api/agent/override", { method: "POST", headers: H2, body: JSON.stringify({ jobId: lf.b.id, reason: "I used Tableau and dbt in a university capstone project." }) });
+const ovs = ov.b.evaluation?.state;
+check("human override reopens it at the approval gate", ovs?.stage === "awaiting_approval", `stage=${ovs?.stage}`);
+check("override is recorded as its own trace step", ov.b.evaluation?.trace.some((x) => x.selectedAction === "human_override_low_fit"));
+check("override did NOT change the fit score or hide the gaps", ovs?.fitScore === lf.b.evaluation.state.fitScore && ovs?.missingSkills.length === lf.b.evaluation.state.missingSkills.length, `fit ${lf.b.evaluation.state.fitScore} -> ${ovs?.fitScore}`);
+const ovd = await post2({ jobId: lf.b.id, decision: "approve" });
+check("after overriding, a draft can be produced", !!ovd.b.evaluation?.state.coverLetter);
+check("overriding a job that is NOT low-fit is refused (409)", (await j("/api/agent/override", { method: "POST", headers: H2, body: JSON.stringify({ jobId: lf.b.id }) })).s === 409);
+
+// 4g. DRAFT VERIFICATION runs and reports on every LLM draft
+{
+  const dv = ovd.b.evaluation?.state.draftVerification;
+  const cv = ovd.b.evaluation?.state.coverLetterVerification;
+  check("tailored resume was verified against the resume", !!dv && dv.totals.claims > 0, `claims=${dv?.totals.claims}`);
+  check("cover letter was verified too", !!cv && cv.totals.claims > 0, `claims=${cv?.totals.claims}`);
+  check("verification is its own trace step", ovd.b.evaluation?.trace.some((x) => x.selectedAction === "verify_draft"));
+  check("every verified claim carries a plain-English reason", (dv?.claims ?? []).every((c) => typeof c.reason === "string" && c.reason.length > 0));
+  const unsupported = (dv?.totals.unsupported ?? 0) + (cv?.totals.unsupported ?? 0);
+  console.log(`      (info) unsupported claims flagged on this draft: ${unsupported}`);
+}
 
 // 5. delete
 const before = (await j("/api/jobs")).b.jobs.length;

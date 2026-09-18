@@ -15,9 +15,39 @@ in the candidate's resume text:
 - The only other text a draft can contain is the human's own edit note, which
   is passed through verbatim, never paraphrased or expanded by the system.
 
-There is no code path in `draftApplication()` that constructs a claim from
-anything other than a literal resume.md substring. This makes "never fabricate"
-mechanically true rather than a prompt-level aspiration.
+There is no code path in the *deterministic* bullet draft that constructs a claim
+from anything other than a literal resume.md substring. For that path, "never
+fabricate" is mechanically true rather than a prompt-level aspiration.
+
+**Honest caveat about the LLM-drafted material.** The cover letter and tailored
+résumé are written by the model, which is explicitly asked to rephrase for flow.
+Literal-substring checking is therefore impossible there — an honest rewrite
+would fail it. For a while this meant non-fabrication on that path was only a
+prompt instruction, which is weaker than this document used to claim.
+
+`src/lib/draftVerifier.ts` closes that gap with a deterministic pass over every
+generated sentence, run as its own `verify_draft` trace step. Its rule is
+asymmetric on purpose:
+
+> **Fuzzy similarity may only EXONERATE. Only an unsourced HARD FACT may ACCUSE.**
+
+A sentence is never flagged for being worded differently. It is flagged when it
+contains a number, proper noun, tool name or credential that appears in neither
+resume.md nor the human's edit note — precisely what a model fabricates, and
+precisely what needs no fuzziness to detect. Each sentence is classified
+`grounded`, `reworded`, `from_your_note`, `disclaimed` (it names a skill in order
+to say the candidate lacks it), `subjective`, or `unsupported`.
+
+Flagged lines are surfaced to the human and **never silently removed** — the same
+"warn loudly and continue" stance the injection gate takes. The guarantee is
+therefore: *every factual claim is either traceable to the candidate's own
+material, or visibly flagged as untraceable.* It is not "the model cannot write
+an unsourced sentence"; it is "an unsourced sentence cannot reach the human
+unmarked."
+
+Verified by `npx tsx scripts/verify-tests.ts`, whose hardest fixture is a heavily
+but honestly reworded résumé that must produce **zero** flags — a verifier that
+cries wolf on paraphrase gets ignored, and an ignored warning is worse than none.
 
 The new "why this fits" panel (`explainFit()`) follows the same rule — every
 skill-evidence line is a literal resume quote; the only non-literal statements
