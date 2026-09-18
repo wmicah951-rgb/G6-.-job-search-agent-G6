@@ -223,16 +223,21 @@ function explainFit(
   matchedSkills: string[],
   candidateYears: number
 ): string[] {
+  // No skill overlap at all means there is no truthful "why this fits" story to
+  // tell — returning early here (rather than falling through to the generic
+  // years/title/company-size lines below) is what stops a 0%-fit posting from
+  // ever showing a positive-framed rationale panel. Those generic lines are
+  // supporting color for a real skill match, not fit signals on their own.
+  if (matchedSkills.length === 0) return [];
+
   const reasons: string[] = [];
 
-  if (matchedSkills.length > 0) {
-    const evidence = matchedSkills
-      .map((s) => ({ skill: s, line: findEvidenceLine(resumeText, s) }))
-      .filter((e) => e.line !== null)
-      .slice(0, 3);
-    for (const e of evidence) {
-      reasons.push(`${e.skill} — resume.md: "${e.line}"`);
-    }
+  const evidence = matchedSkills
+    .map((s) => ({ skill: s, line: findEvidenceLine(resumeText, s) }))
+    .filter((e) => e.line !== null)
+    .slice(0, 3);
+  for (const e of evidence) {
+    reasons.push(`${e.skill} — resume.md: "${e.line}"`);
   }
 
   reasons.push(

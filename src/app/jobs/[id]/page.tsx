@@ -144,8 +144,13 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
       </div>
 
       {/* Why this fits — distinct from the missing-skills gap list above: a grounded,
-          positive-framed explanation, every line traceable to resume.md/preferences.md. */}
-      {ev.fitRationale.length > 0 && (
+          positive-framed explanation, every line traceable to resume.md/preferences.md.
+          Also gated on the job NOT being auto-rejected, so this positive panel can never
+          contradict the agent's own verdict (e.g. showing "this fits" on a job the agent
+          itself just rejected for low fit or a hard-constraint conflict). */}
+      {ev.fitRationale.length > 0 &&
+        ev.stage !== "rejected_low_fit" &&
+        ev.stage !== "rejected_hard_constraint" && (
         <div className="border border-emerald-200 bg-emerald-50 rounded-lg p-4 mb-6">
           <div className="font-medium mb-2 text-emerald-900">Why this role fits you</div>
           <ul className="list-disc list-inside space-y-1 text-sm text-emerald-900">
