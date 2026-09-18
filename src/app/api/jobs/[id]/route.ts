@@ -22,6 +22,10 @@ export async function GET(
 
   const job = jobRes.rows[0];
   const evaluation = evalRes.rows[0] ?? null;
+  // fitMethod/fitReasoning aren't dedicated columns — they live inside the
+  // full state_json blob (part of AgentState), read out here for a flattened
+  // field the frontend can use directly, same pattern as the other fields.
+  const state = evaluation ? JSON.parse(evaluation.state_json as string) : null;
 
   return NextResponse.json({
     job: {
@@ -38,6 +42,8 @@ export async function GET(
           matchedSkills: JSON.parse((evaluation.matched_skills as string) ?? "[]"),
           missingSkills: JSON.parse((evaluation.missing_skills as string) ?? "[]"),
           fitRationale: JSON.parse((evaluation.fit_rationale as string) ?? "[]"),
+          fitMethod: state?.fitMethod ?? "deterministic",
+          fitReasoning: state?.fitReasoning ?? null,
           hardConstraintViolations: JSON.parse(
             (evaluation.hard_constraint_violations as string) ?? "[]"
           ),
@@ -47,7 +53,7 @@ export async function GET(
           draft: evaluation.draft,
           profileName: evaluation.profile_name,
           trace: JSON.parse(evaluation.trace_json as string),
-          state: JSON.parse(evaluation.state_json as string),
+          state,
         }
       : null,
   });

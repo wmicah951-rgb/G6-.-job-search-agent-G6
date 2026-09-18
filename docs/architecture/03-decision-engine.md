@@ -51,15 +51,30 @@ now`.
 
 ## Decision point 2 — evaluate fit (`agent.ts` ~L285)
 
-**Observation**: skills extracted from the resume vs. skills extracted from the
-posting (`extractSkills()`, a fixed alias dictionary — `SKILL_ALIASES` — matched
-case-insensitively against both texts).
-**Tool called**: `evaluateFit()` — computes `matched`, `missing`, and
-`fitScore = matched.length / jobSkills.length`.
-**Also computed here**: `explainFit()` builds the grounded `fitRationale[]` —
-this does NOT change the trace's `selectedAction` (still `evaluate_fit`), it's
-extra state produced by the same step, kept out of the trace text so the
-documented/required-test action sequences stay stable across UI iterations.
+**Observation**: how well the resume demonstrates what the posting asks for.
+**Tool called**: `performFitEvaluation()` — this is the one step in the whole
+agent that may call an LLM (see [10-setup-and-deployment.md](10-setup-and-deployment.md)
+for the full design), and it decides that itself, per call:
+
+- **If `ANTHROPIC_API_KEY` is configured**: calls `evaluateFitWithLlm()`
+  (`llmEvaluator.ts`), which asks Claude Haiku to identify matched/missing
+  requirements as a structured tool call. Every proposed match is then
+  verified — kept only if its evidence quote is a literal substring of the
+  resume text — before being trusted. `fitScore = matched / (matched + missing)`.
+- **Otherwise, or if that call fails/times out**: falls back to
+  `extractSkills()` + `evaluateFit()`, the original fixed-dictionary
+  (`SKILL_ALIASES`) keyword matcher, `fitScore = matched.length / jobSkills.length`.
+
+Either way, the result is the same shape (`score`, `matched`, `missing`,
+`matchedEvidence`) flowing into the exact same decision point 4 branch logic
+below — the LLM changes how requirements are identified, never how the agent
+decides what to do about them.
+
+**Also computed here**: `explainFit()` builds the grounded `fitRationale[]`
+from `matchedEvidence` — this does NOT change the trace's `selectedAction`
+(still `evaluate_fit`), it's extra state produced by the same step, kept out of
+the trace text so the documented/required-test action sequences stay stable
+across UI iterations.
 
 ## Decision point 3 — check hard constraints (`agent.ts` ~L308)
 

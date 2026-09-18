@@ -18,6 +18,8 @@ type Evaluation = {
   matchedSkills: string[];
   missingSkills: string[];
   fitRationale: string[];
+  fitMethod: "llm" | "deterministic";
+  fitReasoning: string | null;
   hardConstraintViolations: string[];
   injectionDetected: boolean;
   injectionSnippets: string[];
@@ -110,9 +112,24 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
         <p className="text-xs text-neutral-500 mb-1">Source: {data.job.sourceUrl}</p>
       )}
       {ev.profileName && (
-        <p className="text-xs text-neutral-500 mb-4">
+        <p className="text-xs text-neutral-500 mb-1">
           Evaluated against profile: <span className="font-medium">{ev.profileName}</span>
         </p>
+      )}
+      <p className="text-xs text-neutral-500 mb-4">
+        Skill matching engine:{" "}
+        <span className="font-medium">
+          {ev.fitMethod === "llm" ? "LLM semantic matching" : "Deterministic keyword matching"}
+        </span>
+      </p>
+
+      {/* Shows what the model actually concluded, in its own words — the "AI
+          thinking" visibility, distinct from the deterministic trace below. */}
+      {ev.fitMethod === "llm" && ev.fitReasoning && (
+        <div className="border border-sky-200 bg-sky-50 rounded-lg p-3 mb-4 text-sm text-sky-900">
+          <div className="font-medium mb-1">Model's reasoning</div>
+          <p>{ev.fitReasoning}</p>
+        </div>
       )}
 
       {/* Summary cards */}

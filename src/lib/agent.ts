@@ -7,6 +7,16 @@
 // walk different, shorter or longer, action sequences. Every step is logged as
 // a structured trace entry: stateBefore -> observation -> availableActions ->
 // selectedAction -> result -> stateAfter.
+//
+// Skill/requirement matching is the ONE step that can optionally call an LLM
+// (see performFitEvaluation() below and src/lib/llmEvaluator.ts) for more
+// semantically flexible matching than fixed-dictionary keyword search. Nothing
+// else does: the injection scan, hard-constraint checks, the branch that
+// decides reject/pause-for-human, and the human-approval gate are all plain
+// deterministic code, completely untouched by whatever the LLM returns. The
+// LLM is a tool the agent calls, never the decision-maker.
+
+import { evaluateFitWithLlm, isLlmConfigured } from "./llmEvaluator";
 
 export type Stage =
   | "start"
@@ -30,6 +40,17 @@ export interface AgentState {
   fitScore: number | null;
   matchedSkills: string[];
   missingSkills: string[];
+  // Verified verbatim resume.md quote backing each entry in matchedSkills. Populated
+  // by performFitEvaluation() regardless of whether it used the LLM or the
+  // deterministic matcher, so drafting/rationale never need to re-derive evidence —
+  // they just look it up here. This is what keeps grounding mechanically true even
+  // when an LLM proposed the match: the quote was already verified as a literal
+  // substring of resumeText before being stored.
+  matchedEvidence: Record<string, string>;
+  fitMethod: "llm" | "deterministic";
+  // Only set when fitMethod === "llm": the model's own short explanation of its
+  // assessment, surfaced in the trace/UI so you can see what it was "thinking".
+  fitReasoning: string | null;
   // Grounded, positive-framed reasons this posting suits the candidate — distinct
   // from missingSkills (gaps) and matchedSkills (a bare list): this is the "why"
   // narrative, each line traceable to resume.md/preferences.md, never invented.
@@ -191,7 +212,7 @@ function checkHardConstraints(
   return violations;
 }
 
-// ---------- Fit scoring ----------
+// ---------- Fit scoring (deterministic keyword path) ----------
 function evaluateFit(resumeSkills: string[], jobSkills: string[]) {
   const matched = jobSkills.filter((s) => resumeSkills.includes(s));
   const missing = jobSkills.filter((s) => !resumeSkills.includes(s));
@@ -199,9 +220,9 @@ function evaluateFit(resumeSkills: string[], jobSkills: string[]) {
   return { score: Math.round(score * 100) / 100, matched, missing };
 }
 
-// Shared by explainFit() and draftApplication(): finds the actual resume.md line
-// that justifies a matched skill, so both the "why this fits" panel and the
-// drafted cover-letter bullets ground every claim in the candidate's own words.
+// Finds the actual resume.md line that justifies a matched skill, via the fixed
+// alias dictionary. Only used by the deterministic path — the LLM path gets its
+// evidence quotes directly from the model, verified against resumeText instead.
 function findEvidenceLine(resumeText: string, skill: string): string | null {
   const aliases = SKILL_ALIASES[skill] ?? [skill.toLowerCase()];
   const lines = resumeText.split("\n").map((l) => l.trim()).filter(Boolean);
@@ -211,13 +232,112 @@ function findEvidenceLine(resumeText: string, skill: string): string | null {
   return evidenceLine ? evidenceLine.replace(/^[-*]\s*/, "") : null;
 }
 
+export interface FitEvaluation {
+  score: number;
+  matched: string[];
+  missing: string[];
+  matchedEvidence: Record<string, string>;
+  method: "llm" | "deterministic";
+  reasoning: string | null;
+  note: string;
+}
+
+// The one step in the whole agent that may call an LLM (see llmEvaluator.ts).
+// Always falls back to the deterministic keyword matcher — on no API key, an
+// API error, a timeout, or a response with zero verifiable matches — so the
+// app never breaks or blocks on the LLM being unavailable.
+//
+// Trust-but-verify: the LLM is only ever allowed to PROPOSE a match. A match is
+// kept only if its evidenceQuote is an actual, literal (case-insensitive)
+// substring of resumeText. Anything the model invents or paraphrases is
+// silently dropped rather than trusted — this is what keeps "never fabricate"
+// mechanically true even with an LLM in the loop.
+async function performFitEvaluation(
+  resumeText: string,
+  jobText: string
+): Promise<FitEvaluation> {
+  if (isLlmConfigured()) {
+    try {
+      const llmResult = await evaluateFitWithLlm(resumeText, jobText);
+      const lowerResume = resumeText.toLowerCase();
+      const matchedEvidence: Record<string, string> = {};
+      const matched: string[] = [];
+      let droppedCount = 0;
+
+      for (const m of llmResult.matchedRequirements) {
+        if (m.evidenceQuote && lowerResume.includes(m.evidenceQuote.toLowerCase())) {
+          matched.push(m.requirement);
+          matchedEvidence[m.requirement] = m.evidenceQuote;
+        } else {
+          droppedCount += 1;
+        }
+      }
+
+      const missing = llmResult.missingRequirements;
+      const total = matched.length + missing.length;
+      const score = total === 0 ? 0 : Math.round((matched.length / total) * 100) / 100;
+
+      return {
+        score,
+        matched,
+        missing,
+        matchedEvidence,
+        method: "llm",
+        reasoning: llmResult.reasoning,
+        note:
+          droppedCount > 0
+            ? `LLM semantic matching (${droppedCount} proposed match(es) dropped for lacking a verbatim resume.md quote).`
+            : "LLM semantic matching.",
+      };
+    } catch (err) {
+      // Fall through to the deterministic path below. The specific error is
+      // surfaced by the caller's trace log, not swallowed silently.
+      const resumeSkills = extractSkills(resumeText);
+      const jobSkills = extractSkills(jobText);
+      const { score, matched, missing } = evaluateFit(resumeSkills, jobSkills);
+      const matchedEvidence: Record<string, string> = {};
+      for (const skill of matched) {
+        const line = findEvidenceLine(resumeText, skill);
+        if (line) matchedEvidence[skill] = line;
+      }
+      return {
+        score,
+        matched: matched.filter((s) => matchedEvidence[s]),
+        missing,
+        matchedEvidence,
+        method: "deterministic",
+        reasoning: null,
+        note: `LLM call failed (${String(err).slice(0, 120)}) — fell back to deterministic keyword matching.`,
+      };
+    }
+  }
+
+  const resumeSkills = extractSkills(resumeText);
+  const jobSkills = extractSkills(jobText);
+  const { score, matched, missing } = evaluateFit(resumeSkills, jobSkills);
+  const matchedEvidence: Record<string, string> = {};
+  for (const skill of matched) {
+    const line = findEvidenceLine(resumeText, skill);
+    if (line) matchedEvidence[skill] = line;
+  }
+  return {
+    score,
+    matched: matched.filter((s) => matchedEvidence[s]),
+    missing,
+    matchedEvidence,
+    method: "deterministic",
+    reasoning: null,
+    note: "No ANTHROPIC_API_KEY configured — used deterministic keyword matching.",
+  };
+}
+
 // ---------- Grounded "why this fits" rationale ----------
 // Deliberately distinct from missingSkills (the gap list): this builds a positive,
 // evidence-backed narrative of why the posting suits the candidate. Every line is
 // tied to an actual quote from resume.md or a checkable comparison against
 // preferences.md — never a generic "great fit!" statement.
 function explainFit(
-  resumeText: string,
+  matchedEvidence: Record<string, string>,
   jobText: string,
   preferencesText: string,
   matchedSkills: string[],
@@ -232,12 +352,9 @@ function explainFit(
 
   const reasons: string[] = [];
 
-  const evidence = matchedSkills
-    .map((s) => ({ skill: s, line: findEvidenceLine(resumeText, s) }))
-    .filter((e) => e.line !== null)
-    .slice(0, 3);
-  for (const e of evidence) {
-    reasons.push(`${e.skill} — resume.md: "${e.line}"`);
+  for (const skill of matchedSkills.slice(0, 3)) {
+    const line = matchedEvidence[skill];
+    if (line) reasons.push(`${skill} — resume.md: "${line}"`);
   }
 
   reasons.push(
@@ -277,12 +394,12 @@ function explainFit(
 const LOW_FIT_THRESHOLD = 0.34;
 
 // ---------- The agent loop ----------
-export function runAgent(
+export async function runAgent(
   jobId: string,
   jobText: string,
   resumeText: string,
   preferencesText: string
-): EvaluationResult {
+): Promise<EvaluationResult> {
   const trace: TraceStep[] = [];
   let step = 0;
 
@@ -294,6 +411,9 @@ export function runAgent(
     fitScore: null,
     matchedSkills: [],
     missingSkills: [],
+    matchedEvidence: {},
+    fitMethod: "deterministic",
+    fitReasoning: null,
     fitRationale: [],
     hardConstraintViolations: [],
     redFlags: [],
@@ -363,25 +483,36 @@ export function runAgent(
   }
 
   // --- Decision point 2: evaluate skill fit against resume ---
+  // performFitEvaluation() tries the LLM (if configured) for semantic matching,
+  // falling back to deterministic keyword matching on no API key, an API error,
+  // or a timeout — see its own comments for the trust-but-verify grounding rule.
   {
     const before = { ...state };
-    const resumeSkills = extractSkills(resumeText);
-    const jobSkills = extractSkills(jobText);
-    const { score, matched, missing } = evaluateFit(resumeSkills, jobSkills);
-    const fitRationale = explainFit(resumeText, jobText, preferencesText, matched, candidateYears);
+    const fit = await performFitEvaluation(resumeText, jobText);
+    const fitRationale = explainFit(
+      fit.matchedEvidence,
+      jobText,
+      preferencesText,
+      fit.matched,
+      candidateYears
+    );
     state = {
       ...state,
       stage: "evaluated",
-      fitScore: score,
-      matchedSkills: matched,
-      missingSkills: missing,
+      fitScore: fit.score,
+      matchedSkills: fit.matched,
+      missingSkills: fit.missing,
+      matchedEvidence: fit.matchedEvidence,
+      fitMethod: fit.method,
+      fitReasoning: fit.reasoning,
       fitRationale,
     };
     log(
-      `Resume skills: [${resumeSkills.join(", ") || "none found"}]. Job-required skills: [${jobSkills.join(", ") || "none found"}].`,
+      `${fit.note} Requirements checked against resume.md.` +
+        (fit.reasoning ? ` Model's reasoning: "${fit.reasoning}"` : ""),
       ["check_hard_constraints", "reject", "request_human_approval"],
       "evaluate_fit",
-      `fit_score=${score}, matched=[${matched.join(", ")}], missing=[${missing.join(", ")}]`,
+      `fit_score=${fit.score}, matched=[${fit.matched.join(", ")}], missing=[${fit.missing.join(", ")}]`,
       before,
       state
     );
@@ -456,11 +587,13 @@ export function runAgent(
 }
 
 // ---------- Called after a human makes an Approve/Edit/Reject decision ----------
+// Note: no resumeText parameter — drafting uses state.matchedEvidence, the
+// quotes already verified against the resume at evaluation time, so a draft
+// can never be affected by anything that happened to the resume/profile since.
 export function applyHumanDecision(
   prior: EvaluationResult,
   decision: "approve" | "edit" | "reject",
   editNote: string | null,
-  resumeText: string,
   jobText: string
 ): EvaluationResult {
   const trace = [...prior.trace];
@@ -526,7 +659,7 @@ export function applyHumanDecision(
 
   // Draft, grounded ONLY in facts extracted from resume.md — never fabricated.
   const draftBefore = { ...state };
-  const draft = draftApplication(resumeText, jobText, state.matchedSkills, state.approvalNote);
+  const draft = draftApplication(state.matchedEvidence, jobText, state.matchedSkills, state.approvalNote);
   state = { ...state, stage: "drafted", draft };
   log(
     `Drafting using matched_skills=[${state.matchedSkills.join(", ")}] and resume.md as the only source of candidate facts.`,
@@ -541,16 +674,18 @@ export function applyHumanDecision(
 }
 
 function draftApplication(
-  resumeText: string,
+  matchedEvidence: Record<string, string>,
   jobText: string,
   matchedSkills: string[],
   editNote: string | null
 ): string {
-  // Ground every bullet in an actual resume line containing the matched skill's alias,
-  // so the draft can never claim something not present in resume.md.
+  // Ground every bullet in the evidence quote already verified at evaluation time
+  // (see performFitEvaluation), so the draft can never claim something not
+  // present in resume.md, regardless of whether that quote came from the
+  // deterministic matcher or the LLM.
   const bullets: string[] = [];
   for (const skill of matchedSkills) {
-    const evidenceLine = findEvidenceLine(resumeText, skill);
+    const evidenceLine = matchedEvidence[skill];
     if (evidenceLine) {
       bullets.push(`- ${skill}: "${evidenceLine}"`);
     }

@@ -8,13 +8,13 @@ const preferencesText = fs.readFileSync(path.join(dataDir, "preferences.md"), "u
 
 const jobIds = ["J001", "J002", "J003", "J004", "J005", "J006"];
 
-function printTrace(jobId: string, label: string) {
+async function printTrace(jobId: string, label: string) {
   const jobText = fs.readFileSync(path.join(dataDir, "jobs", `${jobId}.md`), "utf-8");
   console.log("\n" + "=".repeat(80));
   console.log(`${jobId} — ${label}`);
   console.log("=".repeat(80));
 
-  const result = runAgent(jobId, jobText, resumeText, preferencesText);
+  const result = await runAgent(jobId, jobText, resumeText, preferencesText);
 
   for (const t of result.trace) {
     console.log(`\n[Step ${t.step}] selected_action = ${t.selectedAction}`);
@@ -37,7 +37,7 @@ function printTrace(jobId: string, label: string) {
         ? "Emphasize willingness to grow into missing skills; still worth a shot."
         : null;
     console.log(`\n  --- HUMAN-IN-THE-LOOP: simulating decision = "${decision}" ---`);
-    const after = applyHumanDecision(result, decision, note, resumeText, jobText);
+    const after = applyHumanDecision(result, decision, note, jobText);
     const newSteps = after.trace.slice(result.trace.length);
     for (const t of newSteps) {
       console.log(`\n[Step ${t.step}] selected_action = ${t.selectedAction}`);
@@ -50,20 +50,26 @@ function printTrace(jobId: string, label: string) {
   return result;
 }
 
-const results: Record<string, ReturnType<typeof runAgent>> = {};
-results["J001"] = printTrace("J001", "obvious fit");
-results["J002"] = printTrace("J002", "partial fit");
-results["J003"] = printTrace("J003", "hard-constraint conflict (years + clearance + on-site)");
-results["J004"] = printTrace("J004", "prompt injection embedded in posting");
-printTrace("J005", "extra: low fit");
-printTrace("J006", "extra: good fit");
+async function main() {
+  const results: Record<string, Awaited<ReturnType<typeof runAgent>>> = {};
+  results["J001"] = await printTrace("J001", "obvious fit");
+  results["J002"] = await printTrace("J002", "partial fit");
+  results["J003"] = await printTrace("J003", "hard-constraint conflict (years + clearance + on-site)");
+  results["J004"] = await printTrace("J004", "prompt injection embedded in posting");
+  await printTrace("J005", "extra: low fit");
+  await printTrace("J006", "extra: good fit");
 
-console.log("\n" + "=".repeat(80));
-console.log("CROSS-CHECK: required tests produced materially different action sequences");
-console.log("=".repeat(80));
-for (const id of ["J001", "J002", "J003", "J004"]) {
-  const seq = results[id]?.trace.map((t) => t.selectedAction).join(" -> ");
-  console.log(`${id}: ${seq}`);
+  console.log("\n" + "=".repeat(80));
+  console.log("CROSS-CHECK: required tests produced materially different action sequences");
+  console.log("=".repeat(80));
+  for (const id of ["J001", "J002", "J003", "J004"]) {
+    const seq = results[id]?.trace.map((t) => t.selectedAction).join(" -> ");
+    console.log(`${id}: ${seq}`);
+  }
+  const seqs = new Set(
+    ["J001", "J002", "J003", "J004"].map((id) => results[id]?.trace.map((t) => t.selectedAction).join(","))
+  );
+  console.log(`\nDistinct sequences across required tests: ${seqs.size} / 4`);
 }
-const seqs = new Set(["J001", "J002", "J003", "J004"].map((id) => results[id]?.trace.map((t) => t.selectedAction).join(",")));
-console.log(`\nDistinct sequences across required tests: ${seqs.size} / 4`);
+
+main();

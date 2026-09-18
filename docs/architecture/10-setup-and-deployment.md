@@ -1,25 +1,74 @@
-# Setup, Deployment, and Why No API Key Is Needed
+# Setup, Deployment, and the Optional LLM
 
-## Why this needs no AI/LLM API key
+## The LLM is optional, isolated, and cannot bypass any guardrail
 
-This is a deliberate design choice, not a missing integration: **nothing in
-this codebase calls an external AI model.** Skill extraction, years-of-
-experience parsing, prompt-injection detection, and hard-constraint checking
-are all plain deterministic TypeScript — regexes and string matching in
-[`src/lib/agent.ts`](../../src/lib/agent.ts). Search the codebase for
-`fetch(` and you'll find exactly one external call: the best-effort job-posting
-scraper (`src/app/api/jobs/scrape/route.ts`), which fetches the posting page
-itself, not an AI API.
+Skill/requirement matching (`performFitEvaluation()` in
+[`src/lib/agent.ts`](../../src/lib/agent.ts)) can optionally call an LLM (Claude
+Haiku by default — see [`src/lib/llmEvaluator.ts`](../../src/lib/llmEvaluator.ts))
+for more semantically flexible matching than fixed-dictionary keyword search
+alone. This is the **only** place in the codebase that ever calls an AI model,
+and it is deliberately scoped to one narrow job: identify which posting
+requirements the resume demonstrates.
 
-Practically, this means:
-- No `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, or any other AI provider key is
-  ever read or required, anywhere in the app.
-- The agent behaves identically offline (aside from the URL-scrape feature,
-  which obviously needs network access to the job board itself) as it does
-  deployed.
-- There's no per-request AI cost and no rate limit tied to an external
-  provider — the only external dependency at runtime is the database (Turso,
-  or the local file DB fallback).
+Everything else stays deterministic, plain TypeScript, exactly as before:
+
+- The injection scan (`scanForInjection`)
+- Hard-constraint checks (`checkHardConstraints`)
+- The branch that decides reject-hard-constraint vs. reject-low-fit vs.
+  pause-for-human (`runAgent`'s decision point 4)
+- The human-approval gate itself (`applyHumanDecision`, plus the 409 check in
+  `src/app/api/agent/approve/route.ts`)
+- Drafting (`draftApplication`) — grounded in `matchedEvidence`, quotes that
+  were already verified as literal resume.md substrings before being trusted,
+  regardless of which method (LLM or deterministic) proposed them
+
+The LLM is a **tool** the agent calls for one sub-task, never the
+decision-maker. It has no ability to approve, reject, draft, or skip a step —
+nothing downstream ever executes text the model returns; it only receives a
+score/matched/missing input into the exact same deterministic branch logic
+that ran before this file existed.
+
+### If no API key is configured, or the LLM call fails
+
+The app **must** keep working with zero LLM calls — this was true before the
+LLM was added and stays true now. `performFitEvaluation()`:
+
+1. If `ANTHROPIC_API_KEY` isn't set, uses the deterministic keyword matcher
+   directly (no attempted call at all).
+2. If it is set but the call errors (auth failure, rate limit, timeout —
+   capped at 15s), catches the error, falls back to the deterministic matcher,
+   and logs the exact failure reason in the trace — verified empirically
+   during development when an org-scoped key needed an
+   `ANTHROPIC_WORKSPACE_ID` header; the app produced correct results via the
+   fallback the whole time that was being sorted out, with the failure
+   honestly visible in the trace rather than hidden.
+
+### Trust-but-verify grounding
+
+The model is only ever allowed to *propose* a match. `performFitEvaluation()`
+keeps a proposed match only if its `evidenceQuote` is an actual, literal
+(case-insensitive) substring of the resume text supplied — anything invented
+or paraphrased is silently dropped, never surfaced. This is what keeps "never
+fabricate" mechanically true even with an LLM in the loop, not just
+prompted-for.
+
+### Seeing what the model is "thinking"
+
+The `/jobs/[id]` page shows which matching engine was used and, when the LLM
+path ran, the model's own one-to-two-sentence reasoning for its assessment —
+in addition to (not instead of) the full structured decision trace every job
+already gets. This is real transparency: the reasoning text is exactly what
+the model returned in its structured tool call, not a paraphrase.
+
+### Token/cost control
+
+- Model defaults to `claude-haiku-4-5-20251001` (fastest, cheapest current
+  model) via `ANTHROPIC_MODEL` — override if you want a different one.
+- Resume and posting text are each capped at 6,000 characters before being
+  sent, regardless of how long the source document is.
+- A single structured tool call per evaluation (`max_tokens: 700`) — no
+  multi-turn back-and-forth, no chain-of-thought/extended-thinking mode.
+- The system prompt is short and fixed; it does not grow with usage.
 
 ## Running locally
 
@@ -29,9 +78,8 @@ npm run build && npm run start   # or: npm run dev for hot reload
 ```
 
 With no environment variables set, `src/lib/db.ts` automatically falls back to
-a local file database (`local.db`) — no Turso account, no signup, nothing to
-configure. The schema is created and a default profile is seeded automatically
-on first request.
+a local file database (`local.db`) and skill matching uses the deterministic
+path — no Turso account and no Anthropic API key needed to try the app out.
 
 To see the agent's raw decision traces without starting the server at all:
 
@@ -39,7 +87,25 @@ To see the agent's raw decision traces without starting the server at all:
 npx tsx scripts/run-tests.ts
 ```
 
-## Deploying for real (Vercel + Turso)
+Note: a standalone `tsx` script does not auto-load `.env.local` the way
+Next.js does. To exercise the LLM path (or Turso) from the script directly,
+export the vars into your shell first, e.g. (bash):
+
+```bash
+set -a && source .env.local && set +a && npx tsx scripts/run-tests.ts
+```
+
+## Environment variables
+
+| Variable | Required? | Purpose |
+|---|---|---|
+| `TURSO_DATABASE_URL` | No — falls back to `local.db` | Turso database URL |
+| `TURSO_AUTH_TOKEN` | No | Turso auth token |
+| `ANTHROPIC_API_KEY` | No — falls back to deterministic matching | Enables LLM-based semantic skill matching |
+| `ANTHROPIC_MODEL` | No (defaults to `claude-haiku-4-5-20251001`) | Override the model used for matching |
+| `ANTHROPIC_WORKSPACE_ID` | Only if your API key is an **org-level admin key** rather than a workspace-scoped one | Sent as the `anthropic-workspace-id` header; a standard Workspace → API Keys key doesn't need this |
+
+## Deploying for real (Vercel + Turso + optional LLM)
 
 1. Create a Turso database: `turso db create job-search-agent`
 2. Get the URL and an auth token:
@@ -48,14 +114,13 @@ npx tsx scripts/run-tests.ts
 3. In Vercel project settings → Environment Variables, set:
    - `TURSO_DATABASE_URL`
    - `TURSO_AUTH_TOKEN`
+   - `ANTHROPIC_API_KEY` (optional — omit to run fully deterministic)
+   - `ANTHROPIC_MODEL` (optional)
 4. Deploy: `vercel deploy` (or connect the GitHub repo in the Vercel
    dashboard)
 5. Schema is created automatically on first request (`ensureSchema()` in
    `src/lib/db.ts`) — no manual migration step needed, and the default profile
    seeds itself the same way it does locally.
-
-No additional secrets are needed beyond those two Turso values — there is no
-AI provider key to add.
 
 ## Known limitation: job-posting scraping
 

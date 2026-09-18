@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
     args: [jobId],
   });
   const evalRes = await c.execute({
-    sql: "SELECT trace_json, state_json, resume_snapshot FROM evaluations WHERE job_id = ?",
+    sql: "SELECT trace_json, state_json FROM evaluations WHERE job_id = ?",
     args: [jobId],
   });
 
@@ -31,12 +31,6 @@ export async function POST(req: NextRequest) {
   }
 
   const jobText = jobRes.rows[0].raw_text as string;
-  // Ground the draft in the EXACT resume text this job was originally evaluated
-  // against (resume_snapshot), not whatever profile happens to be active right
-  // now — otherwise switching or editing a profile between evaluation and
-  // approval could silently change what an already-decided job's draft is
-  // grounded in.
-  const resumeText = evalRes.rows[0].resume_snapshot as string;
 
   const prior: EvaluationResult = {
     state: JSON.parse(evalRes.rows[0].state_json as string),
@@ -52,7 +46,12 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const result = applyHumanDecision(prior, decision as any, editNote, resumeText, jobText);
+  // Drafting grounds itself in prior.state.matchedEvidence — the quotes already
+  // verified against the resume at evaluation time — not whatever profile
+  // happens to be active right now, so switching or editing a profile between
+  // evaluation and approval can never change what an already-decided job's
+  // draft is grounded in.
+  const result = applyHumanDecision(prior, decision as any, editNote, jobText);
 
   await c.execute({
     sql: `UPDATE evaluations SET stage = ?, approval_note = ?, draft = ?, trace_json = ?,

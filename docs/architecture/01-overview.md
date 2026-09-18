@@ -28,20 +28,32 @@ clean posting's path, because handling the injection is itself a real,
 consequential branch. See [08-testing-evidence.md](08-testing-evidence.md) for
 the full generated traces proving this.
 
-## What this system explicitly does NOT do
+## Where the (optional) LLM fits in — and what it can never do
 
-- It never calls an external AI/LLM API. All parsing (skills, years of
-  experience, prompt-injection detection, constraint checks) is deterministic
-  regex/string logic in `agent.ts`. See
-  [10-setup-and-deployment.md](10-setup-and-deployment.md) for why.
+One sub-task — matching posting requirements against the resume — can
+optionally call an LLM (Claude Haiku) for more semantically flexible matching
+than keyword search alone. See [10-setup-and-deployment.md](10-setup-and-deployment.md)
+for the full design. The short version: it's a tool the agent calls for one
+narrow classification task, not a decision-maker, and everything below still
+holds exactly as written, LLM configured or not:
+
 - It never sends, submits, or contacts anyone. Drafting only ever produces text
   shown back to the human in the browser.
 - It never fabricates a candidate fact. Every drafted bullet is a literal quote
-  pulled from `resume.md` — see [06-guardrails.md](06-guardrails.md).
+  pulled from `resume.md`, verified as a real substring even when the LLM
+  proposed it — see [06-guardrails.md](06-guardrails.md).
 - It never obeys instructions embedded in a job posting, even when a posting
   explicitly tries to command it (auto-approve, skip review, print the resume
   verbatim, etc.) — that content is treated as **data to evaluate**, never as
-  instructions to follow.
+  instructions to follow, by both the deterministic scanner and the LLM's own
+  system prompt.
+- It never skips or bypasses the human-approval gate. The LLM has no tool
+  access to approve/reject/draft anything — those remain plain deterministic
+  code that never sees, and cannot be influenced by, the model's output beyond
+  the specific matched/missing skill fields it returns.
+- Injection scanning, hard-constraint checks, and the reject/pause branch logic
+  are all still deterministic regex/string logic in `agent.ts` — unaffected by
+  whether the LLM is configured.
 
 ## Tech stack
 
@@ -49,8 +61,9 @@ the full generated traces proving this.
 - **Database**: Turso (libSQL) in production, a local file-based libSQL DB
   (`local.db`) automatically when no Turso credentials are set — same code path
   either way
-- **Agent core**: plain TypeScript, zero external API dependencies
-  (`src/lib/agent.ts`)
+- **Agent core**: plain TypeScript (`src/lib/agent.ts`); one optional LLM call
+  for skill matching (`src/lib/llmEvaluator.ts`), with a deterministic fallback
+  if it's unconfigured or fails
 - **Scraping**: server-side fetch + Cheerio, best-effort (many boards block
   automated fetches or render client-side; the UI always falls back to
   paste-the-text)

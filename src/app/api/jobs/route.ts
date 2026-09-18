@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
   // retroactively change what an already-evaluated job was actually graded
   // against, or what a later-approved draft is grounded in.
   const profile = await getActiveProfile();
-  const result = runAgent(id, rawText, profile.resumeText, profile.preferencesText);
+  const result = await runAgent(id, rawText, profile.resumeText, profile.preferencesText);
 
   await c.execute({
     sql: `INSERT INTO evaluations
