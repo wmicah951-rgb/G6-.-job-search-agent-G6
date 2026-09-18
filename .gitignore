@@ -30,8 +30,11 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files
 .env*
+# Group project: committed on purpose so every teammate has working
+# Turso/LLM credentials without separately requesting their own keys.
+!.env.local
 
 # vercel
 .vercel
@@ -40,3 +43,5 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 local.db
+
+.vercel

@@ -71,20 +71,38 @@ export async function POST(req: NextRequest) {
 
   const html = await resp.text();
   const $ = cheerio.load(html);
-  $("script, style, nav, footer, header, noscript, svg").remove();
+  $(
+    "script, style, nav, footer, header, noscript, svg, [class*=video], [class*=modal], [class*=popup], [aria-label*=video]"
+  ).remove();
 
   const title =
     $("h1").first().text().trim() || $("title").first().text().trim() || "Untitled posting";
 
+  // Video-widget/accessibility-toolbar boilerplate ("Watch the video", "Close
+  // the popup", "Disable/Enable Audio Description", "Transcript", repeated
+  // "Loading..." states) shows up as dense repeated text on many corporate
+  // careers sites and can out-size the real job description in the "largest
+  // block" heuristic below if not stripped first.
+  const stripVideoJunk = (t: string) =>
+    t
+      .replace(/Watch the video/gi, " ")
+      .replace(/Close the popup/gi, " ")
+      .replace(/Loading\.\.\./gi, " ")
+      .replace(/Disable Audio Description/gi, " ")
+      .replace(/Enable Audio Description/gi, " ")
+      .replace(/Transcript/gi, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
   // Heuristic: grab the largest text block on the page (usually the job description).
   let bestText = "";
   $("article, main, [class*=description], [class*=job], section, div").each((_, el) => {
-    const t = $(el).text().replace(/\s+/g, " ").trim();
+    const t = stripVideoJunk($(el).text().replace(/\s+/g, " ").trim());
     if (t.length > bestText.length) bestText = t;
   });
 
   if (!bestText || bestText.length < 100) {
-    bestText = $("body").text().replace(/\s+/g, " ").trim();
+    bestText = stripVideoJunk($("body").text().replace(/\s+/g, " ").trim());
   }
 
   if (!bestText || bestText.length < 40) {
@@ -99,9 +117,12 @@ export async function POST(req: NextRequest) {
 
   // Safety net for boards that return 200 on the SAME url (no redirect) but show a
   // "this posting is gone" message rather than a description — don't feed that to
-  // the agent as if it were real job text.
+  // the agent as if it were real job text. Deliberately NOT anchored to "job"/
+  // "position" being immediately adjacent — real sites phrase this many ways
+  // ("the job you are trying to apply for has been filled", "this position has
+  // been filled", etc.) and a rigid adjacency requirement misses most of them.
   const deadPostingPhrases =
-    /no (current )?openings|position (has been filled|is no longer available)|job (has been filled|is no longer available)|this (job|posting) (is closed|has expired|is no longer active)|no longer accepting applications/i;
+    /no (current )?openings|has been filled|is no longer (available|active)|(is closed|has expired)\b|no longer accepting applications|could not be found|posting (has been|was) removed/i;
   if (deadPostingPhrases.test(bestText)) {
     return NextResponse.json(
       {
