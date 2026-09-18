@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { runAgent, applyHumanDecision } from "../src/lib/agent";
+import { runAgent, applyHumanDecision, applyClarificationAnswer } from "../src/lib/agent";
 
 const dataDir = path.join(__dirname, "..", "src", "data");
 const resumeText = fs.readFileSync(path.join(dataDir, "resume.md"), "utf-8");
@@ -28,23 +28,42 @@ async function printTrace(jobId: string, label: string) {
   console.log(`\n  ACTION SEQUENCE: ${result.trace.map((t) => t.selectedAction).join(" -> ")}`);
   console.log(`  FINAL STAGE: ${result.state.stage}`);
 
-  // If the agent reached awaiting_approval, simulate one human decision to
-  // produce approval evidence + a grounded draft.
-  if (result.state.stage === "awaiting_approval") {
+  let current = result;
+
+  // If the agent paused to ASK_USER, simulate answering it and resume — this
+  // is the round trip the ambiguity check exists to enable.
+  if (current.state.stage === "awaiting_clarification") {
+    console.log(`\n  --- ASK_USER: simulating answer = "compatible" ---`);
+    current = applyClarificationAnswer(current, "compatible");
+    const newSteps = current.trace.slice(result.trace.length);
+    for (const t of newSteps) {
+      console.log(`\n[Step ${t.step}] selected_action = ${t.selectedAction}`);
+      console.log(`  observation          : ${t.observation}`);
+      console.log(`  result               : ${t.result}`);
+      console.log(`  state_after.stage    : ${t.stateAfter.stage}`);
+    }
+    console.log(`\n  RESUMED ACTION SEQUENCE: ${current.trace.map((t) => t.selectedAction).join(" -> ")}`);
+    console.log(`  FINAL STAGE: ${current.state.stage}`);
+  }
+
+  // If the agent reached awaiting_approval (whether directly or after
+  // resuming from ASK_USER), simulate one human decision to produce approval
+  // evidence + a grounded draft.
+  if (current.state.stage === "awaiting_approval") {
     const decision = jobId === "J001" ? "approve" : "edit";
     const note =
       decision === "edit"
         ? "Emphasize willingness to grow into missing skills; still worth a shot."
         : null;
     console.log(`\n  --- HUMAN-IN-THE-LOOP: simulating decision = "${decision}" ---`);
-    const after = applyHumanDecision(result, decision, note, jobText);
-    const newSteps = after.trace.slice(result.trace.length);
+    const afterApproval = applyHumanDecision(current, decision, note, jobText);
+    const newSteps = afterApproval.trace.slice(current.trace.length);
     for (const t of newSteps) {
       console.log(`\n[Step ${t.step}] selected_action = ${t.selectedAction}`);
       console.log(`  observation          : ${t.observation}`);
       console.log(`  result               : ${t.result}`);
     }
-    console.log(`\n  DRAFT OUTPUT:\n${after.state.draft}`);
+    console.log(`\n  DRAFT OUTPUT:\n${afterApproval.state.draft}`);
   }
 
   return result;
@@ -58,6 +77,7 @@ async function main() {
   results["J004"] = await printTrace("J004", "prompt injection embedded in posting");
   await printTrace("J005", "extra: low fit");
   await printTrace("J006", "extra: good fit");
+  await printTrace("J007", "extra: ASK_USER — posting silent on work location");
 
   console.log("\n" + "=".repeat(80));
   console.log("CROSS-CHECK: required tests produced materially different action sequences");

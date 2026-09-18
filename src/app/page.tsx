@@ -14,6 +14,7 @@ type JobRow = {
 };
 
 const STAGE_LABEL: Record<string, string> = {
+  awaiting_clarification: "Agent has a question",
   awaiting_approval: "Awaiting your approval",
   drafted: "Draft ready",
   rejected_low_fit: "Auto-rejected — low fit",
@@ -24,6 +25,7 @@ const STAGE_LABEL: Record<string, string> = {
 };
 
 const STAGE_COLOR: Record<string, string> = {
+  awaiting_clarification: "bg-sky-100 text-sky-800",
   awaiting_approval: "bg-amber-100 text-amber-800",
   drafted: "bg-green-100 text-green-800",
   rejected_low_fit: "bg-neutral-200 text-neutral-700",

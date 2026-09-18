@@ -34,6 +34,10 @@ The main evaluation view. Shows, in order:
 - Hard-constraint violations, if any (red panel)
 - Prompt-injection notice, if any (purple panel) — what was found and that it
   was refused
+- **ASK_USER panel** (blue), only shown while `stage === "awaiting_clarification"`
+  — the specific question the agent needs answered, with "Treat as compatible"
+  / "Treat as a violation" buttons. Distinct from the approval gate below: this
+  one appears *during* evaluation, before the agent has reached a verdict at all
 - The Approve / Edit & Approve / Reject buttons (only shown while
   `stage === "awaiting_approval"`)
 - The draft, once one exists
@@ -41,7 +45,8 @@ The main evaluation view. Shows, in order:
   artifact for the assignment's testing requirement
 - The raw posting text, collapsed by default
 
-Backed by `GET /api/jobs/[id]` and `POST /api/agent/approve`.
+Backed by `GET /api/jobs/[id]`, `POST /api/agent/clarify`, and
+`POST /api/agent/approve`.
 
 ## `/upload` — Resume & Preferences / Profiles (`src/app/upload/page.tsx`)
 

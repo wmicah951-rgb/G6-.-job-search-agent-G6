@@ -23,6 +23,7 @@ export type Stage =
   | "scanned"
   | "evaluated"
   | "constraints_checked"
+  | "awaiting_clarification"
   | "awaiting_approval"
   | "approved"
   | "edited"
@@ -57,6 +58,11 @@ export interface AgentState {
   fitRationale: string[];
   hardConstraintViolations: string[];
   redFlags: string[];
+  // Set only while stage === "awaiting_clarification": the specific question
+  // the agent needs a human to resolve before it can finish deciding — this
+  // is the ASK_USER action, distinct from request_human_approval (which only
+  // ever asks "do you want to proceed?" after a full evaluation).
+  clarificationQuestion: string | null;
   approvalNote: string | null;
   draft: string | null;
 }
@@ -210,6 +216,26 @@ function checkHardConstraints(
   }
 
   return violations;
+}
+
+// ---------- ASK_USER: hard constraints the agent can't confidently evaluate ----------
+// checkHardConstraints() above only flags a location violation when the posting
+// explicitly says something like "on-site only" — if a posting never mentions
+// work arrangement at all, that function silently treats it as no violation,
+// which is really the agent guessing on the candidate's behalf. This function
+// catches exactly that gap: a posting that says nothing about remote/hybrid/
+// on-site while the candidate has a hard "remote or hybrid only" rule. When
+// true, the agent should ask rather than assume either way.
+function detectLocationAmbiguity(jobText: string, preferencesText: string): string | null {
+  const lowerPrefs = preferencesText.toLowerCase();
+  if (!lowerPrefs.includes("remote or hybrid only")) return null;
+  const mentionsWorkArrangement = /remote|hybrid|on-?site|in-?office|relocate/i.test(jobText);
+  if (mentionsWorkArrangement) return null;
+  return (
+    "This posting never states whether the role is remote, hybrid, or on-site, " +
+    "but your preferences require remote-or-hybrid-only. Should this posting be " +
+    "treated as compatible with that preference, or as a violation of it?"
+  );
 }
 
 // ---------- Fit scoring (deterministic keyword path) ----------
@@ -399,6 +425,61 @@ function explainFit(
 // under BOTH the deterministic and LLM matchers.
 const LOW_FIT_THRESHOLD = 0.45;
 
+type LogFn = (
+  observation: string,
+  availableActions: string[],
+  selectedAction: string,
+  result: string,
+  before: AgentState,
+  after: AgentState
+) => void;
+
+// The core branch: three materially different paths, chosen from state alone.
+// Shared by runAgent() (the normal path) and applyClarificationAnswer() (the
+// resume-after-ASK_USER path), so both go through the exact same tested
+// decision logic instead of two copies that could drift apart.
+function decideAfterConstraints(state: AgentState, log: LogFn): AgentState {
+  if (state.hardConstraintViolations.length > 0) {
+    const before = { ...state };
+    state = { ...state, stage: "rejected_hard_constraint" };
+    log(
+      `State shows hard constraint violation(s): ${before.hardConstraintViolations.join("; ")}`,
+      ["reject_hard_constraint", "reject_low_fit", "request_human_approval"],
+      "reject_hard_constraint",
+      "Job rejected automatically on a HARD constraint (years/clearance/location), regardless of skill fit. No draft will be produced. Human approval step skipped (nothing to approve).",
+      before,
+      state
+    );
+    return state;
+  }
+
+  if ((state.fitScore ?? 0) < LOW_FIT_THRESHOLD) {
+    const before = { ...state };
+    state = { ...state, stage: "rejected_low_fit" };
+    log(
+      `Fit score ${state.fitScore} is below the low-fit threshold (${LOW_FIT_THRESHOLD}).`,
+      ["reject_hard_constraint", "reject_low_fit", "request_human_approval"],
+      "reject_low_fit",
+      "Job down-ranked and rejected automatically for low skill fit (constraints were fine). No draft produced.",
+      before,
+      state
+    );
+    return state;
+  }
+
+  const before = { ...state };
+  state = { ...state, stage: "awaiting_approval" };
+  log(
+    `Constraints passed. fit_score=${state.fitScore} >= threshold ${LOW_FIT_THRESHOLD}.`,
+    ["reject_hard_constraint", "reject_low_fit", "request_human_approval"],
+    "request_human_approval",
+    "Evaluation surfaced to human for Approve / Edit / Reject. Agent paused — no draft produced yet.",
+    before,
+    state
+  );
+  return state;
+}
+
 // ---------- The agent loop ----------
 export async function runAgent(
   jobId: string,
@@ -423,6 +504,7 @@ export async function runAgent(
     fitRationale: [],
     hardConstraintViolations: [],
     redFlags: [],
+    clarificationQuestion: null,
     approvalNote: null,
     draft: null,
   };
@@ -545,50 +627,95 @@ export async function runAgent(
     );
   }
 
+  // --- Decision point 3b: ASK_USER — only reached when nothing has already
+  // decided this job's fate (a violation already found means asking wouldn't
+  // change the outcome) AND the posting is genuinely silent on something a
+  // hard constraint depends on. This does not exist on any path where the
+  // posting actually states its work arrangement — see the four required
+  // tests, all of which do — so it never changes their behavior; it only
+  // fires for postings where guessing would mean silently deciding for the
+  // candidate instead of asking them.
+  if (state.hardConstraintViolations.length === 0) {
+    const clarificationQuestion = detectLocationAmbiguity(jobText, preferencesText);
+    if (clarificationQuestion) {
+      const before = { ...state };
+      state = { ...state, stage: "awaiting_clarification", clarificationQuestion };
+      log(
+        "Hard constraint depends on information the posting never states.",
+        ["ask_user_clarification"],
+        "ask_user_clarification",
+        `Agent paused to ask: "${clarificationQuestion}"`,
+        before,
+        state
+      );
+      return { state, trace };
+    }
+  }
+
   // --- Decision point 4: agent SELECTS next action based on state so far ---
-  // This is the core branch point: three materially different paths.
-  if (state.hardConstraintViolations.length > 0) {
-    const before = { ...state };
-    state = { ...state, stage: "rejected_hard_constraint" };
-    log(
-      `State shows hard constraint violation(s): ${before.hardConstraintViolations.join("; ")}`,
-      ["reject_hard_constraint", "reject_low_fit", "request_human_approval"],
-      "reject_hard_constraint",
-      "Job rejected automatically on a HARD constraint (years/clearance/location), regardless of skill fit. No draft will be produced. Human approval step skipped (nothing to approve).",
-      before,
-      state
-    );
-    return { state, trace };
+  state = decideAfterConstraints(state, log);
+  return { state, trace };
+}
+
+// ---------- Called after a human resolves an ASK_USER clarification ----------
+// Resumes exactly where the agent paused, using the human's answer to settle
+// the one ambiguous hard constraint, then runs through the SAME
+// decideAfterConstraints() branch logic runAgent() itself uses — not a copy.
+export function applyClarificationAnswer(
+  prior: EvaluationResult,
+  answer: "compatible" | "violation"
+): EvaluationResult {
+  const trace = [...prior.trace];
+  let step = trace.length;
+  let state = { ...prior.state };
+
+  function log(
+    observation: string,
+    availableActions: string[],
+    selectedAction: string,
+    result: string,
+    before: AgentState,
+    after: AgentState
+  ) {
+    step += 1;
+    trace.push({
+      step,
+      stateBefore: { ...before },
+      observation,
+      availableActions,
+      selectedAction,
+      result,
+      stateAfter: { ...after },
+    });
   }
 
-  if ((state.fitScore ?? 0) < LOW_FIT_THRESHOLD) {
-    const before = { ...state };
-    state = { ...state, stage: "rejected_low_fit" };
-    log(
-      `Fit score ${state.fitScore} is below the low-fit threshold (${LOW_FIT_THRESHOLD}).`,
-      ["reject_hard_constraint", "reject_low_fit", "request_human_approval"],
-      "reject_low_fit",
-      "Job down-ranked and rejected automatically for low skill fit (constraints were fine). No draft produced.",
-      before,
-      state
-    );
-    return { state, trace };
-  }
-
-  // Passed constraints and has enough fit -> pause for a human before any drafting.
-  {
-    const before = { ...state };
-    state = { ...state, stage: "awaiting_approval" };
-    log(
-      `Constraints passed. fit_score=${state.fitScore} >= threshold ${LOW_FIT_THRESHOLD}.`,
-      ["reject_hard_constraint", "reject_low_fit", "request_human_approval"],
-      "request_human_approval",
-      "Evaluation surfaced to human for Approve / Edit / Reject. Agent paused — no draft produced yet.",
-      before,
-      state
+  const before = { ...state };
+  const violations = [...state.hardConstraintViolations];
+  if (answer === "violation") {
+    violations.push(
+      'Posting never states its work arrangement; human resolved this as a violation of "remote or hybrid only".'
     );
   }
+  state = {
+    ...state,
+    stage: "constraints_checked",
+    hardConstraintViolations: violations,
+    clarificationQuestion: null,
+  };
+  log(
+    `Human answered: ${
+      answer === "compatible"
+        ? "treat this posting as compatible with the remote/hybrid preference"
+        : "treat this posting as a violation of the remote/hybrid preference"
+    }.`,
+    ["reject_hard_constraint", "reject_low_fit", "request_human_approval"],
+    "ask_user_clarification",
+    "Clarification resolved. Resuming evaluation with the human's answer incorporated.",
+    before,
+    state
+  );
 
+  state = decideAfterConstraints(state, log);
   return { state, trace };
 }
 

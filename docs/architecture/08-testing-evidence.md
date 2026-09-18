@@ -132,6 +132,18 @@ is visible via "Show full decision trace."
   `request_human_approval` path as J001, then an Edit decision instead of a
   plain Approve, showing the edit-note mechanism independently of the
   injection scenario.
+- **J007** (`ASK_USER` — posting silent on work location) → pauses at
+  `awaiting_clarification` instead of reaching a verdict at all yet:
+  `scan_for_injection → evaluate_fit → check_hard_constraints →
+  ask_user_clarification`. Answering "compatible" resumes through
+  `check_hard_constraints`'s already-computed state straight to
+  `request_human_approval`; answering "violation" instead resumes to
+  `reject_hard_constraint`, with the violation reading exactly `Posting never
+  states its work arrangement; human resolved this as a violation of "remote
+  or hybrid only"` — both verified live via `/api/agent/clarify`. This is the
+  one action genuinely absent from the four required tests (none of them are
+  silent on location), demonstrating `ASK_USER` from the course's reference
+  table without changing any of the required-test behavior above.
 
 ## What this proves against the rubric's "fixed pipeline" failure mode
 

@@ -276,6 +276,75 @@ Grounded matches (each line quoted directly from resume.md — nothing invented)
 Human edit note applied: Emphasize willingness to grow into missing skills; still worth a shot.
 
 ================================================================================
+J007 — extra: ASK_USER — posting silent on work location
+================================================================================
+
+[Step 1] selected_action = scan_for_injection
+  state_before.stage   : start
+  observation          : Raw job posting text received (334 chars). Treated as untrusted data only.
+  available_actions    : [scan_for_injection, evaluate_fit, check_hard_constraints, reject_hard_constraint, reject_low_fit, request_human_approval, draft_application]
+  result               : No embedded instructions detected.
+  state_after.stage    : scanned
+
+[Step 2] selected_action = evaluate_fit
+  state_before.stage   : scanned
+  observation          : No ANTHROPIC_API_KEY configured — used deterministic keyword matching. Requirements checked against resume.md.
+  available_actions    : [check_hard_constraints, reject, request_human_approval]
+  result               : fit_score=1, matched=[SQL, Python, Power BI, Excel], missing=[]
+  state_after.stage    : evaluated
+
+[Step 3] selected_action = check_hard_constraints
+  state_before.stage   : evaluated
+  observation          : Candidate years of experience: ~2. Preferences hard constraints checked against posting.
+  available_actions    : [reject, request_human_approval]
+  result               : No hard constraint violations.
+  state_after.stage    : constraints_checked
+
+[Step 4] selected_action = ask_user_clarification
+  state_before.stage   : constraints_checked
+  observation          : Hard constraint depends on information the posting never states.
+  available_actions    : [ask_user_clarification]
+  result               : Agent paused to ask: "This posting never states whether the role is remote, hybrid, or on-site, but your preferences require remote-or-hybrid-only. Should this posting be treated as compatible with that preference, or as a violation of it?"
+  state_after.stage    : awaiting_clarification
+
+  ACTION SEQUENCE: scan_for_injection -> evaluate_fit -> check_hard_constraints -> ask_user_clarification
+  FINAL STAGE: awaiting_clarification
+
+  --- ASK_USER: simulating answer = "compatible" ---
+
+[Step 5] selected_action = ask_user_clarification
+  observation          : Human answered: treat this posting as compatible with the remote/hybrid preference.
+  result               : Clarification resolved. Resuming evaluation with the human's answer incorporated.
+  state_after.stage    : constraints_checked
+
+[Step 6] selected_action = request_human_approval
+  observation          : Constraints passed. fit_score=1 >= threshold 0.45.
+  result               : Evaluation surfaced to human for Approve / Edit / Reject. Agent paused — no draft produced yet.
+  state_after.stage    : awaiting_approval
+
+  RESUMED ACTION SEQUENCE: scan_for_injection -> evaluate_fit -> check_hard_constraints -> ask_user_clarification -> ask_user_clarification -> request_human_approval
+  FINAL STAGE: awaiting_approval
+
+  --- HUMAN-IN-THE-LOOP: simulating decision = "edit" ---
+
+[Step 7] selected_action = draft_application
+  observation          : Human selected: Edit. Note: "Emphasize willingness to grow into missing skills; still worth a shot."
+  result               : Human edited the evaluation notes and approved drafting to proceed with the edit applied.
+
+[Step 8] selected_action = draft_application
+  observation          : Drafting using matched_skills=[SQL, Python, Power BI, Excel] and resume.md as the only source of candidate facts.
+  result               : Draft produced. Every claim traces back to a line in resume.md; nothing outside the resume was asserted.
+
+  DRAFT OUTPUT:
+Draft cover-letter bullets for Data Analyst
+Grounded matches (each line quoted directly from resume.md — nothing invented):
+- SQL: "dashboards and reports. Comfortable with SQL, Python, and Power BI. Looking for a Data"
+- Python: "dashboards and reports. Comfortable with SQL, Python, and Power BI. Looking for a Data"
+- Power BI: "dashboards and reports. Comfortable with SQL, Python, and Power BI. Looking for a Data"
+- Excel: "Automated a manual Excel reconciliation process with Python (pandas), cutting a"
+Human edit note applied: Emphasize willingness to grow into missing skills; still worth a shot.
+
+================================================================================
 CROSS-CHECK: required tests produced materially different action sequences
 ================================================================================
 J001: scan_for_injection -> evaluate_fit -> check_hard_constraints -> request_human_approval

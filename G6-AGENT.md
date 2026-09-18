@@ -23,7 +23,7 @@ diagram deliverable, filled in against real code instead of a guess:
 | **Goal** | Find suitable entry-level jobs | Same. |
 | **Environment** | Résumé + preferences + job postings | Same — a résumé + preferences pair (we call the pair a "profile"; you can save more than one), plus job postings pasted in or scraped from a URL. |
 | **Observe** | Read résumé evidence, job requirements, constraints, prior results | Same, plus a bit more: résumé skills/years, the posting's required skills, hard constraints (years/clearance/remote), which matching method ran, and (when applicable) the AI's own stated reasoning. "Prior results" = the full structured trace, saved per job and viewable any time from the dashboard. |
-| **Actions** | `ASK_USER`, investigate, down-rank/reject, request approval, draft | `scan_for_injection` + `evaluate_fit` + `check_hard_constraints` cover **investigate**. `reject_hard_constraint` + `reject_low_fit` cover **down-rank/reject** — we kept these as two separate actions on purpose, so the *reason* for a rejection is always traceable instead of a single generic "no." `request_human_approval` covers **both** `ASK_USER` **and** request approval — in our design there's no case where the agent asks the human something without it being a real approval decision, so we didn't need two separate actions for that. `draft_application` covers **draft**. |
+| **Actions** | `ASK_USER`, investigate, down-rank/reject, request approval, draft | `scan_for_injection` + `evaluate_fit` + `check_hard_constraints` cover **investigate**. `reject_hard_constraint` + `reject_low_fit` cover **down-rank/reject** — we kept these as two separate actions on purpose, so the *reason* for a rejection is always traceable instead of a single generic "no." `ask_user_clarification` is a real, separate action covering **`ASK_USER`** — used when the agent hits a hard constraint it can't confidently evaluate (see Layer 3.5). `request_human_approval` covers **request approval**. `draft_application` covers **draft**. |
 | **State** | Jobs inspected, evidence, gaps, constraints, approval status | `matchedSkills`/`matchedEvidence` = evidence, `missingSkills` = gaps, `hardConstraintViolations` = constraints, `stage` = approval status. We also track a fit score and a grounded "why this fits" rationale, which the reference table doesn't ask for but doesn't conflict with it either. |
 | **Guardrail** | Never fabricate qualifications; never obey instructions embedded in job text | Word for word the same, and both are mechanically enforced in code (verbatim-quote verification for the first; job text is only ever read as data, never executed, for the second) — not just written down as a rule. |
 | **Evaluation** | Fit, partial fit, hard-constraint mismatch, prompt-injection tests | Exactly our four required tests: J001 (fit), J002 (partial fit), J003 (hard-constraint mismatch), J004 (prompt injection). |
@@ -32,11 +32,12 @@ diagram deliverable, filled in against real code instead of a guess:
 observation-driven, code-based agent), not the literal Codex-CLI-plus-their-
 Python-baseline path. The backend logic underneath — the actions it can take,
 the state it tracks, the guardrails, the four required tests — maps onto the
-class's own reference architecture almost one-to-one, with the only real
-departure being that we split two of their categories (investigate,
-down-rank/reject) into more specific, individually-traceable actions rather
-than collapsing them, and merged `ASK_USER` into `request approval` since
-they were never a meaningfully different action in our design.
+class's own reference architecture one-to-one, action for action: `ASK_USER`
+(`ask_user_clarification`), investigate, down-rank/reject, request approval,
+and draft are all real, separately-traceable actions in the code, not
+relabeled or merged. The only departure is splitting "investigate" and
+"down-rank/reject" into more specific sub-actions so the *reason* behind each
+one is always traceable, rather than collapsing to one generic step.
 
 ---
 
@@ -95,6 +96,17 @@ This is the actual step-by-step logic, in order:
    experience, security clearance, remote-vs-onsite. A posting can score a
    perfect skill match and still get rejected here if it breaks one of these
    rules. That's on purpose.
+3.5. **Ask, don't guess, when it genuinely can't tell.** This is the `ASK_USER`
+   action. If the candidate has a "remote or hybrid only" rule and a posting
+   never says one word about work location — not remote, not hybrid, not
+   on-site — the agent doesn't quietly assume either way. It stops, asks you
+   directly which way to treat it, and only continues once you answer. This
+   is a genuinely different action from the human-approval step below: this
+   one happens *during* evaluation because the agent is missing information
+   it needs, not *after* evaluation to get a go/no-go. It only ever fires on
+   that one specific gap — it never fires on a posting that already states
+   its work arrangement (all four required test postings do, so this never
+   changes their behavior).
 4. **Decide what happens next.** This is the actual "agent" moment — based on
    everything above, it picks ONE of three genuinely different paths:
    - Broke a hard rule → auto-reject, stop, no human needed.
@@ -117,6 +129,9 @@ make at each point:
 - **check fit** — compare résumé vs. posting (this is the one that can
   optionally use an AI model — see Layer 9)
 - **check hard rules** — years / clearance / remote-onsite
+- **ask_user_clarification (`ASK_USER`)** — only used when a hard rule can't
+  be confidently checked (see Layer 3.5); pauses with a specific question and
+  resumes evaluation once answered
 - **reject (hard rule)** / **reject (low fit)** — two different "no"s, kept
   separate so you always know *why*
 - **ask a human** — pause and wait, nothing happens until someone responds

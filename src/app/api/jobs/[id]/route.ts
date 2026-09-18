@@ -44,6 +44,7 @@ export async function GET(
           fitRationale: JSON.parse((evaluation.fit_rationale as string) ?? "[]"),
           fitMethod: state?.fitMethod ?? "deterministic",
           fitReasoning: state?.fitReasoning ?? null,
+          clarificationQuestion: state?.clarificationQuestion ?? null,
           hardConstraintViolations: JSON.parse(
             (evaluation.hard_constraint_violations as string) ?? "[]"
           ),

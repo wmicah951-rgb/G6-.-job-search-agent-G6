@@ -93,6 +93,26 @@ phrasing ("N years of experience", "requires N years", "N–M+ years", etc.), an
 for a range like "3–5+ years" uses the lower bound — the actual minimum a
 candidate needs to clear.
 
+## Decision point 3b — ASK_USER (`agent.ts`, `detectLocationAmbiguity()`)
+
+Only reached when `hardConstraintViolations` is empty (if something already
+disqualifies the job, asking wouldn't change the outcome, so it doesn't fire).
+**Observation**: does the posting say anything at all about remote/hybrid/
+on-site, given the candidate requires remote-or-hybrid-only? If the posting is
+completely silent on it, `checkHardConstraints()` above has no explicit
+violation to report — but that's really an unknown, not a "no problem." This
+step catches that gap: pauses at `awaiting_clarification` with a specific
+question, logs `ask_user_clarification`, and returns early. `POST
+/api/agent/clarify` → `applyClarificationAnswer()` resumes evaluation once a
+human answers, resolving the ambiguity one way or the other and then running
+through `decideAfterConstraints()` — the *same* function decision point 4
+below uses, not a duplicate. See J007 in
+[08-testing-evidence.md](08-testing-evidence.md) for a full round-trip trace.
+
+This is the one action that doesn't exist on any of the four required test
+paths — none of J001–J004 are silent on work location — so adding it changed
+nothing about their already-verified behavior.
+
 ## Decision point 4 — the real branch (`agent.ts` ~L308–350)
 
 This is the one the assignment's rubric is actually checking for: **three

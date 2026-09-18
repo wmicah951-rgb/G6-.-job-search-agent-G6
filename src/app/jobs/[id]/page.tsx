@@ -20,6 +20,7 @@ type Evaluation = {
   fitRationale: string[];
   fitMethod: "llm" | "deterministic";
   fitReasoning: string | null;
+  clarificationQuestion: string | null;
   hardConstraintViolations: string[];
   injectionDetected: boolean;
   injectionSnippets: string[];
@@ -30,6 +31,7 @@ type Evaluation = {
 };
 
 const STAGE_LABEL: Record<string, string> = {
+  awaiting_clarification: "Agent has a question for you",
   awaiting_approval: "Awaiting your approval",
   drafted: "Draft ready",
   rejected_low_fit: "Auto-rejected — low fit",
@@ -40,6 +42,7 @@ const STAGE_LABEL: Record<string, string> = {
 };
 
 const STAGE_COLOR: Record<string, string> = {
+  awaiting_clarification: "bg-sky-100 text-sky-800",
   awaiting_approval: "bg-amber-100 text-amber-800",
   drafted: "bg-green-100 text-green-800",
   rejected_low_fit: "bg-neutral-200 text-neutral-700",
@@ -90,6 +93,20 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ jobId: id, decision, editNote: decision === "edit" ? editNote : null }),
+      });
+      await load();
+    } finally {
+      setDeciding(false);
+    }
+  }
+
+  async function clarify(answer: "compatible" | "violation") {
+    setDeciding(true);
+    try {
+      await fetch("/api/agent/clarify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jobId: id, answer }),
       });
       await load();
     } finally {
@@ -202,6 +219,32 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
               <li key={i}>{s}</li>
             ))}
           </ul>
+        </div>
+      )}
+
+      {/* ASK_USER — the agent stopped mid-evaluation because it hit a genuine
+          ambiguity it shouldn't guess on, distinct from the approval gate below
+          (which only ever asks "proceed or not?" after a full evaluation). */}
+      {ev.stage === "awaiting_clarification" && (
+        <div className="border border-sky-300 bg-sky-50 rounded-lg p-4 mb-6">
+          <div className="font-medium mb-2 text-sky-900">Agent needs a clarification before it can continue</div>
+          <p className="text-sm text-sky-900 mb-3">{ev.clarificationQuestion}</p>
+          <div className="flex gap-2">
+            <button
+              disabled={deciding}
+              onClick={() => clarify("compatible")}
+              className="text-sm bg-sky-700 text-white px-3 py-1.5 rounded-md disabled:opacity-50"
+            >
+              Treat as compatible
+            </button>
+            <button
+              disabled={deciding}
+              onClick={() => clarify("violation")}
+              className="text-sm bg-neutral-700 text-white px-3 py-1.5 rounded-md disabled:opacity-50"
+            >
+              Treat as a violation
+            </button>
+          </div>
         </div>
       )}
 
