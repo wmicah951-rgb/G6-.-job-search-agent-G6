@@ -35,6 +35,9 @@ yarn-error.log*
 # Group project: committed on purpose so every teammate has working
 # Turso/LLM credentials without separately requesting their own keys.
 !.env.local
+# Safe placeholder template (no real values) for anyone who doesn't have the
+# real .env.local shared with them yet.
+!.env.example
 
 # vercel
 .vercel
