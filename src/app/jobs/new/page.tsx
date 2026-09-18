@@ -70,91 +70,115 @@ export default function NewJobPage() {
   }
 
   return (
-    <div className="max-w-2xl">
-      <h1 className="text-xl font-semibold mb-1">Add a job posting</h1>
-      <p className="text-sm text-neutral-500 mb-4">
-        Scrape a URL or paste the text. Either way, the agent treats this content as{" "}
-        <strong>data to evaluate</strong>, never as instructions to follow.
+    <div className="w-full max-w-4xl mx-auto pb-16 font-sans">
+      <h1 className="text-2xl font-bold text-neutral-900 mb-1">Add a Job Posting</h1>
+      <p className="text-sm text-neutral-600 mb-5">
+        Scrape a URL or paste the posting text. The agent treats this content strictly as{" "}
+        <strong>data to evaluate</strong>, immune to prompt injections.
       </p>
 
-      <div className="flex gap-2 mb-4">
+      <div className="flex gap-2 mb-5">
         <button
+          type="button"
+          onClick={() => setMode("paste")}
+          className={`text-sm font-medium px-4 py-2 rounded-xl border transition-colors cursor-pointer ${
+            mode === "paste"
+              ? "bg-neutral-900 text-white border-neutral-900 shadow-xs"
+              : "bg-white text-neutral-700 border-neutral-300 hover:bg-neutral-50"
+          }`}
+        >
+          Paste Text
+        </button>
+        <button
+          type="button"
           onClick={() => setMode("url")}
-          className={`text-sm px-3 py-1.5 rounded-md border ${
-            mode === "url" ? "bg-neutral-900 text-white border-neutral-900" : "border-neutral-300"
+          className={`text-sm font-medium px-4 py-2 rounded-xl border transition-colors cursor-pointer ${
+            mode === "url"
+              ? "bg-neutral-900 text-white border-neutral-900 shadow-xs"
+              : "bg-white text-neutral-700 border-neutral-300 hover:bg-neutral-50"
           }`}
         >
           Scrape from URL
         </button>
-        <button
-          onClick={() => setMode("paste")}
-          className={`text-sm px-3 py-1.5 rounded-md border ${
-            mode === "paste" ? "bg-neutral-900 text-white border-neutral-900" : "border-neutral-300"
-          }`}
-        >
-          Paste text
-        </button>
       </div>
 
       {mode === "url" && (
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-1">Posting URL</label>
-          <div className="flex gap-2">
+        <div className="mb-5 border border-neutral-200 bg-white rounded-2xl p-5 shadow-xs">
+          <label className="block text-sm font-semibold text-neutral-800 mb-1.5">Posting URL</label>
+          <div className="flex gap-2.5">
             <input
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               placeholder="https://company.com/careers/data-analyst"
-              className="flex-1 border border-neutral-300 rounded-md px-3 py-2 text-sm bg-white text-neutral-900 placeholder:text-neutral-400"
+              className="flex-1 border border-neutral-300 rounded-xl px-4 py-2.5 text-sm bg-white text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-800"
             />
             <button
+              type="button"
               onClick={handleScrape}
-              disabled={scraping || !url}
-              className="text-sm bg-neutral-900 text-white px-3 py-2 rounded-md disabled:opacity-50"
+              disabled={scraping || !url.trim()}
+              className="text-sm font-medium bg-neutral-900 text-white px-5 py-2.5 rounded-xl disabled:opacity-50 hover:bg-neutral-800 transition-colors cursor-pointer"
             >
-              {scraping ? "Fetching…" : "Fetch"}
+              {scraping ? "Fetching…" : "Fetch Posting"}
             </button>
           </div>
-          <p className="text-xs text-neutral-500 mt-1">
-            Many job boards (LinkedIn, Indeed, sites that require login or heavy
-            JavaScript) block server-side fetches or violate their own terms of service
-            if scraped. If a fetch fails, paste the text instead — that always works.
+          <p className="text-xs text-neutral-500 mt-2">
+            Many job boards (LinkedIn, Indeed, login portals) block automated fetches. If a fetch fails, paste the text directly instead.
           </p>
         </div>
       )}
 
       {mode === "paste" && (
-        <>
-          <div className="mb-3">
-            <label className="block text-sm font-medium mb-1">Title (optional)</label>
+        <div className="space-y-4 mb-5 border border-neutral-200 bg-white rounded-2xl p-5 sm:p-6 shadow-xs">
+          <div>
+            <label className="block text-sm font-semibold text-neutral-800 mb-1.5">Job Title (optional)</label>
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Data Analyst @ Acme Co"
-              className="w-full border border-neutral-300 rounded-md px-3 py-2 text-sm bg-white text-neutral-900 placeholder:text-neutral-400"
+              placeholder="e.g. Senior Data Analyst @ Acme Corp"
+              className="w-full border border-neutral-300 rounded-xl px-4 py-2.5 text-sm bg-white text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-800"
             />
           </div>
-          <div className="mb-3">
-            <label className="block text-sm font-medium mb-1">Posting text</label>
+          <div>
+            <label className="block text-sm font-semibold text-neutral-800 mb-1.5">Full Job Posting Text</label>
             <textarea
               value={rawText}
               onChange={(e) => setRawText(e.target.value)}
-              rows={14}
-              placeholder="Paste the full job posting here…"
-              className="w-full border border-neutral-300 rounded-md px-3 py-2 text-sm font-mono bg-white text-neutral-900 placeholder:text-neutral-400"
+              rows={16}
+              placeholder="Paste the full job posting description and requirements here…"
+              className="w-full border border-neutral-300 rounded-xl p-4 text-xs sm:text-sm font-mono bg-white text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-800 shadow-inner resize-y min-h-[280px]"
             />
+            <div className="flex justify-between text-xs text-neutral-400 mt-1">
+              <span>Paste the complete job description including qualifications and constraints</span>
+              <span>{rawText.length} characters</span>
+            </div>
           </div>
-        </>
+        </div>
       )}
 
-      {error && <p className="text-sm text-red-600 mb-3">{error}</p>}
+      {error && (
+        <div className="mb-4 p-3.5 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 font-medium">
+          {error}
+        </div>
+      )}
 
-      <button
-        onClick={handleSubmit}
-        disabled={submitting || !rawText.trim()}
-        className="text-sm bg-neutral-900 text-white px-4 py-2 rounded-md disabled:opacity-50"
-      >
-        {submitting ? "Evaluating…" : "Evaluate with agent"}
-      </button>
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={handleSubmit}
+          disabled={submitting || !rawText.trim()}
+          className="text-sm font-bold bg-neutral-900 hover:bg-neutral-800 text-white px-6 py-3 rounded-xl disabled:opacity-50 transition-all shadow-sm cursor-pointer flex items-center gap-2"
+        >
+          {submitting ? (
+            <>
+              <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
+              <span>Evaluating with Agent...</span>
+            </>
+          ) : (
+            <span>Evaluate with Agent →</span>
+          )}
+        </button>
+      </div>
     </div>
   );
 }
+
