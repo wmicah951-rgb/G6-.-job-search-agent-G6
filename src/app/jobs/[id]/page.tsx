@@ -54,7 +54,7 @@ const STAGE_COLOR: Record<string, string> = {
 // below that is what the agent actually auto-rejects on.
 function fitScoreColor(score: number): string {
   if (score >= 0.7) return "text-green-700";
-  if (score >= 0.34) return "text-amber-700";
+  if (score >= 0.45) return "text-amber-700";
   return "text-red-700";
 }
 

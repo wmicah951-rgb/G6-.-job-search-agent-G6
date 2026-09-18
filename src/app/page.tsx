@@ -10,6 +10,7 @@ type JobRow = {
   stage: string | null;
   fit_score: number | null;
   injection_detected: number | null;
+  profile_name: string | null;
 };
 
 const STAGE_LABEL: Record<string, string> = {
@@ -39,7 +40,7 @@ const STAGE_COLOR: Record<string, string> = {
 // the agent decided, not just an arbitrary gradient.
 function fitScoreColor(score: number): string {
   if (score >= 0.7) return "bg-green-100 text-green-800";
-  if (score >= 0.34) return "bg-amber-100 text-amber-800";
+  if (score >= 0.45) return "bg-amber-100 text-amber-800";
   return "bg-red-100 text-red-800";
 }
 
@@ -131,19 +132,23 @@ function SystemStatusPanel() {
 export default function Dashboard() {
   const [jobs, setJobs] = useState<JobRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeProfileName, setActiveProfileName] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/jobs")
       .then((r) => r.json())
       .then((d) => setJobs(d.jobs ?? []))
       .finally(() => setLoading(false));
+    fetch("/api/profiles")
+      .then((r) => r.json())
+      .then((d) => setActiveProfileName(d.profiles?.find((p: { isActive: boolean; name: string }) => p.isActive)?.name ?? null));
   }, []);
 
   return (
     <div>
       <SystemStatusPanel />
 
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-1">
         <h1 className="text-xl font-semibold">Evaluated postings</h1>
         <a
           href="/jobs/new"
@@ -152,6 +157,11 @@ export default function Dashboard() {
           + Add a posting
         </a>
       </div>
+      <p className="text-xs text-neutral-500 mb-4">
+        New postings will be scanned as:{" "}
+        <span className="font-medium text-neutral-900">{activeProfileName ?? "…"}</span>{" "}
+        (<a href="/upload" className="underline">change profile</a>)
+      </p>
 
       {loading && <p className="text-sm text-neutral-500">Loading…</p>}
 
@@ -173,6 +183,13 @@ export default function Dashboard() {
                 <div className="font-medium">{j.title}</div>
                 <div className="text-xs text-neutral-500">
                   {j.source_url ? j.source_url : "Pasted text"} · {new Date(j.created_at).toLocaleString()}
+                  {j.profile_name && (
+                    <>
+                      {" "}
+                      · scanned as{" "}
+                      <span className="font-medium text-neutral-700">{j.profile_name}</span>
+                    </>
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-2">

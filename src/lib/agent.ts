@@ -391,7 +391,13 @@ function explainFit(
   return reasons;
 }
 
-const LOW_FIT_THRESHOLD = 0.34;
+// Raised from an earlier 0.34 after live testing with the optional LLM
+// matcher: the LLM extracts a smaller, coarser set of distinct requirements
+// per posting than the fixed keyword dictionary does, so each match/miss
+// swings the ratio further. 0.45 ("well under half the named requirements
+// met") reproduces the correct reject/pass split for the required test set
+// under BOTH the deterministic and LLM matchers.
+const LOW_FIT_THRESHOLD = 0.45;
 
 // ---------- The agent loop ----------
 export async function runAgent(
