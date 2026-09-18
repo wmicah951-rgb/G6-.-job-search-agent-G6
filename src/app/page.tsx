@@ -131,6 +131,16 @@ function SystemStatusPanel() {
   );
 }
 
+function formatSourceUrl(urlStr: string | null): string {
+  if (!urlStr) return "Pasted text";
+  try {
+    const parsed = new URL(urlStr);
+    return parsed.hostname.replace(/^www\./, "");
+  } catch {
+    return urlStr.length > 25 ? urlStr.slice(0, 25) + "…" : urlStr;
+  }
+}
+
 export default function Dashboard() {
   const [jobs, setJobs] = useState<JobRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -147,29 +157,29 @@ export default function Dashboard() {
   }, []);
 
   return (
-    <div>
+    <div className="w-full max-w-6xl mx-auto font-sans">
       <SystemStatusPanel />
 
       <div className="flex items-center justify-between mb-1">
-        <h1 className="text-xl font-semibold">Evaluated postings</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-neutral-900">Evaluated Job Postings</h1>
         <a
           href="/jobs/new"
-          className="text-sm bg-neutral-900 text-white px-3 py-1.5 rounded-md hover:bg-neutral-700"
+          className="text-sm bg-neutral-900 text-white font-semibold px-4 py-2 rounded-xl hover:bg-neutral-800 transition-colors shadow-xs"
         >
-          + Add a posting
+          + Add a Posting
         </a>
       </div>
-      <p className="text-xs text-neutral-500 mb-4">
+      <p className="text-xs text-neutral-500 mb-5">
         New postings will be scanned as:{" "}
-        <span className="font-medium text-neutral-900">{activeProfileName ?? "…"}</span>{" "}
-        (<a href="/upload" className="underline">change profile</a>)
+        <span className="font-semibold text-neutral-900">{activeProfileName ?? "…"}</span>{" "}
+        (<a href="/upload" className="underline hover:text-neutral-900">change profile</a>)
       </p>
 
-      {loading && <p className="text-sm text-neutral-500">Loading…</p>}
+      {loading && <p className="text-sm text-neutral-500">Loading postings…</p>}
 
       {!loading && jobs.length === 0 && (
-        <div className="border border-dashed border-neutral-300 rounded-lg p-8 text-center text-neutral-500">
-          No postings evaluated yet. Add one to see the agent run.
+        <div className="border border-dashed border-neutral-300 rounded-2xl p-12 text-center text-neutral-500 bg-white">
+          No postings evaluated yet. Click "+ Add a Posting" to see the agent run.
         </div>
       )}
 
@@ -178,31 +188,39 @@ export default function Dashboard() {
           <a
             key={j.id}
             href={`/jobs/${j.id}`}
-            className="block border border-neutral-200 bg-white rounded-lg p-4 hover:border-neutral-400 transition"
+            className="block border border-neutral-200 bg-white rounded-xl p-4 sm:p-5 hover:border-neutral-400 hover:shadow-xs transition"
           >
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="font-medium">{j.title}</div>
-                <div className="text-xs text-neutral-500">
-                  {j.source_url ? j.source_url : "Pasted text"} · {new Date(j.created_at).toLocaleString()}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <div className="font-semibold text-neutral-900 text-base truncate">{j.title}</div>
+                <div className="text-xs text-neutral-500 mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                  {j.source_url ? (
+                    <span
+                      className="inline-flex items-center gap-1 bg-neutral-100 text-neutral-700 px-2 py-0.5 rounded font-mono text-xs truncate max-w-[220px]"
+                      title={j.source_url}
+                    >
+                      🔗 {formatSourceUrl(j.source_url)}
+                    </span>
+                  ) : (
+                    <span className="text-neutral-500">📄 Pasted text</span>
+                  )}
+                  <span>· {new Date(j.created_at).toLocaleDateString()}</span>
                   {j.profile_name && (
-                    <>
-                      {" "}
-                      · scanned as{" "}
-                      <span className="font-medium text-neutral-700">{j.profile_name}</span>
-                    </>
+                    <span>
+                      · scanned as <span className="font-medium text-neutral-700">{j.profile_name}</span>
+                    </span>
                   )}
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
                 {!!j.injection_detected && (
-                  <span className="text-xs bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full">
+                  <span className="text-xs bg-purple-100 text-purple-800 font-medium px-2.5 py-1 rounded-full border border-purple-200">
                     injection flagged
                   </span>
                 )}
                 {j.fit_score !== null && (
                   <span
-                    className={`text-xs px-2 py-0.5 rounded-full font-medium ${fitScoreColor(
+                    className={`text-xs px-2.5 py-1 rounded-full font-bold ${fitScoreColor(
                       j.fit_score ?? 0
                     )}`}
                   >
@@ -211,7 +229,7 @@ export default function Dashboard() {
                 )}
                 {j.stage && (
                   <span
-                    className={`text-xs px-2 py-0.5 rounded-full ${STAGE_COLOR[j.stage] ?? "bg-neutral-100"}`}
+                    className={`text-xs px-2.5 py-1 rounded-full font-medium ${STAGE_COLOR[j.stage] ?? "bg-neutral-100 text-neutral-800"}`}
                   >
                     {STAGE_LABEL[j.stage] ?? j.stage}
                   </span>
@@ -224,3 +242,4 @@ export default function Dashboard() {
     </div>
   );
 }
+

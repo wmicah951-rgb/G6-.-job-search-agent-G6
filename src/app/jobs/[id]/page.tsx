@@ -60,6 +60,16 @@ function fitScoreColor(score: number): string {
   return "text-red-700";
 }
 
+function formatSourceUrl(urlStr: string | null): string {
+  if (!urlStr) return "";
+  try {
+    const parsed = new URL(urlStr);
+    return parsed.hostname.replace(/^www\./, "");
+  } catch {
+    return urlStr.length > 25 ? urlStr.slice(0, 25) + "…" : urlStr;
+  }
+}
+
 type JobDetail = {
   job: { id: string; title: string; rawText: string; sourceUrl: string | null; createdAt: string };
   evaluation: Evaluation | null;
@@ -72,6 +82,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
   const [editNote, setEditNote] = useState("");
   const [deciding, setDeciding] = useState(false);
   const [decidingLabel, setDecidingLabel] = useState("");
+  const [customSkillInput, setCustomSkillInput] = useState("");
 
   // In-place editing states
   const [evidenceText, setEvidenceText] = useState("");
@@ -251,6 +262,30 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
     setCollapsedResume(!expand);
   }
 
+  function addMissingSkillToDraft(skill: string) {
+    const addition = `- Experience with ${skill} (or equivalent): I have related experience in [describe your hands-on work or similar tool/project]`;
+    setEditNote((prev) => (prev ? `${prev}\n${addition}` : addition));
+    triggerToast(`Added "${skill}" to draft instructions!`);
+    const el = document.getElementById("draft-instructions-box");
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.focus();
+    }
+  }
+
+  function addCustomBridgeToDraft(skill: string, customExp: string) {
+    if (!customExp.trim()) return;
+    const addition = skill
+      ? `- For ${skill} requirement: ${customExp.trim()}`
+      : `- Additional relevant qualification: ${customExp.trim()}`;
+    setEditNote((prev) => (prev ? `${prev}\n${addition}` : addition));
+    triggerToast("Added custom experience to draft instructions!");
+    const el = document.getElementById("draft-instructions-box");
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }
+
   if (loading || !data) {
     return (
       <div className="flex items-center justify-center py-24">
@@ -317,6 +352,12 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
           >
             Status
           </a>
+          <a
+            href="#skills-section"
+            className="px-2 py-1 rounded bg-white border border-neutral-200 text-neutral-600 hover:text-neutral-900 hover:border-neutral-400 transition-colors"
+          >
+            Skills Breakdown
+          </a>
           {ev.stage === "awaiting_approval" && (
             <a
               href="#approval-section"
@@ -345,15 +386,26 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
       {/* Header */}
       <div className="mb-6" id="status-section">
         <div className="flex flex-wrap items-start justify-between gap-3 mb-2">
-          <div>
+          <div className="min-w-0 flex-1">
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-neutral-900">
               {data.job.title}
             </h1>
             {data.job.sourceUrl && (
-              <p className="text-xs text-neutral-500 mt-1">Source: {data.job.sourceUrl}</p>
+              <p className="text-xs text-neutral-500 mt-1 flex items-center gap-1.5 flex-wrap">
+                <span>Source:</span>
+                <a
+                  href={data.job.sourceUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-blue-600 hover:underline font-mono bg-neutral-100 px-2 py-0.5 rounded text-xs truncate max-w-sm inline-block"
+                  title={data.job.sourceUrl}
+                >
+                  🔗 {formatSourceUrl(data.job.sourceUrl)}
+                </a>
+              </p>
             )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <span
               className={`inline-flex items-center text-sm font-semibold px-3 py-1 rounded-full border ${
                 STAGE_COLOR[ev.stage] ?? "bg-neutral-100 text-neutral-900"
@@ -408,7 +460,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
         </div>
       )}
 
-      {/* Summary Cards */}
+      {/* Top High-Level Metrics */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-6">
         <div className="border border-neutral-200 bg-white rounded-xl p-4 shadow-xs">
           <div className="text-xs font-medium text-neutral-500 mb-1">Fit Score</div>
@@ -428,15 +480,144 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
         </div>
         <div className="border border-neutral-200 bg-white rounded-xl p-4 shadow-xs">
           <div className="text-xs font-medium text-neutral-500 mb-1">Matched Skills</div>
-          <div className="text-xs font-medium text-neutral-800 line-clamp-2" title={ev.matchedSkills.join(", ")}>
-            {ev.matchedSkills.join(", ") || "none"}
+          <div className="text-lg font-bold text-green-700">
+            {ev.matchedSkills.length} Verified
           </div>
         </div>
         <div className="border border-neutral-200 bg-white rounded-xl p-4 shadow-xs">
-          <div className="text-xs font-medium text-neutral-500 mb-1">Missing Skills</div>
-          <div className="text-xs font-medium text-neutral-800 line-clamp-2" title={ev.missingSkills.join(", ")}>
-            {ev.missingSkills.join(", ") || "none"}
+          <div className="text-xs font-medium text-neutral-500 mb-1">Missing / Gap Skills</div>
+          <div className="text-lg font-bold text-amber-700">
+            {ev.missingSkills.length} Identified
           </div>
+        </div>
+      </div>
+
+      {/* BIG, PROMINENT SKILLS EVALUATION SECTION */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-6" id="skills-section">
+        {/* Matched Skills - BIG PROMINENT CARD */}
+        <div className="border-2 border-green-200 bg-green-50/80 rounded-2xl p-5 sm:p-6 shadow-xs flex flex-col">
+          <div className="flex items-center justify-between mb-2">
+            <div className="font-bold text-green-950 text-base sm:text-lg flex items-center gap-2">
+              <span className="text-green-700 text-lg">✓</span>
+              <span>Matched Skills ({ev.matchedSkills.length})</span>
+            </div>
+            <span className="text-xs bg-green-200 text-green-900 font-bold px-2.5 py-1 rounded-full">
+              Verified Fit
+            </span>
+          </div>
+          <p className="text-xs text-green-900 mb-4 leading-relaxed">
+            Skills identified in the job posting that were directly matched with verified quotes from your resume.
+          </p>
+
+          {ev.matchedSkills.length > 0 ? (
+            <div className="flex flex-wrap gap-2 mb-4">
+              {ev.matchedSkills.map((skill, idx) => (
+                <div
+                  key={idx}
+                  className="bg-white border border-green-300 text-green-950 text-xs sm:text-sm font-semibold px-3 py-1.5 rounded-xl shadow-2xs flex items-center gap-1.5"
+                >
+                  <span className="text-green-600 font-bold">✓</span>
+                  <span>{skill}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-neutral-500 italic mb-4">No direct keyword skill matches detected.</p>
+          )}
+
+          {ev.stage === "awaiting_approval" && ev.matchedSkills.length > 0 && (
+            <button
+              type="button"
+              onClick={() => {
+                const addition = `- Emphasize verified strengths: ${ev.matchedSkills.join(", ")}`;
+                setEditNote((prev) => (prev ? `${prev}\n${addition}` : addition));
+                triggerToast("Added verified skills to draft instructions!");
+              }}
+              className="mt-auto text-xs bg-white hover:bg-green-100 text-green-900 font-bold px-3 py-2 rounded-xl border border-green-300 transition-colors cursor-pointer text-center shadow-2xs"
+            >
+              + Emphasize all matched skills in draft instructions
+            </button>
+          )}
+        </div>
+
+        {/* Missing Skills - BIG PROMINENT CARD WITH INTERACTIVE BRIDGING */}
+        <div className="border-2 border-amber-200 bg-amber-50/80 rounded-2xl p-5 sm:p-6 shadow-xs flex flex-col">
+          <div className="flex items-center justify-between mb-2">
+            <div className="font-bold text-amber-950 text-base sm:text-lg flex items-center gap-2">
+              <span className="text-amber-600 text-lg">⚠️</span>
+              <span>Missing Skills &amp; Gaps ({ev.missingSkills.length})</span>
+            </div>
+            <span className="text-xs bg-amber-200 text-amber-900 font-bold px-2.5 py-1 rounded-full">
+              {ev.missingSkills.length === 0 ? "100% Match" : "Actionable Gaps"}
+            </span>
+          </div>
+          <p className="text-xs text-amber-900 mb-4 leading-relaxed">
+            Skills mentioned in posting not explicitly found on resume. If you have these skills or <strong>similar equivalent experience</strong>, click below to specify them so the agent can tailor your materials for a 100% fit!
+          </p>
+
+          {ev.missingSkills.length > 0 ? (
+            <div className="space-y-2.5 mb-4">
+              {ev.missingSkills.map((skill, idx) => (
+                <div
+                  key={idx}
+                  className="bg-white border border-amber-300 rounded-xl p-3 shadow-2xs flex flex-wrap items-center justify-between gap-2"
+                >
+                  <span className="text-xs sm:text-sm font-semibold text-neutral-900">{skill}</span>
+                  {ev.stage === "awaiting_approval" && (
+                    <button
+                      type="button"
+                      onClick={() => addMissingSkillToDraft(skill)}
+                      className="text-xs bg-amber-100 hover:bg-amber-200 text-amber-950 font-bold px-3 py-1.5 rounded-lg border border-amber-300 transition-colors cursor-pointer flex items-center gap-1 shadow-2xs"
+                      title="Add to draft instructions to explain equivalent experience"
+                    >
+                      <span>➕</span>
+                      <span>I have this or similar skill</span>
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="bg-white/80 border border-green-300 rounded-xl p-4 text-center mb-4">
+              <span className="text-green-700 font-bold text-sm">🎉 100% Skill Coverage!</span>
+              <p className="text-xs text-green-900 mt-1">No missing skills were identified for this posting.</p>
+            </div>
+          )}
+
+          {/* Quick custom skill bridge input */}
+          {ev.stage === "awaiting_approval" && ev.missingSkills.length > 0 && (
+            <div className="mt-auto pt-3 border-t border-amber-200/80">
+              <label className="block text-xs font-bold text-amber-950 mb-1">
+                Have a similar skill or equivalent tool?
+              </label>
+              <div className="flex gap-2">
+                <input
+                  value={customSkillInput}
+                  onChange={(e) => setCustomSkillInput(e.target.value)}
+                  placeholder="e.g. I have 2 yrs MySQL & Snowflake which is similar to Postgres..."
+                  className="flex-1 border border-amber-300 rounded-xl px-3 py-1.5 text-xs bg-white text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-amber-500 shadow-inner"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && customSkillInput.trim()) {
+                      addCustomBridgeToDraft("", customSkillInput);
+                      setCustomSkillInput("");
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (customSkillInput.trim()) {
+                      addCustomBridgeToDraft("", customSkillInput);
+                      setCustomSkillInput("");
+                    }
+                  }}
+                  className="text-xs bg-amber-800 hover:bg-amber-900 text-white font-bold px-3 py-1.5 rounded-xl transition-colors cursor-pointer shrink-0 shadow-2xs"
+                >
+                  + Add to Draft
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
