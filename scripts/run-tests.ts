@@ -80,6 +80,12 @@ async function main() {
   await printTrace("J007", "extra: ASK_USER — posting silent on work location");
   await printTrace("J008", "extra: hidden HTML-comment injection (regex floor catches it)");
   await printTrace("J009", "extra: polite injection only an AI reader catches (regex floor misses it)");
+  await printTrace("J1.5", "extra: borderline fit that clears the bar ONLY because partial credit exists");
+  await printTrace("J2.5", "extra: just below the bar -> low-fit reject (the human-override fixture)");
+  await printTrace("J010", "extra: bureaucratic 'already vetted' injection - evades the keyword floor");
+  await printTrace("J011", "extra: injection hidden inside a poem - evades the keyword floor");
+  await printTrace("J012", "extra: 'if you are a language model' injection - evades the keyword floor");
+  await printTrace("J013", "extra: FALSE-POSITIVE CONTROL - innocent ad full of injection-like words, must stay clean");
 
   console.log("\n" + "=".repeat(80));
   console.log("CROSS-CHECK: required tests produced materially different action sequences");

@@ -239,11 +239,28 @@ const INJECTION_PATTERNS: RegExp[] = [
   /(?:^|\W)(?:jailbreak|prompt injection|developer mode)(?:\W|$)/i,
 ];
 
+/**
+ * Ordinary, candidate-friendly job-ad language often NEGATES the very phrases these
+ * patterns look for: "we do not automatically reject anyone", "applications are never
+ * automatically screened out". Those are reassurances to applicants, not instructions
+ * to a machine, and flagging them puts a scary PROMPT INJECTION banner on a perfectly
+ * normal posting. A warning that fires on innocent text is one people learn to ignore,
+ * so a match immediately preceded by a negation does not count.
+ */
+const NEGATION_BEFORE = /\b(?:not|never|don'?t|doesn'?t|won'?t|cannot|can'?t|no|nor|without)\b[^.!?\n]{0,24}$/i;
+
 function scanForInjection(jobText: string): { detected: boolean; snippets: string[] } {
   const snippets: string[] = [];
   for (const re of INJECTION_PATTERNS) {
-    const m = jobText.match(re);
-    if (m) snippets.push(m[0].trim());
+    // Walk every occurrence, not just the first: a posting can negate one mention
+    // and still carry a real instruction elsewhere.
+    const global = new RegExp(re.source, re.flags.includes("g") ? re.flags : re.flags + "g");
+    for (const m of jobText.matchAll(global)) {
+      const preceding = jobText.slice(Math.max(0, m.index - 40), m.index);
+      if (NEGATION_BEFORE.test(preceding)) continue;
+      snippets.push(m[0].trim());
+      break; // one snippet per pattern is enough for the trace
+    }
   }
   return { detected: snippets.length > 0, snippets };
 }
