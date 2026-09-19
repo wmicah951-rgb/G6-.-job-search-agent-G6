@@ -41,6 +41,7 @@ still fully functional, still passes the four required tests.
 | `npx tsx scripts/stress-suite.ts` | 64 checks across coverage, arithmetic, monotonicity, discrimination, stability, edge cases and post-draft |
 | `npx tsx scripts/profile-matrix.ts` | Accuracy diagnostic: every realistic profile x every realistic posting, with the reasoning |
 | `npx tsx scripts/export-traces.ts` then `python3 scripts/build-submission-pdf.py` | Rebuilds G6_Job_Search_Agent_Submission.pdf with freshly generated traces |
+| `node scripts/hostile-model-test.mjs` | A deliberately hostile model cannot change any decision (run with `MODE=draft-only` to attack drafting) |
 | `npx tsx scripts/doc-check.ts` | The docs still match the code: every agent action is in the inventory, and no doc repeats a claim that has become false |
 | `npx tsx scripts/knob-tests.ts` | 16 checks: every knob round-trips and edits exactly one line of preferences.md |
 

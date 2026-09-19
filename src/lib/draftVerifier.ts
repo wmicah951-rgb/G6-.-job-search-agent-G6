@@ -199,7 +199,7 @@ function extractNumbers(text: string): string[] {
  * Sentence-initial words are skipped because "Built ..." vs "Created ..." is rewording,
  * not fabrication — exactly the false alarm this whole design exists to avoid.
  */
-function extractEntities(text: string): string[] {
+function extractEntities(text: string, includeFirstWord = false): string[] {
   const stripped = text.replace(/\*\*/g, "");
   const out: string[] = [];
   // Split into sentence-ish spans so we can skip each one's first word.
@@ -218,8 +218,9 @@ function extractEntities(text: string): string[] {
         out.push(w.toLowerCase());
         return;
       }
-      // Skip the first word of a span — capitalisation there is grammatical.
-      if (idx === 0) return;
+      // Skip the first word of a span — capitalisation there is grammatical. Except on a
+      // resume role line, where the first word is the employer.
+      if (idx === 0 && !includeFirstWord) return;
       if (isCapitalised) out.push(w.toLowerCase());
     });
   }
@@ -334,6 +335,15 @@ interface Unit {
   text: string;
   structural: boolean;
   /**
+   * A resume EXPERIENCE/EDUCATION heading such as "**Meridian Logistics - Data Analyst**
+   * | Jun 2024 - Present". These need two exemptions from the normal rules: they are
+   * short (often under the content-token floor) and their FIRST word is the employer
+   * name, which the sentence-initial skip would otherwise ignore. An invented employer
+   * or job title is the most serious fabrication a resume can carry, so these lines are
+   * always checked, first word included.
+   */
+  roleLine: boolean;
+  /**
    * The part of the line that actually asserts something, used for fact extraction.
    * On a skills line like `**Query & Programming:** SQL, Python`, the bolded label is
    * an organising header the model invented — it claims nothing about the candidate.
@@ -350,7 +360,7 @@ function segment(draft: string): Unit[] {
 
     // Markdown headings, horizontal rules and ALL-CAPS section labels.
     if (/^#{1,6}\s/.test(line) || /^-{3,}$/.test(line) || /^[A-Z][A-Z\s&]{3,}$/.test(line)) {
-      units.push({ text: line, structural: true, factText: line });
+      units.push({ text: line, structural: true, factText: line, roleLine: false });
       continue;
     }
     // Contact lines: several fields separated by pipes, or an email/phone/url line.
@@ -358,14 +368,19 @@ function segment(draft: string): Unit[] {
       (line.split("|").length >= 3 && line.length < 160) ||
       /@[\w.-]+\.\w+|linkedin\.com|github\.com|^\(?\d{3}\)?[\s.-]?\d{3}/.test(line)
     ) {
-      units.push({ text: line, structural: true, factText: line });
+      units.push({ text: line, structural: true, factText: line, roleLine: false });
       continue;
     }
     // Letter openings and sign-offs.
     if (/^(dear\b|sincerely|best regards|kind regards|warm regards|thank you\b)/i.test(line)) {
-      units.push({ text: line, structural: true, factText: line });
+      units.push({ text: line, structural: true, factText: line, roleLine: false });
       continue;
     }
+
+    // "**Employer - Title** | dates" — bold, has a separator, and is not a "**Label:**"
+    // skills line.
+    const isRoleLine =
+      /^\*\*/.test(line) && !/^\*\*[^*]{0,40}:\*\*/.test(line) && /[|—–-]/.test(line);
 
     const body = line.replace(/^[-*•]\s+/, "");
     // Split long prose into sentences; keep bullets and short lines whole.
@@ -377,7 +392,7 @@ function segment(draft: string): Unit[] {
       const t = p.trim();
       // Drop a leading "**Category:**" / "Category:" label before fact extraction.
       const factText = t.replace(/^\*{0,2}[A-Za-z][A-Za-z0-9 &/+-]{0,40}\*{0,2}\s*:\s*/, "");
-      units.push({ text: t, structural: false, factText: factText || t });
+      units.push({ text: t, structural: false, factText: factText || t, roleLine: isRoleLine });
     }
   }
   return units;
@@ -459,7 +474,7 @@ export function verifyDraft(
     id += 1;
     const tokens = contentTokens(unit.text);
 
-    if (unit.structural || tokens.length < minTokens) {
+    if (unit.structural || (!unit.roleLine && tokens.length < minTokens)) {
       claims.push({
         id,
         text: unit.text,
@@ -518,7 +533,7 @@ export function verifyDraft(
       unsupportedFacts.push(n.includes("%") ? n : `the figure ${n}`);
     }
     const framing = isApplicationFraming(unit.text);
-    for (const e of extractEntities(unit.factText)) {
+    for (const e of extractEntities(unit.factText, unit.roleLine)) {
       if (NON_ENTITY.has(e)) continue;
       // The posting's own job title, quoted back in an "applying for ..." sentence.
       if (framing && inJobTitle(e)) continue;

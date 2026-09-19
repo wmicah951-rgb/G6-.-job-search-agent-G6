@@ -47,6 +47,7 @@ Every command, what it proves, and roughly how long it takes.
 | `LLM_PROVIDER=none DEEPSEEK_API_KEY= npx tsx scripts/conformance.ts` | 9/9 gates with **no AI at all** — the app never depends on the model | ~5 s |
 | **`npx tsx scripts/stress-suite.ts`** | **64 checks across 7 dimensions — see below** | ~6 min |
 | `npx tsx scripts/verify-tests.ts` | 18 draft-verification checks, including zero false alarms on honest rewording | ~5 s |
+| `node scripts/hostile-model-test.mjs` | Points the agent at a fake model that lies about everything and proves it cannot change a single decision | ~30 s |
 | `npx tsx scripts/doc-check.ts` | The docs still match the code: every agent action is in the inventory, and no doc repeats a claim that has become false | ~2 s |
 | `npx tsx scripts/knob-tests.ts` | 16 checks that every Quick-match knob round-trips and edits exactly one line | ~5 s |
 | `npx tsx scripts/profile-matrix.ts` | Accuracy diagnostic: every résumé against every posting, requirement by requirement | ~4 min |
