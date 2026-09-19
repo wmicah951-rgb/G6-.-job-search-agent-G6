@@ -396,3 +396,29 @@ bridge the gaps"**, with a box to say why. That:
 
 Hard-constraint rejections (years, clearance, on-site) are **not** overridable
 here — those are your own stated non-negotiables, not a heuristic.
+
+## Layer 15 — The agent marks its own work, and admits when it cannot judge
+
+Two late additions, both about the agent being honest about its own output.
+
+**It re-scores the rewrite.** After it drafts and verifies, the agent runs the *same*
+scoring routine again — this time against the tailored résumé — and shows you
+**before → after**. The catch it guards against: a résumé can always be made to score
+higher by inventing skills. So every requirement that newly counts as matched is
+cross-checked against the verification step, and if it rests on a sentence that could
+not be traced to your résumé, the gain is reported as **unearned** in red instead of
+being folded into the headline number.
+
+In practice: approve with no instructions and the score usually does **not** move —
+rewriting improves emphasis, not experience, and saying so is the honest answer. Give it
+a real bridging note ("I used Tableau on a capstone project") and the score moves for a
+reason you can point at.
+
+**It flags scores it cannot stand behind.** A posting that is just a title, or one whose
+requirements sit past the length the model can read, used to come back as a confident
+**100% match** — because the model would infer plausible requirements from the title and
+then score you against its own invention. Now every requirement is checked back against
+the posting text the model was actually shown. If too few requirements were readable, or
+too many do not appear in the text, the job page says **"treat this percentage as
+unreliable"** and tells you to check the raw posting. Verified against all 18 real test
+postings: none are falsely flagged.

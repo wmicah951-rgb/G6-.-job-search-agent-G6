@@ -6,7 +6,8 @@ including a teammate who has not seen the code.
 **Live:** https://g6-job-search-agent-g6.vercel.app
 **Repo:** https://github.com/wmicah951-rgb/G6-.-job-search-agent-G6
 
-Start with [PROJECT-BREAKDOWN.md](PROJECT-BREAKDOWN.md) for the whole system,
+Start with [DOCS-INDEX.md](DOCS-INDEX.md) for a map of everything, then
+[PROJECT-BREAKDOWN.md](PROJECT-BREAKDOWN.md) for the whole system,
 [G6-AGENT.md](G6-AGENT.md) for the plain-language layer-by-layer version, and
 [TESTING-GUIDE.md](TESTING-GUIDE.md) to click through it yourself.
 
@@ -37,6 +38,7 @@ still fully functional, still passes the four required tests.
 | `node scripts/local-e2e.mjs` | 48/48 over real HTTP (needs the server running) |
 | `node scripts/stress-draft.mjs` | Résumé quality + no false alarms (needs the server) |
 | `node scripts/harness-tests.mjs` | 16 checks: settings persist, clamp, refuse bad input, reset, and actually reach the agent |
+| `npx tsx scripts/stress-suite.ts` | 59 checks across coverage, arithmetic, monotonicity, discrimination, stability, edge cases and post-draft |
 | `npx tsx scripts/profile-matrix.ts` | Accuracy diagnostic: every realistic profile x every realistic posting, with the reasoning |
 | `npx tsx scripts/knob-tests.ts` | 15 checks: every knob round-trips and edits exactly one line of preferences.md |
 

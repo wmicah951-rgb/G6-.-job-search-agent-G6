@@ -38,6 +38,8 @@ type Evaluation = {
   draftVerification: DraftVerification | null;
   coverLetterVerification: DraftVerification | null;
   minFit: number | null;
+  lowConfidence: boolean;
+  requirementCount: number | null;
   rescore: {
     before: number;
     after: number;
@@ -528,6 +530,23 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
           </span>
         </div>
       </div>
+
+      {ev.lowConfidence && (
+        <div className="border-2 border-orange-300 bg-orange-50 rounded-2xl p-4 mb-5 shadow-xs">
+          <p className="font-bold text-sm text-orange-900">
+            Treat this percentage as unreliable
+          </p>
+          <p className="text-xs text-orange-900 mt-1 leading-relaxed">
+            Only {ev.requirementCount ?? 0} requirement
+            {(ev.requirementCount ?? 0) === 1 ? "" : "s"} could be read out of this posting,
+            so the score is arithmetically fine but practically meaningless — one match out
+            of one reads as 100%. Usually this means the posting was truncated, is mostly
+            boilerplate, or the scrape only captured the header. Scroll down to
+            &ldquo;Raw posting text&rdquo; and check what the agent actually received; if
+            it is incomplete, paste the full description instead.
+          </p>
+        </div>
+      )}
 
       {/* AI Thinking / Model's Reasoning with toggle arrow */}
       {ev.fitMethod === "llm" && ev.fitReasoning && (

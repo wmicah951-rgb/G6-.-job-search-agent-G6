@@ -65,6 +65,11 @@ export interface AgentState {
   // internship / coursework / "basics" level (scored at half credit rather
   // than being thrown away as a miss).
   matchStrength?: Record<string, "full" | "partial">;
+  // Set when too few requirements could be read from the posting for the score to
+  // be meaningful — surfaced in the UI so a truncated or failed scrape is obvious
+  // rather than looking like a perfect match.
+  lowConfidence?: boolean;
+  requirementCount?: number;
   // Verified verbatim resume.md quote backing each entry in matchedSkills. Populated
   // by performFitEvaluation() regardless of whether it used the LLM or the
   // deterministic matcher, so drafting/rationale never need to re-derive evidence —
@@ -451,6 +456,26 @@ function findEvidenceLine(resumeText: string, skill: string): string | null {
  * filler stripped. "Experience with an ERP system such as NetSuite, SAP or Oracle" and
  * "experience with an ERP system (NetSuite, SAP, Oracle)" collapse to the same key.
  */
+// Words too generic to prove a requirement was really present in the posting.
+const REQ_STOPWORDS = new Set([
+  "experience",
+  "years",
+  "year",
+  "strong",
+  "degree",
+  "field",
+  "related",
+  "ability",
+  "skills",
+  "knowledge",
+  "working",
+  "understanding",
+  "familiarity",
+  "proficiency",
+  "excellent",
+  "relevant",
+]);
+
 function normRequirement(s: string): string {
   return s
     .toLowerCase()
@@ -476,6 +501,10 @@ export interface FitEvaluation {
   // Per matched requirement: "full" real experience vs "partial" (internship /
   // coursework / "basics" level, scored at half credit).
   matchStrength?: Record<string, "full" | "partial">;
+  // True when too few requirements could be read out of the posting for the
+  // percentage to mean anything (truncated text, boilerplate, a failed scrape).
+  lowConfidence?: boolean;
+  requirementCount?: number;
   method: "llm" | "deterministic";
   reasoning: string | null;
   note: string;
@@ -558,7 +587,37 @@ async function performFitEvaluation(
         matchedWeight + droppedCount + missingRequired.length + 0.5 * missingPreferred.length;
       const score = total === 0 ? 0 : Math.round((matchedWeight / total) * 100) / 100;
 
+      // CONFIDENCE GUARD. If barely any requirements could be read out of the posting,
+      // the percentage is arithmetically fine and practically meaningless: one matched
+      // requirement out of one reads as "100% match". That happens on a scrape that
+      // captured only the header, or a posting whose requirements sit past the input
+      // cap. Reporting a confident perfect score there is worse than reporting nothing.
+      const requirementCount = matched.length + missing.length;
+
+      // GROUND THE REQUIREMENTS THEMSELVES against the posting — the same trust-but-
+      // verify rule used for résumé quotes, pointed the other way. Given only a title
+      // ("# Data Analyst") a model will happily invent seven plausible requirements and
+      // score the candidate 100% against its own invention. A real requirement shares at
+      // least one distinctive word with the text the model was actually shown.
+      const seenText = norm(jobText.slice(0, settings.llmMaxInputChars));
+      const ungrounded = [...matched, ...missing].filter((req) => {
+        const tokens = norm(req)
+          .split(" ")
+          .filter((t) => t.length >= 4 && !REQ_STOPWORDS.has(t));
+        if (tokens.length === 0) return false; // nothing distinctive to check
+        return !tokens.some((t) => seenText.includes(t));
+      });
+      const lowConfidence =
+        requirementCount < 3 || ungrounded.length > Math.max(1, requirementCount * 0.4);
+
       const notes: string[] = ["LLM semantic matching."];
+      if (lowConfidence) {
+        notes.push(
+          requirementCount < 3
+            ? `LOW CONFIDENCE: only ${requirementCount} requirement(s) could be read from this posting, so the percentage is not meaningful. The posting may be truncated, mostly boilerplate, or a failed scrape.`
+            : `LOW CONFIDENCE: ${ungrounded.length} of ${requirementCount} requirement(s) do not appear in the posting text the agent was given (e.g. ${ungrounded.slice(0, 3).join("; ")}), which means they were inferred from the job title rather than read. The posting is probably truncated or incomplete.`
+        );
+      }
       if (partialCount > 0) {
         notes.push(
           `${partialCount} requirement(s) matched at PARTIAL strength (internship/coursework/basics level) and scored at half credit.`
@@ -577,6 +636,8 @@ async function performFitEvaluation(
         missingPreferred,
         matchedEvidence,
         matchStrength,
+        lowConfidence,
+        requirementCount,
         method: "llm",
         reasoning: llmResult.reasoning,
         note: notes.join(" "),
@@ -896,6 +957,8 @@ export async function runAgent(
       missingPreferredSkills: fit.missingPreferred ?? [],
       matchedEvidence: fit.matchedEvidence,
       matchStrength: fit.matchStrength ?? {},
+      lowConfidence: fit.lowConfidence ?? false,
+      requirementCount: fit.requirementCount ?? fit.matched.length + fit.missing.length,
       fitMethod: fit.method,
       fitReasoning: fit.reasoning,
       fitRationale,

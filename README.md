@@ -3,7 +3,11 @@
 A real agentic Job Search Agent (Group Assignment 1, Path C — code) built as a
 Next.js app, deployable to Vercel with Turso (libSQL) as the database.
 
-**👉 Read [`G6-AGENT.md`](G6-AGENT.md) first** — one plain-language file
+**👉 New here? Read [`DOCS-INDEX.md`](DOCS-INDEX.md)** — a map of every document,
+who each is for, every command that proves the agent works, and where the four
+files worth reading in the code are.
+
+**👉 Read [`G6-AGENT.md`](G6-AGENT.md)** — one plain-language file
 covering everything the agent does, in nine simple sections. That's the one
 to have open when explaining this in class.
 

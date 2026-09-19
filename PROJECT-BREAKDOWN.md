@@ -219,6 +219,8 @@ Core files: `src/lib/agent.ts` (the harness), `src/lib/draftVerifier.ts` (the ch
 | `scripts/verify-tests.ts` | Draft checking, incl. false-alarm fixtures | 18/18 |
 | `scripts/local-e2e.mjs` | Whole app over HTTP | 48/48 |
 | `scripts/stress-draft.mjs` | Résumés are actually submittable | all pass |
+| `scripts/stress-suite.ts` | Coverage, arithmetic, monotonicity, discrimination, stability, edge cases, post-draft | 59/59 |
+| `scripts/profile-matrix.ts` | Accuracy across three careers, requirement by requirement | diagonal |
 
 There is also a **Harness tab** (`/harness`) showing every layer in plain English with
 the settings it actually uses and the editable prompt text. Two properties make that safe
@@ -234,6 +236,22 @@ to run it through the real agent live. Useful for the demo.
 The hardest test is not "does it catch fabrication" — it is **"does it stay quiet on an
 honest rewrite"**. A checker that cries wolf gets ignored, and an ignored warning is
 worse than none.
+
+---
+
+## 12b. Two ways the agent checks itself
+
+**It re-scores its own rewrite.** The same scoring routine runs again against the
+tailored résumé, reporting before → after. Any newly-matched requirement resting on a
+sentence the verifier could not source is reported as **unearned** rather than counted,
+so the improvement can never be manufactured by inventing skills.
+
+**It refuses to stand behind a score it cannot justify.** Requirements are themselves
+verified against the posting text the model was shown — the same trust-but-verify rule
+used for résumé quotes, pointed the other way. Given only a job title a model will invent
+seven plausible requirements and score the candidate 100% against its own invention; that
+now reads as "treat this percentage as unreliable" instead. Checked against all 18 real
+test postings with zero false alarms.
 
 ---
 
