@@ -67,6 +67,15 @@ vs actual. Good for the demo.
 - Delete button on the board. Multiple profiles.
 - Swappable brain: DeepSeek / Claude / any OpenAI-compatible endpoint / none.
 - Test Lab tab.
+- **Agent re-scores its own rewrite** (`rescore_tailored_resume`): after drafting and
+  verifying, it re-runs the SAME fit evaluation against the tailored résumé and reports
+  before -> after, what is newly evidenced, and what is still missing. Any gain resting
+  on a sentence the verifier could not source is reported as **unearned** rather than
+  folded into the headline number.
+- Gaps ranked required-first and colour-coded (red = required, amber = nice to have);
+  the "I have this or similar" button greys out to "Added" once used.
+- Years judged on the whole work history with tolerance (within ~1 year or 75% of the
+  requirement is a partial match), so real résumés are read sensibly.
 - **Quick match settings** on the Resume & Preferences page: minimum-match slider, work
   location, years ceiling, clearance, preferred titles, company size, pay target. They
   are a structured VIEW over preferences.md — reading parses it, changing rewrites only

@@ -9,6 +9,7 @@ export interface Knobs {
   minFitPct: number | null;
   maxYears: number | null;
   clearanceExcluded: boolean;
+  relocationExcluded: boolean;
   locationRule: "remote_only" | "remote_or_hybrid" | "any";
   preferredTitles: string[];
   companySizeCap: number | null;
@@ -32,6 +33,7 @@ const RE = {
   minFit: /^(\s*[-*]?\s*minimum\s+fit[^0-9\n]*)(\d{1,3})(\s*%)/im,
   maxYears: /^(\s*[-*]?\s*will not apply[^.\n]*?)(\d+)(\s*\+?\s*years)/im,
   clearance: /^\s*[-*]?\s*will not apply[^.\n]*security clearance.*$/im,
+  relocation: /^\s*[-*]?\s*will not apply[^.\n]*relocat.*$/im,
   location: /^\s*[-*]?\s*(remote or hybrid only|remote only)[^\n]*$/im,
   titles: /^(\s*[-*]?\s*prefers titles containing\s*)([^\n]*)$/im,
   size: /^(\s*[-*]?\s*prefers companies under\s*)([\d,]+)(\s*employees)/im,
@@ -57,6 +59,7 @@ export function readKnobs(text: string): Knobs {
     minFitPct: minFit ? clamp(parseInt(minFit[2], 10), 10, 90) : null,
     maxYears: maxYears ? parseInt(maxYears[2], 10) : null,
     clearanceExcluded: RE.clearance.test(text),
+    relocationExcluded: RE.relocation.test(text),
     locationRule,
     preferredTitles: titles
       ? [...titles[2].matchAll(/"([^"]+)"/g)].map((m) => m[1]).filter(Boolean)
@@ -107,6 +110,15 @@ export function writeKnob<K extends keyof Knobs>(text: string, key: K, value: Kn
             );
       }
       return removeLine(text, RE.clearance);
+    }
+    case "relocationExcluded": {
+      const on = value as boolean;
+      if (on) {
+        return RE.relocation.test(text)
+          ? text
+          : addLine(text, SECTION_HARD, "- Will NOT apply to roles that require relocation");
+      }
+      return removeLine(text, RE.relocation);
     }
     case "locationRule": {
       const v = value as Knobs["locationRule"];

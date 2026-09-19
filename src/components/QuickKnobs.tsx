@@ -102,15 +102,29 @@ export default function QuickKnobs({
             />
             <span className="text-sm text-neutral-700">+ years</span>
           </div>
-          <label className="flex items-center gap-2 text-sm text-neutral-800 cursor-pointer mt-2">
-            <input
-              type="checkbox"
-              checked={k.clearanceExcluded}
-              onChange={(e) => set("clearanceExcluded", e.target.checked)}
-              className="w-4 h-4 cursor-pointer"
-            />
-            Skip roles needing a security clearance
-          </label>
+          <div className="mt-2">
+            <span className="block text-xs font-semibold text-neutral-700 mb-1">
+              Deal-breakers — auto-reject if the posting requires:
+            </span>
+            <label className="flex items-center gap-2 text-sm text-neutral-800 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={k.clearanceExcluded}
+                onChange={(e) => set("clearanceExcluded", e.target.checked)}
+                className="w-4 h-4 cursor-pointer"
+              />
+              An active security clearance
+            </label>
+            <label className="flex items-center gap-2 text-sm text-neutral-800 cursor-pointer mt-1">
+              <input
+                type="checkbox"
+                checked={k.relocationExcluded}
+                onChange={(e) => set("relocationExcluded", e.target.checked)}
+                className="w-4 h-4 cursor-pointer"
+              />
+              Relocating to another city
+            </label>
+          </div>
         </div>
 
         {/* titles */}

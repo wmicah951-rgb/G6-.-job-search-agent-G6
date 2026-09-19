@@ -179,6 +179,14 @@ export const FIT_SYSTEM_PROMPT =
   "is PARTIAL, not a miss. Example: requirement 'Python (pandas, scikit-learn)' against " +
   "'Python (pandas, matplotlib)' is PARTIAL — same language, narrower library coverage. " +
   "Use strength 'full' when the resume shows real, direct, hands-on experience. " +
+  "YEARS OF EXPERIENCE — judge these on the WHOLE work history, not on a single summary " +
+  "line. Add up every role, internship, research assistantship, contract and substantial " +
+  "project in the resume, using their date ranges, and compare the total to what the " +
+  "posting asks for. Being close counts: within about a year of the requirement, or 75% " +
+  "of it, is a PARTIAL match, not a miss (2 years against a '3 years' requirement is " +
+  "partial; 2 years against '2-4 years' is a FULL match because it falls in the range). " +
+  "Relevant-but-adjacent roles still count toward the total. Quote the line or date range " +
+  "you used as the evidenceQuote. Only call years missing when the gap is genuinely large.\n" +
   "STRICT LIMIT — 'partial' is ONLY for the same named skill at lower depth. A DIFFERENT " +
   "skill, a different tool, or a merely related field is a MISS, never a partial. " +
   "Example: requirement 'machine learning / deep learning model building' against a " +

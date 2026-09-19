@@ -65,6 +65,7 @@ export async function GET(
           draftVerification: state?.draftVerification ?? null,
           coverLetterVerification: state?.coverLetterVerification ?? null,
           minFit: state?.minFit ?? null,
+          rescore: state?.rescore ?? null,
           profileName: evaluation.profile_name,
           trace: JSON.parse(evaluation.trace_json as string),
           state,

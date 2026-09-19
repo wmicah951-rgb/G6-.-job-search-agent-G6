@@ -22,6 +22,7 @@ const cases: [keyof Knobs, any][] = [
   ["preferredTitles", ["Analyst", "Associate"]],
   ["locationRule", "remote_only"],
   ["clearanceExcluded", false],
+  ["relocationExcluded", true],
 ];
 for (const [key, value] of cases) {
   const next = writeKnob(original, key, value);
@@ -45,6 +46,16 @@ check("a missing knob is re-added canonically", readKnobs(readded).salaryTargetK
 // turning a hard rule off then on again
 const off = writeKnob(original, "clearanceExcluded", false);
 const backOn = writeKnob(off, "clearanceExcluded", true);
+// the deal-breaker lines must not collide with each other or with the years line
+{
+  const withReloc = writeKnob(original, "relocationExcluded", true);
+  const k = readKnobs(withReloc);
+  check("adding the relocation rule leaves clearance and years intact", k.clearanceExcluded === true && k.maxYears === 5, JSON.stringify({c:k.clearanceExcluded,y:k.maxYears}));
+  const offAgain = writeKnob(withReloc, "relocationExcluded", false);
+  const k2 = readKnobs(offAgain);
+  check("removing it again leaves clearance and years intact", k2.relocationExcluded === false && k2.clearanceExcluded === true && k2.maxYears === 5);
+}
+
 check("clearance rule can be removed and restored", readKnobs(off).clearanceExcluded === false && readKnobs(backOn).clearanceExcluded === true);
 
 console.log(fail === 0 ? "\nALL KNOB TESTS PASSED" : `\n${fail} KNOB TEST(S) FAILED`);

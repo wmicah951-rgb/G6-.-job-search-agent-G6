@@ -38,6 +38,14 @@ type Evaluation = {
   draftVerification: DraftVerification | null;
   coverLetterVerification: DraftVerification | null;
   minFit: number | null;
+  rescore: {
+    before: number;
+    after: number;
+    newlyMatched: string[];
+    unearned: string[];
+    stillMissing: string[];
+    method: string;
+  } | null;
   state?: { matchedEvidence?: Record<string, string> } | null;
   profileName: string | null;
   trace: TraceStep[];
@@ -130,6 +138,9 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
   const [customSkillInput, setCustomSkillInput] = useState("");
   const [overrideReason, setOverrideReason] = useState("");
   const [overriding, setOverriding] = useState(false);
+  // Which gaps the human has already pushed into the draft instructions, so the
+  // button can grey out instead of silently adding the same line twice.
+  const [addedSkills, setAddedSkills] = useState<string[]>([]);
 
   // In-place editing states
   const [evidenceText, setEvidenceText] = useState("");
@@ -342,6 +353,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
   }
 
   function addMissingSkillToDraft(skill: string) {
+    setAddedSkills((prev) => (prev.includes(skill) ? prev : [...prev, skill]));
     const addition = `- Experience with ${skill} (or equivalent): I have related experience in [describe your hands-on work or similar tool/project]`;
     setEditNote((prev) => (prev ? `${prev}\n${addition}` : addition));
     triggerToast(`Added "${skill}" to draft instructions!`);
@@ -387,6 +399,13 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
 
   const ev = data.evaluation;
   const hasDraftMaterials = !!(ev.draft || ev.coverLetter || ev.tailoredResume);
+
+  // Gaps ordered by how badly this employer needs them: hard requirements first,
+  // "nice to have" after. That ordering is what tells you where to spend your effort.
+  const preferredSet = new Set((ev.missingPreferredSkills ?? []).map((s) => s.toLowerCase()));
+  const rankedMissing = ev.missingSkills
+    .map((skill) => ({ skill, required: !preferredSet.has(skill.toLowerCase()) }))
+    .sort((a, b) => Number(b.required) - Number(a.required));
 
   return (
     <div className="w-full max-w-5xl mx-auto pb-24 font-sans">
@@ -629,24 +648,43 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
             Missing Skills &amp; Gaps ({ev.missingSkills.length})
           </h3>
           <p className="text-xs text-neutral-500 mb-3">
-            Mentioned in the posting but not found on your resume. If you have similar experience, add it below so the agent can bridge the gap.
+            Ranked by how much this employer actually needs it.{" "}
+            <span className="text-red-700 font-semibold">Red = required</span>, close these
+            first.{" "}
+            <span className="text-amber-700 font-semibold">Amber = nice to have</span>.
           </p>
 
           {ev.missingSkills.length > 0 ? (
             <ul className="divide-y divide-neutral-100 mb-3">
-              {ev.missingSkills.map((skill, idx) => {
+              {rankedMissing.map(({ skill, required }, idx) => {
                 const gapNote = ev.gapNotes?.find(
                   (g) => g.skill.trim().toLowerCase() === skill.trim().toLowerCase()
                 );
+                const added = addedSkills.includes(skill);
                 return (
                   <li key={idx} className="py-2 flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <span className="text-sm text-neutral-900">{skill}</span>
-                      {ev.missingPreferredSkills?.includes(skill) && (
-                        <span className="ml-1.5 text-[10px] bg-neutral-100 text-neutral-600 border border-neutral-300 px-1.5 py-0.5 rounded">
-                          nice to have
-                        </span>
-                      )}
+                      <span
+                        className={`inline-block w-1.5 h-1.5 rounded-full mr-2 align-middle ${
+                          required ? "bg-red-600" : "bg-amber-500"
+                        }`}
+                      />
+                      <span
+                        className={`text-sm font-medium ${
+                          required ? "text-red-900" : "text-amber-900"
+                        }`}
+                      >
+                        {skill}
+                      </span>
+                      <span
+                        className={`ml-1.5 text-[10px] px-1.5 py-0.5 rounded border font-semibold ${
+                          required
+                            ? "bg-red-50 text-red-800 border-red-300"
+                            : "bg-amber-50 text-amber-800 border-amber-300"
+                        }`}
+                      >
+                        {required ? "required" : "nice to have"}
+                      </span>
                       {gapNote && (
                         <p className="text-xs text-neutral-500 mt-0.5">
                           {gapNote.status === "not_addressed" ? "Not addressed in draft: " : "In draft: "}
@@ -657,11 +695,20 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                     {ev.stage === "awaiting_approval" && (
                       <button
                         type="button"
+                        disabled={added}
                         onClick={() => addMissingSkillToDraft(skill)}
-                        className="text-xs text-amber-800 hover:underline whitespace-nowrap cursor-pointer shrink-0"
-                        title="Add to draft instructions to explain equivalent experience"
+                        className={`text-xs whitespace-nowrap shrink-0 px-2 py-1 rounded-lg border ${
+                          added
+                            ? "bg-neutral-100 text-neutral-400 border-neutral-200 cursor-not-allowed"
+                            : "bg-white text-amber-800 border-amber-300 hover:bg-amber-50 cursor-pointer"
+                        }`}
+                        title={
+                          added
+                            ? "Already added to your draft instructions below"
+                            : "Add to draft instructions to explain equivalent experience"
+                        }
                       >
-                        + I have this or similar
+                        {added ? "✓ Added" : "+ I have this or similar"}
                       </button>
                     )}
                   </li>
@@ -1205,6 +1252,102 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                   )}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* The agent marking its own work: same evaluation, re-run on the rewrite. */}
+          {ev.rescore && (
+            <div
+              className={`border-2 rounded-2xl p-4 sm:p-5 mb-4 shadow-xs ${
+                ev.rescore.unearned.length > 0
+                  ? "border-red-300 bg-red-50/70"
+                  : ev.rescore.after > ev.rescore.before
+                  ? "border-green-300 bg-green-50/70"
+                  : "border-neutral-300 bg-white"
+              }`}
+            >
+              <div className="flex items-center gap-2 mb-2 flex-wrap">
+                <span className="font-bold text-sm text-neutral-900">
+                  Agent re-checked its own rewrite
+                </span>
+                <span className="text-[10px] font-mono bg-neutral-900 text-white px-1.5 py-0.5 rounded">
+                  rescore_tailored_resume
+                </span>
+              </div>
+
+              <div className="flex items-center gap-3 mb-3 flex-wrap">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-xs text-neutral-500">Original resume</span>
+                  <span className="text-2xl font-bold text-neutral-500">
+                    {Math.round(ev.rescore.before * 100)}%
+                  </span>
+                </div>
+                <span className="text-xl text-neutral-400">&rarr;</span>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-xs text-neutral-500">Tailored resume</span>
+                  <span
+                    className={`text-3xl font-bold ${
+                      ev.rescore.after > ev.rescore.before
+                        ? "text-green-700"
+                        : ev.rescore.after < ev.rescore.before
+                        ? "text-red-700"
+                        : "text-neutral-700"
+                    }`}
+                  >
+                    {Math.round(ev.rescore.after * 100)}%
+                  </span>
+                </div>
+                <span
+                  className={`text-sm font-bold px-2 py-0.5 rounded-lg border ${
+                    ev.rescore.after >= ev.rescore.before
+                      ? "bg-green-100 text-green-900 border-green-300"
+                      : "bg-red-100 text-red-900 border-red-300"
+                  }`}
+                >
+                  {ev.rescore.after >= ev.rescore.before ? "+" : ""}
+                  {Math.round((ev.rescore.after - ev.rescore.before) * 100)} pts
+                </span>
+              </div>
+
+              {ev.rescore.newlyMatched.length > 0 ? (
+                <p className="text-sm text-neutral-800 mb-2">
+                  <span className="font-semibold text-green-800">Now evidenced: </span>
+                  {ev.rescore.newlyMatched.join(" · ")}
+                </p>
+              ) : (
+                <p className="text-sm text-neutral-700 mb-2">
+                  No previously-missing requirement is now evidenced. The rewrite improved
+                  emphasis and wording rather than coverage &mdash; which is the honest
+                  outcome when the underlying experience has not changed.
+                </p>
+              )}
+
+              {ev.rescore.unearned.length > 0 && (
+                <div className="bg-white border border-red-300 rounded-xl p-3 mb-2">
+                  <p className="text-sm font-bold text-red-900">
+                    &#9888; Part of this gain is unearned
+                  </p>
+                  <p className="text-xs text-red-800 mt-1">
+                    <strong>{ev.rescore.unearned.join(", ")}</strong> only counts because of
+                    a sentence the verifier could not trace back to your resume. Do not
+                    treat that as a real improvement &mdash; fix or remove the flagged line
+                    above, and this score will fall back.
+                  </p>
+                </div>
+              )}
+
+              {ev.rescore.stillMissing.length > 0 && (
+                <p className="text-xs text-neutral-600">
+                  <span className="font-semibold">Still missing: </span>
+                  {ev.rescore.stillMissing.join(" · ")}
+                </p>
+              )}
+
+              <p className="text-xs text-neutral-500 mt-2 pt-2 border-t border-neutral-200">
+                This is the same scoring routine that ran on your original resume, re-run
+                against the rewrite. Rewriting cannot invent experience, so a modest gain
+                is normal and honest.
+              </p>
             </div>
           )}
 

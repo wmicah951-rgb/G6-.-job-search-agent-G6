@@ -103,6 +103,19 @@ export interface AgentState {
   // human rather than silently removed.
   draftVerification: DraftVerification | null;
   coverLetterVerification: DraftVerification | null;
+  // The agent marking its own work: the same fit evaluation re-run against the
+  // TAILORED resume, so the human can see whether the rewrite actually improved
+  // coverage or only the wording. `unearned` lists any newly-matched requirement
+  // that rests on a sentence the verifier could not trace back to the resume —
+  // a score gain that should not be trusted.
+  rescore: {
+    before: number;
+    after: number;
+    newlyMatched: string[];
+    unearned: string[];
+    stillMissing: string[];
+    method: "llm" | "deterministic";
+  } | null;
 }
 
 export interface TraceStep {
@@ -366,11 +379,25 @@ function checkHardConstraints(
     );
   }
 
+  // Clearance rule: matched tolerantly so a reworded preferences line still counts.
   if (
-    lowerPrefs.includes("will not apply to roles requiring an active security clearance") &&
+    /will not apply[^.\n]*security clearance/i.test(preferencesText) &&
     (/security clearance/i.test(jobText) || clearanceRequired)
   ) {
     violations.push("Role requires an active security clearance");
+  }
+
+  // Relocation: the other deal-breaker candidates hit constantly. Only fires on an
+  // explicit requirement ("must relocate", "relocation required"), never on a company
+  // merely OFFERING relocation assistance, which is a perk rather than a condition.
+  if (
+    /will not apply[^.\n]*relocat/i.test(preferencesText) &&
+    /(?:must|required to|willing to|expected to)\s+relocate|relocation\s+(?:is\s+)?required/i.test(
+      jobText
+    ) &&
+    !/relocation\s+(?:assistance|package|support|help|reimburse)/i.test(jobText)
+  ) {
+    violations.push("Role requires relocation");
   }
 
   const rule = parseLocationRule(preferencesText);
@@ -710,6 +737,7 @@ export async function runAgent(
     workArrangement: "unknown",
     draftVerification: null,
     coverLetterVerification: null,
+    rescore: null,
     minFit: parseMinFit(preferencesText, settings.lowFitThresholdDefault),
     fitScore: null,
     matchedSkills: [],
@@ -1151,6 +1179,80 @@ export async function applyHumanDecision(
       verifyBefore,
       state
     );
+  }
+
+  // --- The agent goes back and marks its own work -----------------------------
+  //
+  // Re-runs the SAME fit evaluation against the tailored resume it just produced, and
+  // reports before -> after. This is the loop closing: draft, verify, then re-measure.
+  //
+  // The integrity rule is what makes the new number worth anything. A tailored resume
+  // can always be made to "score higher" by inventing skills, so every requirement that
+  // newly counts as matched is cross-checked against the verification pass. If its
+  // supporting sentence was flagged as unsourced, the gain is reported as UNEARNED and
+  // called out separately rather than folded into the headline score.
+  if (tailoredResume && state.stage === "drafted") {
+    const rescoreBefore = { ...state };
+    const scoreBefore = state.fitScore ?? 0;
+    const missingBefore = new Set(state.missingSkills.map((s) => s.toLowerCase()));
+
+    try {
+      const after = await performFitEvaluation(tailoredResume, jobText, settings);
+
+      // Which previously-missing requirements now count as met?
+      const newlyMatched = after.matched.filter((m) => missingBefore.has(m.toLowerCase()));
+
+      // Any of those resting on a claim the verifier could not source?
+      const unsupportedText = (state.draftVerification?.claims ?? [])
+        .filter((c) => c.verdict === "unsupported")
+        .map((c) => c.text.toLowerCase())
+        .join(" \n ");
+      const unearned = newlyMatched.filter((m) => {
+        const quote = (after.matchedEvidence[m] ?? "").toLowerCase();
+        return quote.length > 0 && unsupportedText.includes(quote.slice(0, 40));
+      });
+
+      state = {
+        ...state,
+        rescore: {
+          before: scoreBefore,
+          after: after.score,
+          newlyMatched,
+          unearned,
+          stillMissing: after.missing,
+          method: after.method,
+        },
+      };
+
+      const delta = Math.round((after.score - scoreBefore) * 100);
+      log(
+        `Re-running the same fit evaluation against the TAILORED resume to measure whether the rewrite actually helped.`,
+        ["rescore_tailored_resume"],
+        "rescore_tailored_resume",
+        `Fit ${Math.round(scoreBefore * 100)}% -> ${Math.round(after.score * 100)}% (${
+          delta >= 0 ? "+" : ""
+        }${delta} points).` +
+          (newlyMatched.length
+            ? ` Now evidenced: ${newlyMatched.join(", ")}.`
+            : " No previously-missing requirement is now evidenced — the rewrite improved emphasis and wording, not coverage.") +
+          (unearned.length
+            ? ` WARNING: ${unearned.join(", ")} only count because of sentence(s) the verifier could NOT trace to the resume. Treat that gain as unearned.`
+            : "") +
+          (after.missing.length ? ` Still missing: ${after.missing.join(", ")}.` : ""),
+        rescoreBefore,
+        state
+      );
+    } catch (err) {
+      // Never let the scoreboard break the draft the human already has.
+      log(
+        "Attempted to re-score the tailored resume.",
+        ["rescore_tailored_resume"],
+        "rescore_tailored_resume",
+        `Re-score unavailable (${String(err).slice(0, 120)}). The draft and its verification are unaffected.`,
+        rescoreBefore,
+        state
+      );
+    }
   }
 
   return { state, trace };
