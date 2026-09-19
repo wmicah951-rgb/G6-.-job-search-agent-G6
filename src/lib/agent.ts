@@ -1092,10 +1092,17 @@ export async function applyHumanDecision(
     const titleLine = jobText.match(/^#?\s*(.+)$/m);
     const verifyOpts = { jobTitle: titleLine ? titleLine[1].trim() : "" };
     const draftVerification = tailoredResume
-      ? verifyDraft(tailoredResume, resumeText, state.approvalNote, verifyOpts)
+      ? verifyDraft(tailoredResume, resumeText, state.approvalNote, {
+          ...verifyOpts,
+          kind: "resume",
+        })
       : null;
     const coverLetterVerification = coverLetter
-      ? verifyDraft(coverLetter, resumeText, state.approvalNote, verifyOpts)
+      ? verifyDraft(coverLetter, resumeText, state.approvalNote, {
+          ...verifyOpts,
+          kind: "letter",
+          jobText,
+        })
       : null;
     state = { ...state, draftVerification, coverLetterVerification };
 

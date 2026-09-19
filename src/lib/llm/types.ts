@@ -258,7 +258,20 @@ export const DRAFT_SYSTEM_PROMPT =
   "• Keep the cover letter to 250–350 words.\n" +
   "• The tailored resume should be a complete, ready-to-submit document " +
   "(contact info, summary, experience, skills, education) — not just a list " +
-  "of changes. Reorder and emphasize sections to match what this role values most.\n" +
+  "of changes.\n" +
+  "• *** THE WORK HISTORY IS FACT, NOT COPY. *** Inside the EXPERIENCE and EDUCATION " +
+  "sections you MUST carry over, character-for-character, the candidate's employer " +
+  "names, job titles, degree names, institution names and all dates. Do NOT 'upgrade', " +
+  "retitle, generalise, modernise or align a job title to the posting: if the resume " +
+  "says 'Business Intelligence Intern', the tailored resume says 'Business Intelligence " +
+  "Intern' — never 'Data Analyst Intern', never 'BI Analyst'. Changing a job title is " +
+  "resume fraud and a hiring manager will catch it in a reference check.\n" +
+  "• What you MAY change: the SUMMARY wording, the SKILLS section (reorder, regroup and " +
+  "surface the skills this posting names, as long as the candidate actually has them), " +
+  "the ORDER of sections, and the WORDING of the achievement bullets underneath each " +
+  "role — rephrasing for clarity and mirroring the posting's vocabulary. The underlying " +
+  "facts of each bullet (what was built, the numbers, the tools) must stay true to the " +
+  "original.\n" +
   "• FORMAT both documents as simple markdown so they can be typeset: " +
   "resume = '# Full Name' on line 1, then ONE contact line (email | phone | city | links), " +
   "then '## SECTION' headings (SUMMARY, SKILLS, EXPERIENCE, PROJECTS, EDUCATION, CERTIFICATIONS), " +

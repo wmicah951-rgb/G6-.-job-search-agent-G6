@@ -3,6 +3,11 @@
 How to prove the agent actually works, by hand, in a browser. Every step says what
 you **should** see and — just as important — what should **NOT** happen.
 
+> **Fastest route:** open the **Test Lab** tab in the app. Every case below is listed
+> there with what it should prove and a **Run** button that executes it against the real
+> agent, showing expected vs actual. The manual steps below are for the parts Test Lab
+> cannot do for you — clicking Approve, reading a draft, downloading a PDF.
+
 ## Setup
 
 ```bash

@@ -24,6 +24,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               <a href="/" className="text-sm text-neutral-600 hover:text-neutral-900 font-medium">Dashboard</a>
               <a href="/jobs/new" className="text-sm text-neutral-600 hover:text-neutral-900 font-medium">Add Posting</a>
               <a href="/upload" className="text-sm text-neutral-600 hover:text-neutral-900 font-medium">Resume &amp; Preferences</a>
+            <a href="/testlab" className="text-sm text-neutral-600 hover:text-neutral-900 font-medium">Test Lab</a>
             </div>
           </div>
         </nav>

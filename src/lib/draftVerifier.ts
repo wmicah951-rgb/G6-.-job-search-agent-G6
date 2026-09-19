@@ -70,6 +70,22 @@ export interface VerifyOptions {
    * skill claim elsewhere is still caught even when the posting names that skill.
    */
   jobTitle?: string;
+  /**
+   * Which document this is. A cover letter and a resume have different rules about
+   * what counts as an outside fact:
+   *  - "resume": everything is a claim about the candidate. The posting is NOT a source.
+   *  - "letter": naming the employer, product or team you are writing TO is normal and
+   *    correct. Those names come from the posting and will never be on the resume.
+   */
+  kind?: "resume" | "letter";
+  /**
+   * The posting text. Used ONLY for kind "letter", and ONLY on sentences that are not
+   * first-person experience claims — so "I'd love to join Northwind Commerce" is fine
+   * while "I built Tableau dashboards" is still flagged even when the posting says
+   * Tableau. Without that split, quoting the posting would become a laundering route
+   * for fabricated experience.
+   */
+  jobText?: string;
   /** At/above this similarity a claim counts as "grounded". */
   highThreshold?: number;
   /** At/above this similarity a claim counts as "reworded". */
@@ -85,8 +101,37 @@ const DEFAULTS = { highThreshold: 0.72, lowThreshold: 0.4, minTokens: 4 };
  * shape name the job, not the candidate's experience — they assert nothing checkable
  * about the person, so repeating the posting's own title in them is not fabrication.
  */
+/**
+ * Does this sentence assert something the CANDIDATE did or has? Those are the sentences
+ * a hiring manager can check against a reference, and the only ones where an outside
+ * name must not be borrowed from the job posting.
+ *
+ * "I built Power BI dashboards at Meridian"      -> yes, an experience claim.
+ * "Northwind's focus on experimentation appeals" -> no, it is about the employer.
+ */
+function isExperienceClaim(text: string): boolean {
+  return (
+    /\b(i|we)\s+(?:have\s+|had\s+|has\s+)?(?:also\s+|already\s+|personally\s+|recently\s+)?(built|create[d]?|led|manage[d]?|develop(ed)?|design(ed)?|implement(ed)?|automat(ed|e)|wrote|written|analy[sz]ed|deliver(ed)?|own(ed)?|ship(ped)?|maintain(ed)?|use[d]?|using|work(ed)?|spent|earn(ed)?|hold|held|achiev(ed)?|increas(ed)?|reduc(ed)?|improv(ed)?|support(ed)?|cleaned|merged|migrat(ed)?)\b/i.test(
+      text
+    ) ||
+    /\bmy\s+(experience|work|background|role|time|training|expertise|skills?)\b/i.test(text) ||
+    /\b(i\s+am|i'm)\s+(experienced|proficient|skilled|fluent|comfortable|familiar)\b/i.test(text)
+  );
+}
+
+/**
+ * The clause of a sentence that actually contains the given word. Splitting on commas,
+ * semicolons, dashes and coordinating conjunctions is crude but enough to stop one
+ * clause's "I built..." from making the rest of the sentence strict.
+ */
+function clauseContaining(text: string, word: string): string {
+  const parts = text.split(/[;,]\s+(?:and\s+|but\s+|while\s+)?|\s+[—–-]\s+|\s+(?:and|but|while|whereas)\s+/i);
+  const hit = parts.find((p) => p.toLowerCase().includes(word.toLowerCase()));
+  return hit && hit.trim().length > 0 ? hit : text;
+}
+
 function isApplicationFraming(text: string): boolean {
-  return /\b(writing to apply|apply(ing)? for|application for|interest(ed)? in|regarding|in response to|excited to apply|submit(ting)? my)\b/i.test(
+  return /\b(writing to apply|apply(ing)? for|application for|interest(ed)? in|regarding|in response to|excited to apply|submit(ting)? my|seeking a|seeking the|targeting a|pursuing a)\b/i.test(
     text
   );
 }
@@ -161,7 +206,11 @@ function extractEntities(text: string): string[] {
   for (const span of stripped.split(/(?<=[.!?:;|])\s+|\n/)) {
     const words = span.trim().split(/\s+/);
     words.forEach((raw, idx) => {
-      const w = raw.replace(/^[^A-Za-z0-9]+|[^A-Za-z0-9+#]+$/g, "");
+      // Strip surrounding punctuation AND the possessive, so "Commerce's" is
+      // recognised as the same name as "Commerce".
+      const w = raw
+        .replace(/^[^A-Za-z0-9]+|[^A-Za-z0-9+#]+$/g, "")
+        .replace(/['’]s$/i, "");
       if (w.length < 2) return;
       const isAcronym = /^[A-Z][A-Z0-9+#]{1,}$/.test(w);
       const isCapitalised = /^[A-Z][a-z]+/.test(w);
@@ -187,8 +236,47 @@ function stem(w: string): string {
   return w.replace(/(ations?|ation|ising|izing|ised|ized|ings?|ing|ers?|ed|es|s)$/i, "");
 }
 
+/**
+ * Resume shorthand that a drafting model routinely expands. "State University Econ Dept"
+ * legitimately becomes "Economics Department" - the same fact, spelled out. Treating
+ * that as a fabricated entity is the kind of false alarm that makes the panel useless.
+ */
+const ABBREVIATIONS: Record<string, string[]> = {
+  dept: ["department", "departmental"],
+  econ: ["economics", "economic"],
+  univ: ["university"],
+  mgmt: ["management"],
+  admin: ["administration", "administrative"],
+  ops: ["operations", "operational"],
+  stats: ["statistics", "statistical"],
+  eng: ["engineering", "engineer"],
+  tech: ["technology", "technical"],
+  corp: ["corporation", "corporate"],
+  intl: ["international"],
+  sr: ["senior"],
+  jr: ["junior"],
+  bs: ["bachelor", "bachelors"],
+  ms: ["master", "masters"],
+  ba: ["bachelor", "bachelors"],
+};
+
 /** True when some corpus token is the same word in a different form. */
-function morphologicallyPresent(word: string, corpusStems: Set<string>): boolean {
+function morphologicallyPresent(
+  word: string,
+  corpusStems: Set<string>,
+  corpusTokens?: Set<string>
+): boolean {
+  // Abbreviation in the resume, spelled out in the draft (or the reverse).
+  if (corpusTokens) {
+    for (const [abbr, expansions] of Object.entries(ABBREVIATIONS)) {
+      if (corpusTokens.has(abbr) && expansions.includes(word)) return true;
+      if (expansions.some((e) => corpusTokens.has(e)) && word === abbr) return true;
+    }
+    // NOTE: deliberately NO generic "corpus token is a prefix of the draft token" rule.
+    // It looks reasonable and is a trap: a resume saying "reporting table" would make
+    // the fabricated skill "Tableau" pass, which is precisely the claim this whole
+    // module exists to catch. Abbreviations are handled by the explicit map only.
+  }
   const s = stem(word);
   if (s.length < 4) return false;
   if (corpusStems.has(s)) return true;
@@ -353,6 +441,16 @@ export function verifyDraft(
   const inJobTitle = (e: string) =>
     titleTokens.has(e) || (titleNorm.length > 0 && titleNorm.includes(e));
 
+  // Cover-letter-only: names taken from the posting (employer, product, team, the
+  // role itself). Legitimate to mention when writing TO that employer, but never
+  // usable to support a first-person claim about what the candidate has done.
+  const isLetter = options.kind === "letter";
+  const postingNorm = isLetter ? norm(options.jobText ?? "") : "";
+  const postingTokens = new Set(
+    postingNorm ? contentTokens(options.jobText ?? "") : []
+  );
+  const postingNumbers = new Set(postingNorm ? extractNumbers(options.jobText ?? "") : []);
+
   const claims: VerifiedClaim[] = [];
   const matchedSourceIdx = new Set<number>();
   let id = 0;
@@ -409,20 +507,38 @@ export function verifyDraft(
     const unsupportedFacts: string[] = [];
     let hardFactCount = 0;
 
+    // Declared up here because the number check needs it too: a cover letter may cite
+    // the employer's own published figures ("a 900-person company"), which are in the
+    // posting and will never be on the resume.
+    const mayCitePosting = isLetter && !isExperienceClaim(unit.text);
     for (const n of extractNumbers(unit.factText)) {
       hardFactCount += 1;
-      if (!corpusNumbers.has(n)) unsupportedFacts.push(n.includes("%") ? n : `the figure ${n}`);
+      if (corpusNumbers.has(n)) continue;
+      if (mayCitePosting && postingNumbers.has(n)) continue;
+      unsupportedFacts.push(n.includes("%") ? n : `the figure ${n}`);
     }
     const framing = isApplicationFraming(unit.text);
     for (const e of extractEntities(unit.factText)) {
       if (NON_ENTITY.has(e)) continue;
       // The posting's own job title, quoted back in an "applying for ..." sentence.
       if (framing && inJobTitle(e)) continue;
+      // Compound sentences mix the two kinds: "I hold a B.S. from State University,
+      // and your Atlanta office is a short walk from me." The first clause is a claim
+      // about the candidate; the second is about the employer. Judge the CLAUSE the
+      // name actually sits in, or a single "and" turns the whole sentence strict and
+      // the employer's own city gets flagged as an invention.
+      if (
+        isLetter &&
+        (postingTokens.has(e) || postingNorm.includes(e)) &&
+        !isExperienceClaim(clauseContaining(unit.text, e))
+      ) {
+        continue;
+      }
       hardFactCount += 1;
       if (corpusTokens.has(e)) continue;
       if (resumeCorpus.includes(e) || (noteCorpus && noteCorpus.includes(e))) continue;
       // Same word, different form ("automation" vs "Automated") is rewording.
-      if (morphologicallyPresent(e, corpusStems)) continue;
+      if (morphologicallyPresent(e, corpusStems, corpusTokens)) continue;
       unsupportedFacts.push(`"${e}"`);
     }
 

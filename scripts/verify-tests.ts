@@ -200,6 +200,75 @@ console.log("Draft verifier acceptance tests\n");
   }
 }
 
+// --- G. cover letter vs resume: the employer's name is not a fabrication ------
+// A cover letter is written TO a company. Naming that company, its product or its
+// team is correct and necessary, and those names will never be on the resume.
+// Flagging them made the panel fire on the most ordinary sentences in the letter.
+{
+  const posting = `# Data Analyst
+Northwind Commerce is a retail analytics company. Our Growth team runs experiments
+using Tableau and Snowflake. You would join the Atlas reporting squad.`;
+
+  const letter = `Dear Hiring Manager,
+
+I'm applying for the Data Analyst role at Northwind Commerce.
+
+Northwind Commerce's focus on retail analytics is exactly the kind of work I want to do, and joining the Atlas reporting squad appeals to me.
+
+I built weekly Power BI dashboards tracking on-time delivery rate across 40 warehouses.
+
+Sincerely,
+Jordan Ellis`;
+
+  const v = verifyDraft(letter, resume, null, {
+    kind: "letter",
+    jobText: posting,
+    jobTitle: "Data Analyst",
+  });
+  const bad = v.claims.filter((c) => c.verdict === "unsupported");
+  check(
+    "G. Cover letter may name the employer and team from the posting",
+    bad.length === 0,
+    bad.map((c) => c.unsupportedFacts.join("/")).join(" ")
+  );
+
+  // The dangerous case: borrowing a TOOL from the posting to back an experience claim.
+  const laundering = `Dear Hiring Manager,
+
+I built Tableau dashboards on Snowflake for the Growth team.
+
+Sincerely,
+Jordan Ellis`;
+  const v2 = verifyDraft(laundering, resume, null, {
+    kind: "letter",
+    jobText: posting,
+    jobTitle: "Data Analyst",
+  });
+  check(
+    "G. but an 'I built X' claim cannot borrow a tool from the posting",
+    v2.claims.some((c) => c.verdict === "unsupported"),
+    v2.claims.filter((c) => c.verdict !== "structural").map((c) => c.verdict).join(",")
+  );
+
+  // A resume gets no posting exemption at all.
+  const resumeDraft = `# Jordan Ellis
+
+## EXPERIENCE
+**Northwind Commerce - Data Analyst** | 2024 - Present
+- Built Tableau dashboards for the Growth team
+`;
+  const v3 = verifyDraft(resumeDraft, resume, null, {
+    kind: "resume",
+    jobText: posting,
+    jobTitle: "Data Analyst",
+  });
+  check(
+    "G. A resume never gets the posting exemption (invented employer is caught)",
+    v3.claims.some((c) => c.verdict === "unsupported"),
+    v3.claims.filter((c) => c.verdict === "unsupported").map((c) => c.unsupportedFacts.join("/")).join(" ")
+  );
+}
+
 console.log(
   failures === 0 ? "\nALL VERIFIER TESTS PASSED" : `\n${failures} VERIFIER TEST(S) FAILED`
 );

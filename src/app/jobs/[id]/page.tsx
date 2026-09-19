@@ -942,24 +942,35 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
             </div>
           </div>
 
-          {/* Action buttons */}
+          {/* Action buttons.
+              The two drafting buttons differ in ONE way: whether the box above is sent
+              to the model. That was previously invisible — both looked like "draft it",
+              the box came pre-filled, and the green one silently threw the text away.
+              The labels now say which is which, and the green one only offers to ignore
+              the box when there is actually something in it. */}
           <div className="flex flex-wrap items-center gap-3 pt-1">
             <button
               disabled={deciding}
-              onClick={() => decide("approve")}
+              onClick={() => decide("edit")}
               className="text-sm bg-green-700 hover:bg-green-800 text-white font-bold px-5 py-2.5 rounded-xl disabled:opacity-50 transition-all shadow-sm hover:shadow-md cursor-pointer flex items-center gap-2"
             >
               <span>✓</span>
-              <span>Approve &amp; Draft Application</span>
+              <span>
+                {editNote.trim()
+                  ? "Approve — use the instructions above"
+                  : "Approve & Draft Application"}
+              </span>
             </button>
-            <button
-              disabled={deciding}
-              onClick={() => decide("edit")}
-              className="text-sm bg-blue-700 hover:bg-blue-800 text-white font-bold px-5 py-2.5 rounded-xl disabled:opacity-50 transition-all shadow-sm hover:shadow-md cursor-pointer flex items-center gap-2"
-            >
-              <span>✏️</span>
-              <span>Edit &amp; Draft with My Instructions</span>
-            </button>
+            {editNote.trim() && (
+              <button
+                disabled={deciding}
+                onClick={() => decide("approve")}
+                title="Drafts from your resume and the posting only. The text in the box above is not sent to the model."
+                className="text-sm bg-white hover:bg-neutral-100 text-neutral-800 font-semibold px-4 py-2.5 rounded-xl border border-neutral-400 disabled:opacity-50 transition-all cursor-pointer flex items-center gap-2"
+              >
+                <span>Approve — ignore my instructions</span>
+              </button>
+            )}
             <button
               disabled={deciding}
               onClick={() => decide("reject")}
@@ -968,6 +979,11 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
               ✕ Reject Job
             </button>
           </div>
+          <p className="text-xs text-amber-900/80 mt-2">
+            {editNote.trim()
+              ? "The green button sends the box above to the model as drafting guidance. The plain button drafts from your resume alone."
+              : "Nothing is drafted until you click. Add instructions above to steer the draft, or approve to draft straight from your resume."}
+          </p>
         </div>
       )}
 
