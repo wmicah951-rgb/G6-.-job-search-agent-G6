@@ -119,13 +119,18 @@ vs actual. Good for the demo.
    search API and scraping it breaches their terms — use Adzuna / JSearch / USAJOBS.
 
 ### Known issues
-5. **The live "mike" and "vin" profiles contain real personal information.** They belong
-   to teammates; I did not touch them. `/upload` now warns that the site is public and to
+
+4. **No authentication anywhere, on a public URL.** Every API route is open: anyone with
+   the link can read a profile's full résumé text (`GET /api/profiles/{id}`), edit or
+   delete profiles, change the harness prompts and thresholds, and delete postings. For a
+   class demo that is arguably fine — but combined with item 5 below it means **real
+   personal information is publicly readable**. Either replace that profile with fictional
+   data (cheapest, recommended) or put the write routes behind a shared secret.
+5. **The live "mike" profile contains real personal information, and the API is open.**
+   ("vin" has since been removed.) It belongs to a teammate, so I did not touch it. `/upload` now warns that the site is public and to
    use fictional data. Someone should replace or delete them.
 6. **A leftover `__draft_test__` profile** exists on the live site from earlier testing.
    Deleting it was blocked by a permission guard; remove it from the Profiles page.
-7. **A duplicate unused Vercel project** (`job-search-agent-app`) exists alongside the
-   real one (`g6-job-search-agent-g6`). Harmless, but tidy it up.
 8. **Preview-environment env vars are not set on Vercel** — only Production and
    Development. Preview deploys will not have a database or model.
 9. **Model detection is probabilistic.** Across many runs, one conformance case diverged
