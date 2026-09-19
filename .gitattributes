@@ -1,0 +1,16 @@
+# Git warned it would apply line-ending conversion to the submission PDF. On a binary
+# file that corrupts it, and the corruption only appears for whoever clones next — not
+# for the person who committed. Mark binaries explicitly.
+*.pdf   binary
+*.png   binary
+*.jpg   binary
+*.ico   binary
+*.db    binary
+
+# Keep generated evidence diffable and stable across machines.
+*.md        text eol=lf
+*.ts        text eol=lf
+*.tsx       text eol=lf
+*.mjs       text eol=lf
+*.json      text eol=lf
+*.txt       text eol=lf
