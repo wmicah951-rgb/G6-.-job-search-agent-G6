@@ -23,6 +23,7 @@ type Result = {
   error?: string;
   problems?: string[];
   ms?: number;
+  ranAgainst?: string;
   actual?: {
     stage: string;
     sequence: string;
@@ -54,6 +55,9 @@ export default function TestLabPage() {
   const [running, setRunning] = useState<string | null>(null);
   const [runningAll, setRunningAll] = useState(false);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  // Off by default: scoring fixtures run against the pinned demo resume so the suite
+  // is deterministic. Turn it on to score YOUR resume and see where your gaps are.
+  const [useActiveProfile, setUseActiveProfile] = useState(false);
 
   useEffect(() => {
     fetch("/api/testlab")
@@ -69,7 +73,7 @@ export default function TestLabPage() {
     const res = await fetch("/api/testlab", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ids }),
+      body: JSON.stringify({ ids, useActiveProfile }),
     });
     const d = await res.json();
     setProfileName(d.profileName ?? "");
@@ -148,15 +152,26 @@ export default function TestLabPage() {
             </span>
           )}
         </div>
-        {profileName && profileName !== "Profile 1" && (
-          <p className="text-xs text-amber-900 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-3">
-            You are running against the <strong>{profileName}</strong> profile. The cases
-            marked <strong>depends on resume</strong> have expected scores calibrated
-            against the built-in demo resume, so a different verdict here is usually the
-            agent being <em>right about a different resume</em>, not a bug. The injection
-            and gate cases are profile-independent and must pass for everyone.
-          </p>
-        )}
+        <label className="flex items-start gap-2 mt-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={useActiveProfile}
+            onChange={(e) => {
+              setUseActiveProfile(e.target.checked);
+              setResults({});
+            }}
+            className="w-4 h-4 mt-0.5 cursor-pointer"
+          />
+          <span className="text-xs text-neutral-700 leading-relaxed">
+            <strong>Score my active resume instead of the demo one.</strong> Off by default:
+            the cases marked <em>depends on resume</em> have expected scores calibrated
+            against the built-in demo resume, so running them against a different resume
+            would show red for a reason that has nothing to do with the agent. Turn this on
+            to point the same postings at your own resume and see where your real gaps are
+            — expect some scoring cases to &ldquo;fail&rdquo; then, and read the numbers
+            rather than the PASS/FAIL.
+          </span>
+        </label>
         {!llmOn && (
           <p className="text-xs text-amber-900 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-3">
             No model is configured, so the cases marked <strong>needs AI</strong> will be
@@ -222,6 +237,11 @@ export default function TestLabPage() {
                           {r?.skipped && (
                             <span className="text-[10px] px-1.5 py-0.5 rounded font-bold border bg-neutral-200 text-neutral-700 border-neutral-400">
                               SKIPPED
+                            </span>
+                          )}
+                          {r?.ranAgainst && (
+                            <span className="text-[10px] text-neutral-500">
+                              vs {r.ranAgainst}
                             </span>
                           )}
                           {r?.ms != null && (

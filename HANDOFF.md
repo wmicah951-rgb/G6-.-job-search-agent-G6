@@ -37,7 +37,8 @@ still fully functional, still passes the four required tests.
 | `node scripts/local-e2e.mjs` | 48/48 over real HTTP (needs the server running) |
 | `node scripts/stress-draft.mjs` | Résumé quality + no false alarms (needs the server) |
 | `node scripts/harness-tests.mjs` | 16 checks: settings persist, clamp, refuse bad input, reset, and actually reach the agent |
-| `npx tsx scripts/knob-tests.ts` | 13 checks: every knob round-trips and edits exactly one line of preferences.md |
+| `npx tsx scripts/profile-matrix.ts` | Accuracy diagnostic: every realistic profile x every realistic posting, with the reasoning |
+| `npx tsx scripts/knob-tests.ts` | 15 checks: every knob round-trips and edits exactly one line of preferences.md |
 
 There is also a **Test Lab** tab in the app that runs any case live and shows expected
 vs actual. Good for the demo.
@@ -66,7 +67,13 @@ vs actual. Good for the demo.
 - Formatted PDF download for résumé and cover letter.
 - Delete button on the board. Multiple profiles.
 - Swappable brain: DeepSeek / Claude / any OpenAI-compatible endpoint / none.
-- Test Lab tab.
+- Test Lab tab. Scoring fixtures run against a PINNED demo resume by default, so the
+  suite is deterministic no matter whose profile is active; a checkbox re-runs the same
+  postings against your own resume for diagnosis, asserting only the resume-independent
+  gate properties.
+- Three realistic demo profiles (`src/data/profiles/`) and three realistic postings
+  (`src/data/jobs/realistic/`) plus `scripts/profile-matrix.ts`, which scores every
+  profile against every posting and prints the requirement-by-requirement breakdown.
 - **Agent re-scores its own rewrite** (`rescore_tailored_resume`): after drafting and
   verifying, it re-runs the SAME fit evaluation against the tailored résumé and reports
   before -> after, what is newly evidenced, and what is still missing. Any gain resting

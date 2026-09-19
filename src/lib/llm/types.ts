@@ -153,7 +153,19 @@ export const FIT_SYSTEM_PROMPT =
   "domain knowledge, degrees, certifications and years of experience. Do NOT list " +
   "job duties or responsibilities ('build dashboards', 'collaborate with teams'), " +
   "soft skills ('communication', 'team player'), company description or benefits " +
-  "as requirements. Any item whose line contains plus / preferred / nice to have / bonus / " +
+  "as requirements. " +
+  "ALWAYS INCLUDE ONE DOMAIN REQUIREMENT, priority 'required', naming the core function " +
+  "this role actually performs — read it from the job title and the responsibilities, and " +
+  "phrase it as the experience a hiring manager would screen on. Examples: 'Financial " +
+  "analysis and month-end close experience' for a Financial Analyst; 'Marketing operations " +
+  "experience' for a Marketing Operations Manager; 'Data analysis and BI reporting " +
+  "experience' for a Data Analyst; 'Database administration experience' for a DBA. This is " +
+  "NOT a duty list — it is the single competency separating someone who has done this job " +
+  "from someone who merely shares some tools. Match it ONLY if the resume shows work in " +
+  "that same function: a candidate from a different field who happens to use the same " +
+  "software does NOT meet it, and should be scored missing or at most partial. Without " +
+  "this the score rewards generic tool overlap and a career-changer scores like a specialist. " +
+  "Any item whose line contains plus / preferred / nice to have / bonus / " +
   "ideally / familiarity is PREFERRED — a missing one MUST go in missingPreferredRequirements and " +
   "a matched one gets priority 'preferred'. Never list one requirement twice with different wording " +
   "(e.g. 'HL7/FHIR' and 'healthcare data incl. HL7'); otherwise priority is 'required'. " +

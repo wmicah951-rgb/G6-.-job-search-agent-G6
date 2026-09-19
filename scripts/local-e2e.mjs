@@ -112,7 +112,7 @@ check("with NO note, the gap is never claimed as experience (not bridged)", !!gn
 
 // 4f. LOW-FIT OVERRIDE: the agent rejects, the human overrules, a draft follows
 const lowFitPosting = `# Senior-ish Data Analyst
-Remote. Requirements: SQL, Python (pandas), Excel, Power BI, Tableau, dbt, Snowflake, statistics. 1-3 years of experience.`;
+Remote. Requirements: SQL, Python (pandas), Excel, Power BI, Tableau, dbt, Snowflake, statistics, Looker, Apache Airflow, Kafka, Spark. 1-3 years of experience.`;
 const lf = await post(t("low fit for override"), lowFitPosting);
 ids.push(lf.b.id);
 check("posting below the bar is auto-rejected by the agent", lf.b.evaluation.state.stage === "rejected_low_fit", `stage=${lf.b.evaluation.state.stage} fit=${lf.b.evaluation.state.fitScore}`);

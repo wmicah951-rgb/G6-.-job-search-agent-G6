@@ -446,6 +446,25 @@ function findEvidenceLine(resumeText: string, skill: string): string | null {
   return evidenceLine ? evidenceLine.replace(/^[-*]\s*/, "") : null;
 }
 
+/**
+ * Requirement text normalised for duplicate detection: lowercased, punctuation and
+ * filler stripped. "Experience with an ERP system such as NetSuite, SAP or Oracle" and
+ * "experience with an ERP system (NetSuite, SAP, Oracle)" collapse to the same key.
+ */
+function normRequirement(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/[^a-z0-9+#\s]/g, " ")
+    // Word-boundary anchored on purpose: without a boundary this eats the "or"
+    // inside "Oracle", collapsing unrelated requirements into one key.
+    .replace(
+      /\b(experience|with|an|a|the|of|in|or|and|including|for|to|is|plus|preferred|such)\b/g,
+      " "
+    )
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export interface FitEvaluation {
   score: number;
   matched: string[];
@@ -492,7 +511,11 @@ async function performFitEvaluation(
       let matchedWeight = 0;
       let partialCount = 0;
 
+      const seenMatched = new Set<string>();
       for (const m of llmResult.matchedRequirements) {
+        // Same requirement proposed twice: count it once.
+        if (seenMatched.has(normRequirement(m.requirement))) continue;
+        seenMatched.add(normRequirement(m.requirement));
         if (m.evidenceQuote && lowerResume.includes(m.evidenceQuote.toLowerCase())) {
           const strength = m.strength === "partial" ? "partial" : "full";
           matched.push(m.requirement);
@@ -510,9 +533,26 @@ async function performFitEvaluation(
         }
       }
 
-      // A dropped (unverifiable) match counts as a miss, not as free credit.
-      const missingRequired = llmResult.missingRequirements;
-      const missingPreferred = llmResult.missingPreferredRequirements ?? [];
+      // DEDUPLICATE before scoring. Models routinely return the same requirement in
+      // both missing lists, or list one twice with slightly different wording, and
+      // every duplicate inflates the denominator and silently DRAGS THE SCORE DOWN.
+      // Precedence: something already matched is never also "missing"; a required
+      // miss outranks a nice-to-have miss.
+      const seen = new Set(matched.map(normRequirement));
+      const missingRequired: string[] = [];
+      for (const m of llmResult.missingRequirements) {
+        const k = normRequirement(m);
+        if (seen.has(k)) continue;
+        seen.add(k);
+        missingRequired.push(m);
+      }
+      const missingPreferred: string[] = [];
+      for (const m of llmResult.missingPreferredRequirements ?? []) {
+        const k = normRequirement(m);
+        if (seen.has(k)) continue;
+        seen.add(k);
+        missingPreferred.push(m);
+      }
       const missing = [...missingRequired, ...missingPreferred];
       const total =
         matchedWeight + droppedCount + missingRequired.length + 0.5 * missingPreferred.length;
