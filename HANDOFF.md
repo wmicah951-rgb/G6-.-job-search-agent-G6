@@ -40,6 +40,7 @@ still fully functional, still passes the four required tests.
 | `node scripts/harness-tests.mjs` | 16 checks: settings persist, clamp, refuse bad input, reset, and actually reach the agent |
 | `npx tsx scripts/stress-suite.ts` | 64 checks across coverage, arithmetic, monotonicity, discrimination, stability, edge cases and post-draft |
 | `npx tsx scripts/profile-matrix.ts` | Accuracy diagnostic: every realistic profile x every realistic posting, with the reasoning |
+| `npx tsx scripts/export-traces.ts` then `python3 scripts/build-submission-pdf.py` | Rebuilds G6_Job_Search_Agent_Submission.pdf with freshly generated traces |
 | `npx tsx scripts/doc-check.ts` | The docs still match the code: every agent action is in the inventory, and no doc repeats a claim that has become false |
 | `npx tsx scripts/knob-tests.ts` | 16 checks: every knob round-trips and edits exactly one line of preferences.md |
 
@@ -70,6 +71,10 @@ vs actual. Good for the demo.
 - Formatted PDF download for résumé and cover letter.
 - Delete button on the board. Multiple profiles.
 - Swappable brain: DeepSeek / Claude / any OpenAI-compatible endpoint / none.
+- **Submission PDF rebuilt from live output.** Every trace in
+  `G6_Job_Search_Agent_Submission.pdf` is read from `docs/submission/traces.json`, which
+  `scripts/export-traces.ts` writes by running the real agent — the old PDF had its traces
+  typed in by hand and they drifted. Rebuild with the two commands in the table above.
 - Test Lab tab. Scoring fixtures run against a PINNED demo resume by default, so the
   suite is deterministic no matter whose profile is active; a checkbox re-runs the same
   postings against your own resume for diagnosis, asserting only the resume-independent
@@ -128,9 +133,7 @@ vs actual. Good for the demo.
 10. **No `maxDuration` is set on the API routes.** A long posting can take ~30s across
     two model calls. This has not caused a failure yet but should be set explicitly
     before it does.
-11. **The submission PDF (`G6_Job_Search_Agent_Submission.pdf`) is out of date** — it
-    describes the older bullet-style draft and has a blank team-member line.
-    PROJECT-BREAKDOWN.md supersedes it as the content source.
+
 
 ---
 
