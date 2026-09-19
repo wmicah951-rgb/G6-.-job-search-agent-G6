@@ -289,6 +289,26 @@ Additional requirements: SQL (advanced), Python for automation, Tableau.`,
         ps.rescore?.before === evalr.state.fitScore,
         `${ps.rescore?.before} vs ${evalr.state.fitScore}`
       );
+      // REGRESSION: the re-score once re-derived the requirement list from the posting
+      // on the second pass, so before/after were measured over different denominators
+      // and an unchanged draft could swing -34 points. Both sides must now be scored
+      // against the SAME requirements.
+      check(
+        "re-score compares both sides on the same requirement list",
+        ps.rescore?.comparable !== false,
+        `comparable=${ps.rescore?.comparable} reqs=${ps.rescore?.requirementsCompared}`
+      );
+      check(
+        "an unchanged draft does not swing the score wildly",
+        Math.abs((ps.rescore?.after ?? 0) - (ps.rescore?.before ?? 0)) <= 0.2,
+        `${Math.round((ps.rescore?.before ?? 0) * 100)}% -> ${Math.round((ps.rescore?.after ?? 0) * 100)}%`
+      );
+      check(
+        "the yardstick covers the requirements the original evaluation found",
+        (ps.rescore?.requirementsCompared ?? 0) ===
+          evalr.state.matchedSkills.length + evalr.state.missingSkills.length,
+        `${ps.rescore?.requirementsCompared} vs ${evalr.state.matchedSkills.length + evalr.state.missingSkills.length}`
+      );
       check(
         "with NO bridging note, nothing is claimed as newly earned",
         (ps.rescore?.unearned.length ?? 0) === 0,

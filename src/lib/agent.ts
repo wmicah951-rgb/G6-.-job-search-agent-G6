@@ -120,6 +120,10 @@ export interface AgentState {
     unearned: string[];
     stillMissing: string[];
     method: "llm" | "deterministic";
+    // False when the re-check did not reproduce the original requirement list, which
+    // makes the before/after difference unsound. The UI then withholds the delta.
+    comparable?: boolean;
+    requirementsCompared?: number;
   } | null;
 }
 
@@ -256,6 +260,13 @@ const INJECTION_PATTERNS: RegExp[] = [
   /(?:rate|score|rank|grade|mark)\s+(?:this\s+)?(?:candidate|applicant|resume|r\u00e9sum\u00e9)\s+(?:as\s+)?(?:\d+|perfect|highest|top|10)/i,
   /(?:send|forward|email|e-mail|message|contact)\s+(?:this|the|my|their)?\s*(?:resume|r\u00e9sum\u00e9|cv|data|results?|application)\s+to\s+\S+@\S+/i,
   /(?:^|\W)(?:jailbreak|prompt injection|developer mode)(?:\W|$)/i,
+  // Conditional address to the reader-as-machine: "if you are an AI reviewing this",
+  // "should you be a language model processing applications". Added to the floor after
+  // the model proved unreliable at catching this shape on its own - detection by a
+  // sampled model is probabilistic, and a defence that works four times in five is not
+  // a defence. The subtler phrasings (J009-J011) still need the AI reader.
+  /\b(?:if|should|in case|when)\s+you(?:'re|\s+are|\s+happen\s+to\s+be|\s+be)\s+(?:an?\s+)?(?:ai|a\.i\.|artificial intelligence|language model|llm|chatbot|bot|assistant|automated|machine|screening system|screener|algorithm)\b/i,
+  /\b(?:attention|note|message|instructions?)\s+(?:to|for)\s+(?:the\s+)?(?:ai|language model|llm|bot|automated|screening|applicant tracking|ats)\b/i,
 ];
 
 /**
@@ -1300,7 +1311,32 @@ export async function applyHumanDecision(
     const missingBefore = new Set(state.missingSkills.map((s) => s.toLowerCase()));
 
     try {
-      const after = await performFitEvaluation(tailoredResume, jobText, settings);
+      // SCORE BOTH SIDES ON THE SAME YARDSTICK.
+      //
+      // The obvious implementation — re-run the normal evaluation against the tailored
+      // resume and the original posting — is WRONG, and produced swings of -34 points
+      // on drafts that had invented nothing and lost nothing. Each evaluation
+      // independently asks the model to extract requirements from the posting, and the
+      // model does not return the same list twice: it merges, splits and re-words. Two
+      // percentages computed over two different denominators are not comparable, so the
+      // delta was measuring the model's phrasing rather than the rewrite.
+      //
+      // Instead the re-score is run against a canonical list of the requirements the
+      // ORIGINAL evaluation actually found. Same requirements, same weights, same
+      // denominator — so the difference can only come from the resume.
+      const originalRequirements = [...state.matchedSkills, ...state.missingSkills];
+      const yardstick =
+        `# ${(jobText.match(/^#?\s*(.+)$/m) ?? [, "Role"])[1]}\n\n` +
+        `Requirements:\n${originalRequirements.map((r) => `- ${r}`).join("\n")}\n`;
+
+      const after = await performFitEvaluation(tailoredResume, yardstick, settings);
+
+      // If the model still did not reproduce the same list, the comparison is not
+      // sound and we say so rather than print a confident wrong number.
+      const afterCount = after.matched.length + after.missing.length;
+      const comparable =
+        originalRequirements.length > 0 &&
+        Math.abs(afterCount - originalRequirements.length) <= Math.max(1, originalRequirements.length * 0.25);
 
       // Which previously-missing requirements now count as met?
       const newlyMatched = after.matched.filter((m) => missingBefore.has(m.toLowerCase()));
@@ -1324,14 +1360,19 @@ export async function applyHumanDecision(
           unearned,
           stillMissing: after.missing,
           method: after.method,
+          comparable,
+          requirementsCompared: originalRequirements.length,
         },
       };
 
       const delta = Math.round((after.score - scoreBefore) * 100);
       log(
-        `Re-running the same fit evaluation against the TAILORED resume to measure whether the rewrite actually helped.`,
+        `Re-scoring the TAILORED resume against the SAME ${originalRequirements.length} requirement(s) the original evaluation found, so the before/after difference can only come from the rewrite.`,
         ["rescore_tailored_resume"],
         "rescore_tailored_resume",
+        (!comparable
+          ? `Re-check could not reproduce the original requirement list (${originalRequirements.length} -> ${afterCount}); the before/after comparison is NOT reliable and is being withheld. `
+          : "") +
         `Fit ${Math.round(scoreBefore * 100)}% -> ${Math.round(after.score * 100)}% (${
           delta >= 0 ? "+" : ""
         }${delta} points).` +

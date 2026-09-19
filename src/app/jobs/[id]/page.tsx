@@ -47,6 +47,8 @@ type Evaluation = {
     unearned: string[];
     stillMissing: string[];
     method: string;
+    comparable?: boolean;
+    requirementsCompared?: number;
   } | null;
   state?: { matchedEvidence?: Record<string, string> } | null;
   profileName: string | null;
@@ -1294,6 +1296,21 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                 </span>
               </div>
 
+              {ev.rescore.comparable === false && (
+                <div className="bg-white border border-orange-300 rounded-xl p-3 mb-3">
+                  <p className="text-sm font-bold text-orange-900">
+                    Comparison withheld — it would not be meaningful
+                  </p>
+                  <p className="text-xs text-orange-900 mt-1">
+                    The re-check did not produce the same list of requirements as the
+                    original evaluation, so the two percentages were measured against
+                    different things and the difference between them would be noise
+                    rather than a result. Your draft and its verification below are
+                    unaffected.
+                  </p>
+                </div>
+              )}
+
               <div className="flex items-center gap-3 mb-3 flex-wrap">
                 <div className="flex items-baseline gap-2">
                   <span className="text-xs text-neutral-500">Original resume</span>
@@ -1316,16 +1333,18 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                     {Math.round(ev.rescore.after * 100)}%
                   </span>
                 </div>
-                <span
-                  className={`text-sm font-bold px-2 py-0.5 rounded-lg border ${
-                    ev.rescore.after >= ev.rescore.before
-                      ? "bg-green-100 text-green-900 border-green-300"
-                      : "bg-red-100 text-red-900 border-red-300"
-                  }`}
-                >
-                  {ev.rescore.after >= ev.rescore.before ? "+" : ""}
-                  {Math.round((ev.rescore.after - ev.rescore.before) * 100)} pts
-                </span>
+                {ev.rescore.comparable !== false && (
+                  <span
+                    className={`text-sm font-bold px-2 py-0.5 rounded-lg border ${
+                      ev.rescore.after >= ev.rescore.before
+                        ? "bg-green-100 text-green-900 border-green-300"
+                        : "bg-red-100 text-red-900 border-red-300"
+                    }`}
+                  >
+                    {ev.rescore.after >= ev.rescore.before ? "+" : ""}
+                    {Math.round((ev.rescore.after - ev.rescore.before) * 100)} pts
+                  </span>
+                )}
               </div>
 
               {ev.rescore.newlyMatched.length > 0 ? (
@@ -1363,9 +1382,12 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
               )}
 
               <p className="text-xs text-neutral-500 mt-2 pt-2 border-t border-neutral-200">
-                This is the same scoring routine that ran on your original resume, re-run
-                against the rewrite. Rewriting cannot invent experience, so a modest gain
-                is normal and honest.
+                Both numbers are scored against the same{" "}
+                {ev.rescore.requirementsCompared ?? 0} requirement
+                {(ev.rescore.requirementsCompared ?? 0) === 1 ? "" : "s"} the original
+                evaluation found, so the difference can only come from the rewrite.
+                Rewriting cannot invent experience, so no change at all is a normal and
+                honest result.
               </p>
             </div>
           )}
