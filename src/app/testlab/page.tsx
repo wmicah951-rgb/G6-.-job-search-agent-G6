@@ -12,6 +12,7 @@ type TestCase = {
   arrangement?: string;
   requires: "any" | "llm";
   group: "required" | "branching" | "injection" | "control";
+  profileSensitive?: boolean;
 };
 
 type Result = {
@@ -147,6 +148,15 @@ export default function TestLabPage() {
             </span>
           )}
         </div>
+        {profileName && profileName !== "Profile 1" && (
+          <p className="text-xs text-amber-900 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-3">
+            You are running against the <strong>{profileName}</strong> profile. The cases
+            marked <strong>depends on resume</strong> have expected scores calibrated
+            against the built-in demo resume, so a different verdict here is usually the
+            agent being <em>right about a different resume</em>, not a bug. The injection
+            and gate cases are profile-independent and must pass for everyone.
+          </p>
+        )}
         {!llmOn && (
           <p className="text-xs text-amber-900 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-3">
             No model is configured, so the cases marked <strong>needs AI</strong> will be
@@ -188,6 +198,11 @@ export default function TestLabPage() {
                             {c.id}
                           </span>
                           <span className="font-bold text-sm text-neutral-900">{c.title}</span>
+                          {c.profileSensitive && (
+                            <span className="text-[10px] bg-amber-100 text-amber-900 border border-amber-300 px-1.5 py-0.5 rounded font-semibold">
+                              depends on resume
+                            </span>
+                          )}
                           {c.requires === "llm" && (
                             <span className="text-[10px] bg-sky-100 text-sky-900 border border-sky-300 px-1.5 py-0.5 rounded font-semibold">
                               needs AI

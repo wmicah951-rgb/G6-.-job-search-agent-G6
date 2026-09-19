@@ -25,7 +25,7 @@ To run the automated checks instead (or as well):
 | `npx tsx scripts/run-tests.ts` | All 16 postings, full decision traces, 4/4 required sequences distinct |
 | `set -a && source .env.local && set +a && npx tsx scripts/conformance.ts` | 13/13 gates on the configured AI model |
 | `LLM_PROVIDER=none DEEPSEEK_API_KEY= npx tsx scripts/conformance.ts` | 8/8 gates with **no AI at all** — the app never depends on the model |
-| `npx tsx scripts/verify-tests.ts` | 15/15 draft-verification checks, incl. zero false alarms on honest rewording |
+| `npx tsx scripts/verify-tests.ts` | 19/19 draft-verification checks, incl. zero false alarms on honest rewording |
 | `node scripts/local-e2e.mjs` | 48 end-to-end checks over real HTTP |
 
 ---

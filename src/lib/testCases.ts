@@ -22,6 +22,13 @@ export interface TestCase {
   requires: "any" | "llm";
   /** Grouping for the UI. */
   group: "required" | "branching" | "injection" | "control";
+  /**
+   * True when the expected outcome depends on WHICH RESUME is active. Fit-score cases
+   * are calibrated against the built-in demo profile; run them under a different resume
+   * and a different (still correct) verdict is the right answer. Gate and injection
+   * cases are profile-independent - they must behave identically for everyone.
+   */
+  profileSensitive?: boolean;
 }
 
 const APPROVE = "scan_for_injection>evaluate_fit>check_hard_constraints>request_human_approval";
@@ -32,6 +39,7 @@ export const TEST_CASES: TestCase[] = [
   // ---- the four the assignment requires ----
   {
     id: "J001",
+    profileSensitive: true,
     title: "Obvious fit",
     why: "Strong match, no rule broken. The agent must stop and ask a human before writing anything.",
     sequence: APPROVE,
@@ -43,6 +51,7 @@ export const TEST_CASES: TestCase[] = [
   },
   {
     id: "J002",
+    profileSensitive: true,
     title: "Partial fit",
     why: "Too many requirements unmet. Auto-rejected for LOW FIT — a different reason, and a different path, from a broken rule.",
     sequence: "scan_for_injection>evaluate_fit>check_hard_constraints>reject_low_fit",
@@ -89,6 +98,7 @@ export const TEST_CASES: TestCase[] = [
   },
   {
     id: "J1.5",
+    profileSensitive: true,
     title: "Borderline — passes only on partial credit",
     why: "Two requirements are met at internship/'basics' level. With partial credit it scores ~78% and passes; without it, it would be wrongly rejected at ~50%.",
     sequence: APPROVE,
@@ -100,6 +110,7 @@ export const TEST_CASES: TestCase[] = [
   },
   {
     id: "J2.5",
+    profileSensitive: true,
     title: "Just below the bar — the override case",
     why: "Scores ~53%, under the 60% bar, so the agent rejects it. This is the posting to test 'Apply anyway' on.",
     sequence: "scan_for_injection>evaluate_fit>check_hard_constraints>reject_low_fit",
@@ -111,6 +122,7 @@ export const TEST_CASES: TestCase[] = [
   },
   {
     id: "J005",
+    profileSensitive: true,
     title: "Very low fit (0% overlap)",
     why: "Nothing matches at all. Confirms the low-fit path handles a zero case, not just a partial one.",
     sequence: "scan_for_injection>evaluate_fit>check_hard_constraints>reject_low_fit",
@@ -121,6 +133,7 @@ export const TEST_CASES: TestCase[] = [
   },
   {
     id: "J006",
+    profileSensitive: true,
     title: "Good fit (hybrid)",
     why: "A second clean approval path, used to test the Edit-with-instructions flow separately from the injection case.",
     sequence: APPROVE,
