@@ -50,7 +50,7 @@ export const anthropicProvider: LlmProvider = {
     return !!process.env.ANTHROPIC_API_KEY;
   },
 
-  async assessPosting(jobText) {
+  async assessPosting(jobText, opts) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
     try {
@@ -59,7 +59,7 @@ export const anthropicProvider: LlmProvider = {
           model: MODEL,
           max_tokens: 600,
           temperature: 0,
-          system: ASSESS_SYSTEM_PROMPT,
+          system: opts?.systemPrompt ?? ASSESS_SYSTEM_PROMPT,
           tools: [
             { name: ASSESS_TOOL_NAME, description: ASSESS_TOOL_DESCRIPTION, input_schema: ASSESS_JSON_SCHEMA },
           ],
@@ -78,9 +78,10 @@ export const anthropicProvider: LlmProvider = {
     }
   },
 
-  async evaluateFit(resumeText, jobText) {
-    const resume = resumeText.slice(0, MAX_INPUT_CHARS);
-    const job = jobText.slice(0, MAX_INPUT_CHARS);
+  async evaluateFit(resumeText, jobText, opts) {
+    const cap = opts?.maxInputChars ?? MAX_INPUT_CHARS;
+    const resume = resumeText.slice(0, cap);
+    const job = jobText.slice(0, cap);
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
@@ -89,7 +90,7 @@ export const anthropicProvider: LlmProvider = {
         {
           model: MODEL,
           max_tokens: 700,
-          system: FIT_SYSTEM_PROMPT,
+          system: opts?.systemPrompt ?? FIT_SYSTEM_PROMPT,
           tools: [
             {
               name: FIT_TOOL_NAME,
@@ -113,7 +114,7 @@ export const anthropicProvider: LlmProvider = {
     }
   },
 
-  async draftApplicationMaterials(matchedEvidence, missingSkills, jobText, resumeText, editNote) {
+  async draftApplicationMaterials(matchedEvidence, missingSkills, jobText, resumeText, editNote, opts) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 30000);
     try {
@@ -121,7 +122,7 @@ export const anthropicProvider: LlmProvider = {
         {
           model: MODEL,
           max_tokens: 2500,
-          system: DRAFT_SYSTEM_PROMPT,
+          system: opts?.systemPrompt ?? DRAFT_SYSTEM_PROMPT,
           tools: [
             {
               name: DRAFT_TOOL_NAME,

@@ -62,6 +62,19 @@ export async function ensureSchema() {
     );
   `);
 
+  // Per-profile harness overrides. Sparse on purpose: a row exists ONLY for a setting
+  // the user has actually changed, so the shipped defaults stay the single source of
+  // truth and "Reset" is a DELETE rather than a copy of the defaults.
+  await c.executeMultiple(`
+    CREATE TABLE IF NOT EXISTS harness_settings (
+      profile_id TEXT NOT NULL,
+      key        TEXT NOT NULL,
+      value      TEXT NOT NULL,
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      PRIMARY KEY (profile_id, key)
+    );
+  `);
+
   // Migrations — ALTER TABLE is not idempotent, so catch "duplicate column"
   // errors silently. These columns were added after the initial schema.
   const migrations = [
@@ -143,4 +156,72 @@ export async function getActiveProfile(): Promise<{
     resumeText: row.resume_text as string,
     preferencesText: row.preferences_text as string,
   };
+}
+
+// ---------- Harness settings (per profile) ----------
+// Values are JSON-encoded so a setting can be a number, boolean or long string.
+
+export async function loadHarnessOverrides(profileId: string): Promise<Record<string, unknown>> {
+  const c = db();
+  const res = await c.execute({
+    sql: "SELECT key, value FROM harness_settings WHERE profile_id = ?",
+    args: [profileId],
+  });
+  const out: Record<string, unknown> = {};
+  for (const row of res.rows) {
+    const key = row.key as string;
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(row.value as string);
+    } catch {
+      continue; // unreadable row: fall back to the default rather than crash
+    }
+    if (key.startsWith("prompts.")) {
+      const sub = key.slice("prompts.".length);
+      const prompts = (out.prompts ?? {}) as Record<string, unknown>;
+      prompts[sub] = parsed;
+      out.prompts = prompts;
+    } else {
+      out[key] = parsed;
+    }
+  }
+  return out;
+}
+
+export async function saveHarnessOverrides(
+  profileId: string,
+  sanitized: Record<string, unknown>
+): Promise<void> {
+  const c = db();
+  for (const [key, value] of Object.entries(sanitized)) {
+    if (key === "prompts") {
+      for (const [sub, text] of Object.entries(value as Record<string, unknown>)) {
+        await upsertSetting(profileId, `prompts.${sub}`, text);
+      }
+    } else {
+      await upsertSetting(profileId, key, value);
+    }
+  }
+}
+
+async function upsertSetting(profileId: string, key: string, value: unknown) {
+  await db().execute({
+    sql: `INSERT INTO harness_settings (profile_id, key, value, updated_at)
+          VALUES (?, ?, ?, datetime('now'))
+          ON CONFLICT(profile_id, key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')`,
+    args: [profileId, key, JSON.stringify(value)],
+  });
+}
+
+/** Reset: remove the override so the shipped default applies again. */
+export async function resetHarnessOverride(profileId: string, key?: string): Promise<void> {
+  const c = db();
+  if (key) {
+    await c.execute({
+      sql: "DELETE FROM harness_settings WHERE profile_id = ? AND key = ?",
+      args: [profileId, key],
+    });
+  } else {
+    await c.execute({ sql: "DELETE FROM harness_settings WHERE profile_id = ?", args: [profileId] });
+  }
 }

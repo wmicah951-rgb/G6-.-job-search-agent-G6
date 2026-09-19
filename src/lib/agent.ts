@@ -23,6 +23,7 @@ import {
   assessPostingWithLlm,
 } from "./llmEvaluator";
 import { verifyDraft, type DraftVerification } from "./draftVerifier";
+import { DEFAULT_SETTINGS, type HarnessSettings } from "./harnessSettings";
 
 export type WorkArrangement = "remote" | "hybrid" | "onsite" | "unknown";
 
@@ -277,10 +278,20 @@ interface PostingAssessment {
 
 // Any snippet/quote the model returns is kept ONLY if it literally appears in
 // the posting (same trust-but-verify rule as the resume quotes).
-async function assessPosting(jobText: string): Promise<PostingAssessment | null> {
+async function assessPosting(
+  jobText: string,
+  settings: HarnessSettings = DEFAULT_SETTINGS
+): Promise<PostingAssessment | null> {
+  // The harness can turn the AI reader off entirely; the regex floor then carries the
+  // injection gate on its own, exactly as it does when no model is configured.
+  if (!settings.llmAssessmentEnabled) return null;
   if (!isLlmConfigured()) return null;
   try {
-    const a = await assessPostingWithLlm(jobText);
+    const a = await assessPostingWithLlm(jobText, {
+      systemPrompt: settings.prompts.assess,
+      timeoutMs: settings.llmTimeoutMs,
+      maxInputChars: settings.llmMaxInputChars,
+    });
     const hay = norm(jobText);
     const snippets = (a.injection?.snippets ?? []).filter((sn) => sn && hay.includes(norm(sn)));
     const quote = a.workArrangement?.evidenceQuote ?? "";
@@ -436,11 +447,16 @@ export interface FitEvaluation {
 // mechanically true even with an LLM in the loop.
 async function performFitEvaluation(
   resumeText: string,
-  jobText: string
+  jobText: string,
+  settings: HarnessSettings = DEFAULT_SETTINGS
 ): Promise<FitEvaluation> {
   if (isLlmConfigured()) {
     try {
-      const llmResult = await evaluateFitWithLlm(resumeText, jobText);
+      const llmResult = await evaluateFitWithLlm(resumeText, jobText, {
+        systemPrompt: settings.prompts.fit,
+        timeoutMs: settings.llmTimeoutMs,
+        maxInputChars: settings.llmMaxInputChars,
+      });
       const lowerResume = resumeText.toLowerCase();
       const matchedEvidence: Record<string, string> = {};
       const matched: string[] = [];
@@ -610,10 +626,10 @@ const LOW_FIT_THRESHOLD = 0.6;
 
 // Editable from preferences.md, e.g. a line "Minimum fit: 50%". Anything
 // outside 10-90% is ignored so a typo can't disable the gate.
-export function parseMinFit(prefsText: string): number {
+export function parseMinFit(prefsText: string, fallback: number = LOW_FIT_THRESHOLD): number {
   const m = prefsText.match(/minimum\s+fit[^0-9\n]*(\d{1,3})\s*%/i);
   const pct = m ? parseInt(m[1], 10) : NaN;
-  return pct >= 10 && pct <= 90 ? pct / 100 : LOW_FIT_THRESHOLD;
+  return pct >= 10 && pct <= 90 ? pct / 100 : fallback;
 }
 
 type LogFn = (
@@ -677,7 +693,10 @@ export async function runAgent(
   jobId: string,
   jobText: string,
   resumeText: string,
-  preferencesText: string
+  preferencesText: string,
+  // Optional per-profile harness overrides (see harnessSettings.ts). Omitted =
+  // shipped defaults, which is what every existing caller and test script relies on.
+  settings: HarnessSettings = DEFAULT_SETTINGS
 ): Promise<EvaluationResult> {
   const trace: TraceStep[] = [];
   let step = 0;
@@ -691,7 +710,7 @@ export async function runAgent(
     workArrangement: "unknown",
     draftVerification: null,
     coverLetterVerification: null,
-    minFit: parseMinFit(preferencesText),
+    minFit: parseMinFit(preferencesText, settings.lowFitThresholdDefault),
     fitScore: null,
     matchedSkills: [],
     missingSkills: [],
@@ -735,7 +754,7 @@ export async function runAgent(
 
   // The brain reads the posting ONCE (injection cues, work arrangement,
   // clearance). It only observes — the gates below decide.
-  const assessment = await assessPosting(jobText);
+  const assessment = await assessPosting(jobText, settings);
 
   // --- Decision point 1: scan for injection (treat job text as DATA, never instructions) ---
   {
@@ -792,7 +811,7 @@ export async function runAgent(
   // or a timeout — see its own comments for the trust-but-verify grounding rule.
   {
     const before = { ...state };
-    const fit = await performFitEvaluation(resumeText, jobText);
+    const fit = await performFitEvaluation(resumeText, jobText, settings);
     const fitRationale = explainFit(
       fit.matchedEvidence,
       jobText,
@@ -867,7 +886,9 @@ export async function runAgent(
   // fires for postings where guessing would mean silently deciding for the
   // candidate instead of asking them.
   if (state.hardConstraintViolations.length === 0) {
-    const clarificationQuestion = detectLocationAmbiguity(state.workArrangement, preferencesText);
+    const clarificationQuestion = settings.askUserEnabled
+      ? detectLocationAmbiguity(state.workArrangement, preferencesText)
+      : null;
     if (clarificationQuestion) {
       const before = { ...state };
       state = { ...state, stage: "awaiting_clarification", clarificationQuestion };
@@ -1001,7 +1022,8 @@ export async function applyHumanDecision(
   decision: "approve" | "edit" | "reject",
   editNote: string | null,
   jobText: string,
-  resumeText: string | null
+  resumeText: string | null,
+  settings: HarnessSettings = DEFAULT_SETTINGS
 ): Promise<EvaluationResult> {
   const trace = [...prior.trace];
   let step = trace.length;
@@ -1067,7 +1089,7 @@ export async function applyHumanDecision(
   // Draft, grounded ONLY in facts extracted from resume.md — never fabricated.
   const draftBefore = { ...state };
   const { draft, coverLetter, tailoredResume, gapNotes } = await draftApplication(
-    state.matchedEvidence, state.missingSkills, jobText, state.matchedSkills, state.approvalNote, resumeText
+    state.matchedEvidence, state.missingSkills, jobText, state.matchedSkills, state.approvalNote, resumeText, settings
   );
   state = { ...state, stage: "drafted", draft, coverLetter, tailoredResume, gapNotes };
   log(
@@ -1085,12 +1107,16 @@ export async function applyHumanDecision(
   // --- Verification: the model wrote it, deterministic code checks it ---------
   // Only meaningful for LLM-generated prose. The deterministic bullet draft is
   // built from literal resume quotes, so there is nothing to catch there.
-  if (resumeText && (tailoredResume || coverLetter)) {
+  if (settings.draftVerificationEnabled && resumeText && (tailoredResume || coverLetter)) {
     const verifyBefore = { ...state };
     // The posting's title, so an "applying for the X role" sentence is not flagged
     // for repeating words that are naturally absent from the resume.
     const titleLine = jobText.match(/^#?\s*(.+)$/m);
-    const verifyOpts = { jobTitle: titleLine ? titleLine[1].trim() : "" };
+    const verifyOpts = {
+      jobTitle: titleLine ? titleLine[1].trim() : "",
+      highThreshold: settings.verifyHighThreshold,
+      lowThreshold: settings.verifyLowThreshold,
+    };
     const draftVerification = tailoredResume
       ? verifyDraft(tailoredResume, resumeText, state.approvalNote, {
           ...verifyOpts,
@@ -1136,7 +1162,8 @@ async function draftApplication(
   jobText: string,
   matchedSkills: string[],
   editNote: string | null,
-  resumeText: string | null
+  resumeText: string | null,
+  settings: HarnessSettings = DEFAULT_SETTINGS
 ): Promise<{
   draft: string;
   coverLetter: string | null;
@@ -1169,7 +1196,8 @@ async function draftApplication(
   // Try LLM-powered drafting for a real cover letter + tailored resume
   if (resumeText) {
     const llmDraft = await draftApplicationMaterials(
-      matchedEvidence, missingSkills, jobText, resumeText, editNote
+      matchedEvidence, missingSkills, jobText, resumeText, editNote,
+      { systemPrompt: settings.prompts.draft, maxInputChars: settings.llmMaxInputChars }
     );
     if (llmDraft) {
       return {

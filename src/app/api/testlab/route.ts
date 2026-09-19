@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
 import { runAgent } from "@/lib/agent";
-import { getActiveProfile, ensureSchema } from "@/lib/db";
+import { getActiveProfile, ensureSchema, loadHarnessOverrides } from "@/lib/db";
+import { resolveSettings } from "@/lib/harnessSettings";
 import { isLlmConfigured, getModelName } from "@/lib/llmEvaluator";
 import { TEST_CASES } from "@/lib/testCases";
 
@@ -30,6 +31,9 @@ export async function POST(req: NextRequest) {
   const ids: string[] = Array.isArray(body.ids) ? body.ids : [body.id];
 
   const profile = await getActiveProfile();
+  // Test Lab runs under the SAME harness settings the app uses, so editing a prompt
+  // and re-running here actually proves whether the gates still behave.
+  const settings = resolveSettings(await loadHarnessOverrides(profile.id));
   const results = [];
 
   for (const id of ids) {
@@ -57,7 +61,7 @@ export async function POST(req: NextRequest) {
 
     const started = Date.now();
     try {
-      const r = await runAgent(`testlab-${id}`, jobText, profile.resumeText, profile.preferencesText);
+      const r = await runAgent(`testlab-${id}`, jobText, profile.resumeText, profile.preferencesText, settings);
       const sequence = r.trace.map((t) => t.selectedAction).join(">");
       const problems: string[] = [];
       if (sequence !== c.sequence) problems.push(`sequence was ${sequence}`);

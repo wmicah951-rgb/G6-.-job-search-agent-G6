@@ -36,6 +36,7 @@ still fully functional, still passes the four required tests.
 | `npx tsx scripts/verify-tests.ts` | 19/19 draft-verification checks |
 | `node scripts/local-e2e.mjs` | 48/48 over real HTTP (needs the server running) |
 | `node scripts/stress-draft.mjs` | Résumé quality + no false alarms (needs the server) |
+| `node scripts/harness-tests.mjs` | 16 checks: settings persist, clamp, refuse bad input, reset, and actually reach the agent |
 
 There is also a **Test Lab** tab in the app that runs any case live and shows expected
 vs actual. Good for the demo.
@@ -65,6 +66,11 @@ vs actual. Good for the demo.
 - Delete button on the board. Multiple profiles.
 - Swappable brain: DeepSeek / Claude / any OpenAI-compatible endpoint / none.
 - Test Lab tab.
+- **Harness tab** (`/harness`): every layer in plain English, the settings it actually
+  uses, and the editable prompt text — per profile, with Reset. Only free prose is
+  editable; tool names and JSON schemas stay locked so a bad edit cannot break parsing.
+  Values are clamped, genuinely broken input is refused without writing, and the database
+  stores only overrides so improving a default in code reaches everyone.
 
 ---
 
@@ -76,12 +82,10 @@ vs actual. Good for the demo.
    only recorded once a step finishes — streaming only steps would show nothing for 15s
    then two at once. Also needs the job row written as `running` up front so a refresh
    mid-evaluation shows progress instead of a dead end.
-2. **Harness tab** — per-layer knobs and editable prompt text, with a "re-run the gate
-   tests" button. Storage design decided: preferences knobs stay in the markdown (single
-   source of truth), prompt overrides go in their own table, tool schemas stay locked so
-   a bad edit cannot break parsing.
-3. **Quick knobs on the Preferences page** (min fit, years cap, clearance, location).
-4. **Automatic job discovery** via a jobs API. **Note:** LinkedIn has no public job
+2. **Quick knobs on the Preferences page** (min fit, years cap, clearance, location).
+   The Harness tab covers the engine settings; these would be the everyday ones, edited
+   as a structured view over preferences.md so the two can never disagree.
+3. **Automatic job discovery** via a jobs API. **Note:** LinkedIn has no public job
    search API and scraping it breaches their terms — use Adzuna / JSearch / USAJOBS.
 
 ### Known issues

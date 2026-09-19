@@ -125,33 +125,34 @@ export function makeOpenAiCompatProvider(cfg: CompatConfig): LlmProvider {
 
     isConfigured: cfg.isConfigured,
 
-    assessPosting(jobText) {
+    assessPosting(jobText, opts) {
       return callStructured<LlmPostingAssessment>(
-        ASSESS_SYSTEM_PROMPT,
-        assessUserPrompt(jobText),
+        opts?.systemPrompt ?? ASSESS_SYSTEM_PROMPT,
+        assessUserPrompt(jobText, opts?.maxInputChars),
         ASSESS_TOOL_NAME,
         ASSESS_TOOL_DESCRIPTION,
         ASSESS_JSON_SCHEMA,
         600,
-        TIMEOUT_MS
+        opts?.timeoutMs ?? TIMEOUT_MS
       );
     },
 
-    evaluateFit(resumeText, jobText) {
+    evaluateFit(resumeText, jobText, opts) {
+      const cap = opts?.maxInputChars ?? MAX_INPUT_CHARS;
       return callStructured<LlmFitResult>(
-        FIT_SYSTEM_PROMPT,
-        userPrompt(resumeText.slice(0, MAX_INPUT_CHARS), jobText.slice(0, MAX_INPUT_CHARS)),
+        opts?.systemPrompt ?? FIT_SYSTEM_PROMPT,
+        userPrompt(resumeText.slice(0, cap), jobText.slice(0, cap)),
         FIT_TOOL_NAME,
         FIT_TOOL_DESCRIPTION,
         FIT_JSON_SCHEMA,
         1200,
-        TIMEOUT_MS
+        opts?.timeoutMs ?? TIMEOUT_MS
       );
     },
 
-    draftApplicationMaterials(matchedEvidence, missingSkills, jobText, resumeText, editNote) {
+    draftApplicationMaterials(matchedEvidence, missingSkills, jobText, resumeText, editNote, opts) {
       return callStructured<LlmDraftResult>(
-        DRAFT_SYSTEM_PROMPT,
+        opts?.systemPrompt ?? DRAFT_SYSTEM_PROMPT,
         draftUserPrompt(matchedEvidence, missingSkills, jobText, resumeText, editNote),
         DRAFT_TOOL_NAME,
         DRAFT_TOOL_DESCRIPTION,

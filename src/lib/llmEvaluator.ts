@@ -18,7 +18,7 @@
 
 import { anthropicProvider } from "./llm/anthropicProvider";
 import { customProvider, deepseekProvider } from "./llm/deepseekProvider";
-import type { LlmFitResult, LlmPostingAssessment, LlmProvider } from "./llm/types";
+import type { LlmCallOptions, LlmFitResult, LlmPostingAssessment, LlmProvider } from "./llm/types";
 
 export type { LlmFitResult, LlmMatch } from "./llm/types";
 export type { LlmDraftResult, LlmGapNote } from "./llm/types";
@@ -60,19 +60,23 @@ export function getModelName(): string {
 // Observations about the posting itself (injection attempts, work arrangement,
 // clearance). The agent's gates decide; this only reports, and callers verify
 // every quote against the posting text before trusting it.
-export async function assessPostingWithLlm(jobText: string): Promise<LlmPostingAssessment> {
+export async function assessPostingWithLlm(
+  jobText: string,
+  opts?: LlmCallOptions
+): Promise<LlmPostingAssessment> {
   const provider = selectProvider();
   if (!provider) throw new Error("No LLM provider configured.");
-  return provider.assessPosting(jobText);
+  return provider.assessPosting(jobText, opts);
 }
 
 export async function evaluateFitWithLlm(
   resumeText: string,
-  jobText: string
+  jobText: string,
+  opts?: LlmCallOptions
 ): Promise<LlmFitResult> {
   const provider = selectProvider();
   if (!provider) throw new Error("No LLM provider configured.");
-  return provider.evaluateFit(resumeText, jobText);
+  return provider.evaluateFit(resumeText, jobText, opts);
 }
 
 // A minimal call used ONLY when a human explicitly clicks "Test connection" on
@@ -93,12 +97,13 @@ export async function draftApplicationMaterials(
   missingSkills: string[],
   jobText: string,
   resumeText: string,
-  editNote: string | null
+  editNote: string | null,
+  opts?: LlmCallOptions
 ): Promise<import("./llm/types").LlmDraftResult | null> {
   const provider = selectProvider();
   if (!provider) return null;
   try {
-    return await provider.draftApplicationMaterials(matchedEvidence, missingSkills, jobText, resumeText, editNote);
+    return await provider.draftApplicationMaterials(matchedEvidence, missingSkills, jobText, resumeText, editNote, opts);
   } catch (err) {
     console.error("[LLM Draft] Failed, falling back to deterministic draft:", err);
     return null;

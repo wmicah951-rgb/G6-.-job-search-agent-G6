@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db, ensureSchema } from "@/lib/db";
+import { db, ensureSchema, getActiveProfile, loadHarnessOverrides } from "@/lib/db";
+import { resolveSettings } from "@/lib/harnessSettings";
 import { applyHumanDecision, type EvaluationResult } from "@/lib/agent";
 
 export async function POST(req: NextRequest) {
@@ -50,7 +51,9 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const result = await applyHumanDecision(prior, decision as any, editNote, jobText, resumeText);
+  const activeProfile = await getActiveProfile();
+  const settings = resolveSettings(await loadHarnessOverrides(activeProfile.id));
+  const result = await applyHumanDecision(prior, decision as any, editNote, jobText, resumeText, settings);
 
   await c.execute({
     sql: `UPDATE evaluations SET stage = ?, approval_note = ?, draft = ?,

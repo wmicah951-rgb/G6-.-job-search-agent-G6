@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { nanoid } from "nanoid";
-import { db, ensureSchema, getActiveProfile } from "@/lib/db";
+import { db, ensureSchema, getActiveProfile, loadHarnessOverrides } from "@/lib/db";
+import { resolveSettings } from "@/lib/harnessSettings";
 import { runAgent } from "@/lib/agent";
 
 export async function GET() {
@@ -39,7 +40,8 @@ export async function POST(req: NextRequest) {
   // retroactively change what an already-evaluated job was actually graded
   // against, or what a later-approved draft is grounded in.
   const profile = await getActiveProfile();
-  const result = await runAgent(id, rawText, profile.resumeText, profile.preferencesText);
+  const settings = resolveSettings(await loadHarnessOverrides(profile.id));
+  const result = await runAgent(id, rawText, profile.resumeText, profile.preferencesText, settings);
 
   await c.execute({
     sql: `INSERT INTO evaluations

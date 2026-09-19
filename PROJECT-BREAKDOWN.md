@@ -220,6 +220,14 @@ Core files: `src/lib/agent.ts` (the harness), `src/lib/draftVerifier.ts` (the ch
 | `scripts/local-e2e.mjs` | Whole app over HTTP | 48/48 |
 | `scripts/stress-draft.mjs` | Résumés are actually submittable | all pass |
 
+There is also a **Harness tab** (`/harness`) showing every layer in plain English with
+the settings it actually uses and the editable prompt text. Two properties make that safe
+to expose: only free prose is editable (the structured format the model must reply in is
+fixed, so a bad edit cannot break parsing), and the database stores only *overrides*, so
+Reset is a delete and improving a default in code reaches every profile. Proven by
+`scripts/harness-tests.mjs`, which includes switching the AI reader off and confirming the
+subtle injections stop being detected — evidence the setting genuinely reaches the agent.
+
 Plus a **Test Lab tab** in the app: every test case, what it should prove, and a button
 to run it through the real agent live. Useful for the demo.
 
@@ -250,7 +258,5 @@ worse than none.
 1. **Live streaming of the agent's thinking** — watch each step appear as it happens,
    rather than a spinner. Needs "phase" events emitted *before* each model call, because
    steps are only recorded once they finish.
-2. **A Harness tab** — edit each layer's rules and prompt text in plain English, with a
-   "re-run the 13 gate tests" button to prove nothing broke.
-3. **Automatic job discovery** — pull postings from a jobs API that permits it (Adzuna,
+2. **Automatic job discovery** — pull postings from a jobs API that permits it (Adzuna,
    JSearch, USAJOBS) and surface agent-found matches per profile.
