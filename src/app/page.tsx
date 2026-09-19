@@ -35,11 +35,11 @@ const STAGE_COLOR: Record<string, string> = {
   edited: "bg-green-100 text-green-800",
 };
 
-// Fit score is color-coded to the same tiers the agent itself decides on:
-// >= 70% reads as a strong match (green), between the low-fit threshold (34%)
-// and 70% is a partial/borderline match (amber), below the threshold is what
-// the agent actually auto-rejects on (red) — so the color always matches what
-// the agent decided, not just an arbitrary gradient.
+// Fit score colours follow the agent's own tiers: green is a comfortable match,
+// amber is at or just above the default 60% bar, red is below it — i.e. what the
+// agent auto-rejects. Note the bar itself is per profile ("Minimum fit: N%" in
+// preferences.md), so a red score on a profile with a lower bar may still have
+// passed; the stage badge next to it is the authoritative verdict.
 function fitScoreColor(score: number): string {
   if (score >= 0.7) return "bg-green-100 text-green-800";
   if (score >= 0.6) return "bg-amber-100 text-amber-800";
@@ -143,6 +143,10 @@ function formatSourceUrl(urlStr: string | null): string {
 
 export default function Dashboard() {
   const [jobs, setJobs] = useState<JobRow[]>([]);
+  // Board filter. Rejected postings pile up fast and bury the ones actually waiting
+  // on you, which is the only group with anything to do.
+  const [filter, setFilter] = useState<"all" | "todo" | "drafted" | "rejected" | "flagged">("all");
+  const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [activeProfileName, setActiveProfileName] = useState<string | null>(null);
 
@@ -164,6 +168,34 @@ export default function Dashboard() {
     if (res.ok) setJobs((prev) => prev.filter((j) => j.id !== id));
     else window.alert("Could not delete that posting.");
   }
+
+  // "Needs you" is the only group with an outstanding action — the agent has stopped
+  // and is waiting on a human, either to approve a draft or to answer a question.
+  function inGroup(j: JobRow, key: typeof filter): boolean {
+    // A row can exist with no evaluation (e.g. a run that failed part way), so never
+    // assume stage is present.
+    const stage = j.stage ?? "";
+    switch (key) {
+      case "todo":
+        return stage === "awaiting_approval" || stage === "awaiting_clarification";
+      case "drafted":
+        return stage === "drafted" || stage === "approved" || stage === "edited";
+      case "rejected":
+        return stage.startsWith("rejected");
+      case "flagged":
+        return !!j.injection_detected;
+      default:
+        return true;
+    }
+  }
+
+  const countFor = (key: typeof filter) => jobs.filter((j) => inGroup(j, key)).length;
+
+  const visibleJobs = jobs.filter(
+    (j) =>
+      inGroup(j, filter) &&
+      (!query.trim() || j.title.toLowerCase().includes(query.trim().toLowerCase()))
+  );
 
   return (
     <div className="w-full max-w-6xl mx-auto font-sans">
@@ -192,8 +224,63 @@ export default function Dashboard() {
         </div>
       )}
 
+      {!loading && jobs.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          {(
+            [
+              ["all", "All"],
+              ["todo", "Needs you"],
+              ["drafted", "Drafted"],
+              ["rejected", "Rejected"],
+              ["flagged", "Injection caught"],
+            ] as const
+          ).map(([key, label]) => {
+            const n = countFor(key);
+            const active = filter === key;
+            return (
+              <button
+                key={key}
+                onClick={() => setFilter(key)}
+                disabled={n === 0 && key !== "all"}
+                className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
+                  active
+                    ? "bg-neutral-900 text-white border-neutral-900"
+                    : "bg-white text-neutral-700 border-neutral-300 hover:bg-neutral-50"
+                }`}
+              >
+                {label}
+                <span className={active ? "ml-1.5 text-neutral-300" : "ml-1.5 text-neutral-400"}>
+                  {n}
+                </span>
+              </button>
+            );
+          })}
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search titles…"
+            className="ml-auto w-44 border border-neutral-300 rounded-lg px-3 py-1.5 text-xs bg-white text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-800"
+          />
+        </div>
+      )}
+
+      {!loading && jobs.length > 0 && visibleJobs.length === 0 && (
+        <div className="border border-dashed border-neutral-300 rounded-2xl p-8 text-center text-sm text-neutral-500 bg-white">
+          Nothing matches that filter.{" "}
+          <button
+            onClick={() => {
+              setFilter("all");
+              setQuery("");
+            }}
+            className="underline cursor-pointer"
+          >
+            Show everything
+          </button>
+        </div>
+      )}
+
       <div className="grid gap-3">
-        {jobs.map((j) => (
+        {visibleJobs.map((j) => (
           <a
             key={j.id}
             href={`/jobs/${j.id}`}
