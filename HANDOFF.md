@@ -37,6 +37,7 @@ still fully functional, still passes the four required tests.
 | `node scripts/local-e2e.mjs` | 48/48 over real HTTP (needs the server running) |
 | `node scripts/stress-draft.mjs` | Résumé quality + no false alarms (needs the server) |
 | `node scripts/harness-tests.mjs` | 16 checks: settings persist, clamp, refuse bad input, reset, and actually reach the agent |
+| `npx tsx scripts/knob-tests.ts` | 13 checks: every knob round-trips and edits exactly one line of preferences.md |
 
 There is also a **Test Lab** tab in the app that runs any case live and shows expected
 vs actual. Good for the demo.
@@ -66,6 +67,12 @@ vs actual. Good for the demo.
 - Delete button on the board. Multiple profiles.
 - Swappable brain: DeepSeek / Claude / any OpenAI-compatible endpoint / none.
 - Test Lab tab.
+- **Quick match settings** on the Resume & Preferences page: minimum-match slider, work
+  location, years ceiling, clearance, preferred titles, company size, pay target. They
+  are a structured VIEW over preferences.md — reading parses it, changing rewrites only
+  that one line — so the controls and the raw markdown can never disagree.
+- **Trace replay** on the submit page: the agent's steps appear one by one after the
+  evaluation lands, in the same wording as the job page's trace.
 - **Harness tab** (`/harness`): every layer in plain English, the settings it actually
   uses, and the editable prompt text — per profile, with Reset. Only free prose is
   editable; tool names and JSON schemas stay locked so a bad edit cannot break parsing.
@@ -77,15 +84,13 @@ vs actual. Good for the demo.
 ## OPEN — not done
 
 ### Features discussed but not built
-1. **Live streaming of the agent's steps.** Design is settled (see PROJECT-BREAKDOWN §14):
-   it needs *phase* events emitted **before** each model call, because trace steps are
-   only recorded once a step finishes — streaming only steps would show nothing for 15s
-   then two at once. Also needs the job row written as `running` up front so a refresh
-   mid-evaluation shows progress instead of a dead end.
-2. **Quick knobs on the Preferences page** (min fit, years cap, clearance, location).
-   The Harness tab covers the engine settings; these would be the everyday ones, edited
-   as a structured view over preferences.md so the two can never disagree.
-3. **Automatic job discovery** via a jobs API. **Note:** LinkedIn has no public job
+1. **TRUE live streaming.** The submit page now replays the decision trace step by step
+   once the result lands (same steps, same wording as the job page's trace, shown as a
+   running feed). That is a **replay, not a live stream** — the work has already finished
+   when the feed starts. Real streaming needs *phase* events emitted **before** each model
+   call, since trace steps are only recorded once a step completes, plus the job row
+   written as `running` up front. Design in PROJECT-BREAKDOWN §14.
+2. **Automatic job discovery** via a jobs API. **Note:** LinkedIn has no public job
    search API and scraping it breaches their terms — use Adzuna / JSearch / USAJOBS.
 
 ### Known issues

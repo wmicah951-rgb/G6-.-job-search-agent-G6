@@ -1,5 +1,7 @@
 "use client";
 
+import QuickKnobs from "@/components/QuickKnobs";
+
 import { useEffect, useState } from "react";
 
 type ProfileSummary = {
@@ -227,6 +229,8 @@ export default function UploadPage() {
       </div>
 
       {error && <p className="text-sm text-red-600 mb-3">{error}</p>}
+
+      <QuickKnobs preferencesText={preferencesText} onChange={setPreferencesText} />
 
       <div className="mb-4">
         <label className="block text-sm font-medium mb-1">resume.md</label>

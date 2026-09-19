@@ -3,6 +3,26 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+type TraceStep = {
+  step: number;
+  selectedAction: string;
+  observation: string;
+  result: string;
+  availableActions: string[];
+};
+
+// Plain-English label per action, so the feed reads like a decision rather than a log.
+const ACTION_LABEL: Record<string, string> = {
+  scan_for_injection: "Checking the posting for hidden instructions",
+  flag_injection_and_continue: "Injection found — refusing it and carrying on",
+  evaluate_fit: "Matching your resume against the requirements",
+  check_hard_constraints: "Checking your hard rules",
+  ask_user_clarification: "It needs to ask you something",
+  reject_low_fit: "Auto-rejected — too few requirements met",
+  reject_hard_constraint: "Auto-rejected — one of your hard rules",
+  request_human_approval: "Paused — your decision",
+};
+
 export default function NewJobPage() {
   const router = useRouter();
   const [mode, setMode] = useState<"paste" | "url">("paste");
@@ -12,6 +32,7 @@ export default function NewJobPage() {
   const [sourceUrl, setSourceUrl] = useState<string | null>(null);
   const [scraping, setScraping] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [replay, setReplay] = useState<TraceStep[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   async function handleScrape() {
@@ -48,6 +69,7 @@ export default function NewJobPage() {
       return;
     }
     setSubmitting(true);
+    setReplay([]);
     try {
       const res = await fetch("/api/jobs", {
         method: "POST",
@@ -62,6 +84,20 @@ export default function NewJobPage() {
       if (!res.ok) {
         setError(data.error ?? "Failed to evaluate posting.");
         return;
+      }
+      // Replay the agent's decision trace step by step before navigating. The text is
+      // exactly what the job page's "Agent Decision Trace" shows - same steps, same
+      // wording - just surfaced as a running feed instead of a collapsed block, so you
+      // can see which path the agent actually took while the result lands.
+      const steps: TraceStep[] = data.evaluation?.trace ?? [];
+      if (steps.length) {
+        setSubmitting(false);
+        setReplay([]);
+        for (const step of steps) {
+          setReplay((prev) => [...prev, step]);
+          await new Promise((r) => setTimeout(r, 420));
+        }
+        await new Promise((r) => setTimeout(r, 700));
       }
       router.push(`/jobs/${data.id}`);
     } finally {
@@ -161,11 +197,55 @@ export default function NewJobPage() {
         </div>
       )}
 
+      {(submitting || replay.length > 0) && (
+        <div className="border border-neutral-300 bg-neutral-900 text-neutral-100 rounded-2xl p-4 sm:p-5 mb-4 shadow-md font-mono">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+            <span className="text-xs uppercase tracking-widest text-neutral-400">
+              Agent working
+            </span>
+            <span className="text-xs text-neutral-500 ml-auto">
+              {replay.length > 0 ? `${replay.length} step${replay.length === 1 ? "" : "s"}` : "reading…"}
+            </span>
+          </div>
+          <div className="space-y-2.5">
+            {replay.map((t) => (
+              <div key={t.step} className="flex gap-3">
+                <span className="text-green-400 shrink-0">✓</span>
+                <div className="min-w-0">
+                  <div className="text-sm text-neutral-50">
+                    {ACTION_LABEL[t.selectedAction] ?? t.selectedAction}
+                  </div>
+                  <div className="text-[11px] text-neutral-400 mt-0.5 break-words">
+                    {t.selectedAction}
+                  </div>
+                  <div className="text-xs text-neutral-300 mt-1 break-words">{t.result}</div>
+                </div>
+              </div>
+            ))}
+            {submitting && (
+              <div className="flex gap-3 items-center">
+                <div className="animate-spin w-3.5 h-3.5 border-2 border-neutral-500 border-t-transparent rounded-full shrink-0" />
+                <span className="text-sm text-neutral-400">
+                  Reading the posting and matching your resume…
+                </span>
+              </div>
+            )}
+          </div>
+          {replay.length > 0 && !submitting && (
+            <p className="text-[11px] text-neutral-500 mt-3 pt-3 border-t border-neutral-700">
+              Opening the full evaluation… the same steps stay on the job page under
+              &ldquo;Agent Decision Trace&rdquo;.
+            </p>
+          )}
+        </div>
+      )}
+
       <div className="flex items-center gap-3">
         <button
           type="button"
           onClick={handleSubmit}
-          disabled={submitting || !rawText.trim()}
+          disabled={submitting || replay.length > 0 || !rawText.trim()}
           className="text-sm font-bold bg-neutral-900 hover:bg-neutral-800 text-white px-6 py-3 rounded-xl disabled:opacity-50 transition-all shadow-sm cursor-pointer flex items-center gap-2"
         >
           {submitting ? (
