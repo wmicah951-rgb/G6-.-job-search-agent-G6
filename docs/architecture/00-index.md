@@ -30,6 +30,10 @@ and waits for a human Approve/Edit/Reject decision before producing any
 application material, and logs every step as a structured trace
 (`state_before → observation → available_actions → selected_action → result → state_after`).
 
-No LLM/AI API is called anywhere in this pipeline — see
-[10-setup-and-deployment.md](10-setup-and-deployment.md) for why that's a design
-choice, not a limitation.
+The agent calls an AI model at three points — reading the posting, matching the
+résumé against it, and drafting after a human approves — and **only ever as a
+reader that reports observations**. It cannot approve, reject, skip a step or
+decide anything; every branch is deterministic code, and every claim the model
+makes is verified before it is trusted. With no model configured at all the agent
+still runs end to end and still produces the four required action sequences. See
+[10-setup-and-deployment.md](10-setup-and-deployment.md).

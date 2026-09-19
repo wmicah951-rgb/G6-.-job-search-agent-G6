@@ -5,25 +5,18 @@ code.
 
 ## 1. Never fabricate
 
-`draftApplication()` in `agent.ts` cannot assert anything not literally present
-in the candidate's resume text:
+The agent produces two kinds of material, and they are guarded differently
+because they are different things.
 
-- For each matched skill, `findEvidenceLine()` searches the resume line-by-line
-  for a line containing that skill's alias, and quotes that line **verbatim**.
-- If no matching line is found for a skill, no bullet is produced for it —
-  there's no fallback that invents wording.
-- The only other text a draft can contain is the human's own edit note, which
-  is passed through verbatim, never paraphrased or expanded by the system.
+**The deterministic evidence bullets.** `draftApplication()` builds one bullet per
+matched skill, each a verbatim `resume.md` line found by `findEvidenceLine()`. If
+no line matches, no bullet is produced — there is no fallback that invents
+wording. For this path "never fabricate" is mechanically true.
 
-There is no code path in the *deterministic* bullet draft that constructs a claim
-from anything other than a literal resume.md substring. For that path, "never
-fabricate" is mechanically true rather than a prompt-level aspiration.
-
-**Honest caveat about the LLM-drafted material.** The cover letter and tailored
-résumé are written by the model, which is explicitly asked to rephrase for flow.
-Literal-substring checking is therefore impossible there — an honest rewrite
-would fail it. For a while this meant non-fabrication on that path was only a
-prompt instruction, which is weaker than this document used to claim.
+**The cover letter and tailored résumé.** These are written by a model that is
+explicitly asked to rephrase for flow, so literal-substring checking is impossible
+— an honest rewrite would fail it. Requiring one here would be a guarantee we
+could not keep.
 
 `src/lib/draftVerifier.ts` closes that gap with a deterministic pass over every
 generated sentence, run as its own `verify_draft` trace step. Its rule is
@@ -65,13 +58,44 @@ When it matches injection-style phrasing, the agent:
 3. Continues evaluating the posting's *actual* content (skills, years,
    constraints) exactly as it would any other posting.
 
-Nothing in the codebase ever passes posting text to something that could
-execute it as instructions — there is no LLM call, no `eval`, no template
-interpolation of posting content into a prompt. It is string data, scanned with
-regex, for the entire pipeline. See
+Posting text **is** passed to the model — that is what the AI reader is for, and
+`llm/types.ts` interpolates the posting into three prompts. The guarantee is not
+"the text is never shown to a model"; it is that **nothing the posting says can
+change what the agent does**:
+
+- Every prompt frames the posting explicitly as untrusted data to analyse, never
+  as instructions to follow.
+- The model returns *observations only* — a structured record of what it saw. It
+  has no field with which to approve, reject, skip a step or set a stage.
+- Every branch (reject on a hard constraint, reject on low fit, pause for a human,
+  ask a clarifying question) is deterministic code that reads those observations.
+- Every snippet the model reports must be a literal substring of the posting, or
+  it is discarded.
+- There is no `eval`, and no code path anywhere that executes text.
+
+So a posting can make the model *say* anything; it still cannot make the agent
+*do* anything. See
 [08-testing-evidence.md](08-testing-evidence.md) for the J004 test: the posting
 tries to get the agent to auto-approve itself, skip the human step, and print
 the raw resume — all three are refused, and the posting is evaluated normally.
+
+### How the AI reader fits into this gate
+
+`assessPosting()` (agent.ts) asks the configured model one structured question
+per posting: injection passages, work arrangement (with an evidence quote) and
+clearance. It returns *observations only*:
+
+- Injection = built-in regex floor **OR** model-reported passages. A model
+  passage counts only if it is a literal substring of the posting (same
+  trust-but-verify rule as résumé quotes). No model configured / call fails =
+  the regex floor alone; nothing else changes.
+- Arrangement: the model's verified reading wins, regex cues (`regexArrangement`)
+  are the fallback. `checkHardConstraints` turns "on-site" into a violation when
+  the candidate's location rule (parsed tolerantly by `parseLocationRule`, not one
+  exact phrase) forbids it. `detectLocationAmbiguity` fires `ask_user_clarification`
+  only when the arrangement is still `unknown`.
+- Neither call can approve, reject, draft or skip a step; the branch logic and the
+  approval gate are unchanged, so J001-J004 keep their four distinct sequences.
 
 ## 3. Respect hard constraints regardless of skill fit
 
@@ -101,22 +125,3 @@ Sending, submitting, or contacting anyone is out of scope by construction —
 there is no code anywhere in this app that sends an HTTP request to a job board,
 an email service, or any third party on the candidate's behalf. The only output
 is text rendered back to the human in their own browser.
-
-## Update: the injection and work-arrangement gates use the brain as a reader
-
-`assessPosting()` (agent.ts) asks the configured model one structured question
-per posting: injection passages, work arrangement (with an evidence quote) and
-clearance. It returns *observations only*:
-
-- Injection = built-in regex floor **OR** model-reported passages. A model
-  passage counts only if it is a literal substring of the posting (same
-  trust-but-verify rule as résumé quotes). No model configured / call fails =
-  the regex floor alone; nothing else changes.
-- Arrangement: the model's verified reading wins, regex cues (`regexArrangement`)
-  are the fallback. `checkHardConstraints` turns "on-site" into a violation when
-  the candidate's location rule (parsed tolerantly by `parseLocationRule`, not one
-  exact phrase) forbids it. `detectLocationAmbiguity` fires `ask_user_clarification`
-  only when the arrangement is still `unknown`.
-- Neither call can approve, reject, draft or skip a step; the branch logic and the
-  approval gate are unchanged, so J001-J004 keep their four distinct sequences.
-

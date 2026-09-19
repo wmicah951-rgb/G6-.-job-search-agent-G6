@@ -331,6 +331,23 @@ Additional requirements: SQL (advanced), Python for automation, Tableau.`,
         "no internal (N yrs) bookkeeping leaks into the résumé",
         !/\(\s*~?[\d.]+\s*(yrs|years)\s*\)/i.test(ps.tailoredResume ?? "")
       );
+      // REGRESSION: the human's decision used to be logged under the agent's action
+      // name, so approve/edit produced "draft_application -> draft_application" and the
+      // ASK_USER path produced "ask_user_clarification -> ask_user_clarification". Two
+      // identical consecutive steps read as a loop, which is the exact failure mode the
+      // assignment's "materially different action sequences" requirement checks against.
+      const seq = plain.trace.map((t) => t.selectedAction);
+      const consecutive = seq.filter((a, i) => i > 0 && seq[i - 1] === a);
+      check(
+        "no action is ever logged twice in a row",
+        consecutive.length === 0,
+        consecutive.length ? `repeated: ${[...new Set(consecutive)].join(", ")} in ${seq.join(">")}` : ""
+      );
+      check(
+        "the human's decision is recorded as the HUMAN's action, not the agent's",
+        seq.includes("human_approve"),
+        seq.join(">")
+      );
       check(
         "the trace records draft, verify and re-score as distinct steps",
         ["draft_application", "verify_draft", "rescore_tailored_resume"].every((a) =>

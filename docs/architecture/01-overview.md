@@ -39,9 +39,13 @@ holds exactly as written, LLM configured or not:
 
 - It never sends, submits, or contacts anyone. Drafting only ever produces text
   shown back to the human in the browser.
-- It never fabricates a candidate fact. Every drafted bullet is a literal quote
-  pulled from `resume.md`, verified as a real substring even when the LLM
-  proposed it — see [06-guardrails.md](06-guardrails.md).
+- It never asserts a candidate fact without showing where it came from. Skill
+  matches must carry a literal `resume.md` quote or they are dropped. The cover
+  letter and tailored résumé are written by a model and therefore *rephrased*, so
+  they are checked afterwards by `src/lib/draftVerifier.ts`: anything containing a
+  number, employer, tool or credential that appears in neither the résumé nor the
+  human's note is **flagged for the human**, never silently removed and never
+  silently kept. See [06-guardrails.md](06-guardrails.md).
 - It never obeys instructions embedded in a job posting, even when a posting
   explicitly tries to command it (auto-approve, skip review, print the resume
   verbatim, etc.) — that content is treated as **data to evaluate**, never as

@@ -48,7 +48,7 @@ const LAYERS: Layer[] = [
       {
         key: "llmAssessmentEnabled",
         label: "Let the AI read the posting",
-        help: "Off = the keyword list alone. The four subtle injections (J009-J012) will stop being caught, which you can prove in the Test Lab.",
+        help: "Off = the keyword list alone. The three subtle injections (J009-J011) will stop being caught, which you can prove in the Test Lab.",
         type: "bool",
       },
     ],
@@ -94,7 +94,7 @@ const LAYERS: Layer[] = [
     key: "constraints",
     n: 3,
     title: "Check your hard rules",
-    what: "Years of experience, security clearance and work location, read from your preferences.md.",
+    what: "Years of experience, security clearance, relocation and work location, read from your preferences.md.",
     decides: "A broken rule auto-rejects the job no matter how good the skill match is.",
     locked:
       "These live in preferences.md, not here, because they are statements about you rather than engine settings. Edit them on the Resume & Preferences page. A hard-rule rejection is also the one thing 'Apply anyway' cannot override.",
@@ -250,7 +250,7 @@ export default function HarnessPage() {
     <div className="w-full max-w-4xl mx-auto pb-24">
       <h1 className="text-2xl font-bold tracking-tight mb-1">The Harness</h1>
       <p className="text-sm text-neutral-600 mb-4 leading-relaxed">
-        Every layer the agent runs, in plain English, with the settings it actually uses.
+        Every layer the agent runs, in plain English, with the settings it actually uses. The brain itself is chosen in .env.local with LLM_PROVIDER — DeepSeek, Claude, or any local model on Ollama (no API key needed).
         The AI is the brain; this is the harness around it. Changes apply to the{" "}
         <strong>{profileName || "active"}</strong> profile only.
       </p>

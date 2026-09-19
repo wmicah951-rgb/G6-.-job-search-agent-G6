@@ -31,16 +31,17 @@ still fully functional, still passes the four required tests.
 
 | Command | Result |
 |---|---|
-| `npx tsx scripts/run-tests.ts` | 16 postings, 4/4 required sequences distinct |
+| `npx tsx scripts/run-tests.ts` | 15 postings, 4/4 required sequences distinct |
 | `set -a && source .env.local && set +a && npx tsx scripts/conformance.ts` | 13/13 gates |
-| `LLM_PROVIDER=none DEEPSEEK_API_KEY= npx tsx scripts/conformance.ts` | 8/8 gates, no AI |
-| `npx tsx scripts/verify-tests.ts` | 19/19 draft-verification checks |
+| `LLM_PROVIDER=none DEEPSEEK_API_KEY= npx tsx scripts/conformance.ts` | 9/9 gates, no AI |
+| `npx tsx scripts/verify-tests.ts` | 18/18 draft-verification checks |
 | `node scripts/local-e2e.mjs` | 48/48 over real HTTP (needs the server running) |
 | `node scripts/stress-draft.mjs` | Résumé quality + no false alarms (needs the server) |
 | `node scripts/harness-tests.mjs` | 16 checks: settings persist, clamp, refuse bad input, reset, and actually reach the agent |
-| `npx tsx scripts/stress-suite.ts` | 59 checks across coverage, arithmetic, monotonicity, discrimination, stability, edge cases and post-draft |
+| `npx tsx scripts/stress-suite.ts` | 64 checks across coverage, arithmetic, monotonicity, discrimination, stability, edge cases and post-draft |
 | `npx tsx scripts/profile-matrix.ts` | Accuracy diagnostic: every realistic profile x every realistic posting, with the reasoning |
-| `npx tsx scripts/knob-tests.ts` | 15 checks: every knob round-trips and edits exactly one line of preferences.md |
+| `npx tsx scripts/doc-check.ts` | The docs still match the code: every agent action is in the inventory, and no doc repeats a claim that has become false |
+| `npx tsx scripts/knob-tests.ts` | 16 checks: every knob round-trips and edits exactly one line of preferences.md |
 
 There is also a **Test Lab** tab in the app that runs any case live and shows expected
 vs actual. Good for the demo.

@@ -88,7 +88,7 @@ FINAL STAGE: awaiting_approval
 
 --- HUMAN-IN-THE-LOOP: simulating decision = "edit" ---
 
-[Step 6] selected_action = draft_application
+[Step 6] selected_action = human_edit
   observation: Human selected: Edit. Note: "Emphasize willingness to grow
                into missing skills; still worth a shot."
 
@@ -176,3 +176,18 @@ the agentic-design requirement is checking for.
 - `scripts/local-e2e.mjs` drives a local server end to end (gates, ASK_USER round
   trip, 409 guards, structured résumé output, delete).
 
+## Correction: human decisions are now their own actions
+
+Earlier versions of this file showed Step 6 and Step 7 of the J004 trace both as
+`draft_application`, because the person's Approve/Edit choice was logged under the
+agent's drafting action. Two identical consecutive steps read like a loop. The human's
+choice is now logged as `human_approve` / `human_edit` (and the ASK_USER answer as
+`human_answers_clarification`), so a full approved run reads:
+
+```
+scan_for_injection → evaluate_fit → check_hard_constraints → request_human_approval
+  → human_approve → draft_application → verify_draft → rescore_tailored_resume
+```
+
+`scripts/stress-suite.ts` now fails if any action is ever logged twice in a row, and the
+authoritative, regenerated traces are in `required-test-traces.txt`.

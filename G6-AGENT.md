@@ -81,42 +81,49 @@ real agent and not smoke and mirrors — you can watch it think.
 
 ## Layer 3 — How it "thinks": the decision engine
 
-This is the actual step-by-step logic, in order:
+**This is the complete loop.** Every step the agent can take is here, in order. Later
+layers give detail on individual steps; none of them add a step this list is missing.
 
-1. **Scan the posting for tricks.** Before anything else, it checks whether
-   the posting is trying to talk directly to the AI ("ignore your
-   instructions," "approve this automatically," etc.). If it finds something
-   like that, it logs exactly what it found and moves on *without obeying
-   it* — the posting is data to read, never a command to follow.
-2. **Check the skills.** It compares what the résumé says against what the
-   posting is asking for, and comes back with a score, a list of what
-   matched, and a list of what's missing.
-3. **Check the deal-breakers.** Separately from the skill score, it checks
-   hard rules from the candidate's preferences — required years of
-   experience, security clearance, remote-vs-onsite. A posting can score a
-   perfect skill match and still get rejected here if it breaks one of these
-   rules. That's on purpose.
-3.5. **Ask, don't guess, when it genuinely can't tell.** This is the `ASK_USER`
-   action. If the candidate has a "remote or hybrid only" rule and a posting
-   never says one word about work location — not remote, not hybrid, not
-   on-site — the agent doesn't quietly assume either way. It stops, asks you
-   directly which way to treat it, and only continues once you answer. This
-   is a genuinely different action from the human-approval step below: this
-   one happens *during* evaluation because the agent is missing information
-   it needs, not *after* evaluation to get a go/no-go. It only ever fires on
-   that one specific gap — it never fires on a posting that already states
-   its work arrangement (all four required test postings do, so this never
-   changes their behavior).
-4. **Decide what happens next.** This is the actual "agent" moment — based on
-   everything above, it picks ONE of three genuinely different paths:
-   - Broke a hard rule → auto-reject, stop, no human needed.
-   - Skill match too low → auto-reject for a *different*, clearly-labeled
-     reason, stop, no human needed.
-   - Passed both checks → pause and hand it to a human.
+1. **Scan the posting for tricks.** Before anything else it checks whether the posting is
+   trying to talk to the AI ("ignore your instructions", "approve this automatically").
+   Two layers look: a built-in keyword list that always runs, and the AI reading it
+   properly. → `scan_for_injection`
+2. **Flag it and carry on** *(only if something was found)*. It logs exactly what it
+   caught, states that it was refused, and keeps evaluating the real requirements. It
+   never obeys it. → `flag_injection_and_continue`
+3. **Check the skills.** It compares the résumé against what the posting asks for and
+   produces a score, what matched, and what's missing. Detail: **Layer 10** (how the
+   percentage works) and **Layer 12** (partial credit). → `evaluate_fit`
+4. **Check the deal-breakers.** Separately from the score: years, clearance, relocation,
+   remote-vs-on-site. A posting can score a perfect match and still be rejected here.
+   That is on purpose. → `check_hard_constraints`
+5. **Ask, don't guess** *(only when it genuinely cannot tell)*. If you have a location
+   rule and the posting says nothing at all about remote/hybrid/on-site, it stops and
+   asks rather than assuming. This happens *during* evaluation because information is
+   missing — different from the approval gate below, which happens *after*.
+   → `ask_user_clarification`, and your answer → `human_answers_clarification`
+6. **Decide.** The actual "agent" moment — it picks ONE of three genuinely different
+   paths:
+   - Broke a hard rule → auto-reject, stop. → `reject_hard_constraint`
+   - Score under your bar → auto-reject for a *different*, clearly-labelled reason, stop.
+     → `reject_low_fit`
+   - Passed both → pause and hand it to you. → `request_human_approval`
 
-   Notice the first two paths never even reach a human — there's nothing
-   worth a person's time once the agent has already ruled it out for a solid,
-   logged reason. Only real candidates get to the approval step.
+   The first two never reach a human. That is the point: nothing is worth a person's time
+   once the agent has ruled it out for a logged reason.
+7. **You decide.** Approve, Approve-with-instructions, or Reject.
+   → `human_approve` / `human_edit` / `discard`.
+   And on a low-fit rejection you can overrule the agent entirely — detail in **Layer 14**.
+   → `human_override_low_fit`
+8. **Draft.** Only reachable after step 7. Writes the cover letter and re-tailors your
+   résumé, grounded in your résumé and anything you typed. → `draft_application`
+9. **Check its own writing.** Reads back every sentence it just wrote and flags anything
+   it cannot trace to you. Detail: **Layer 13**. → `verify_draft`
+10. **Re-score the rewrite.** Runs the same scoring again on the tailored résumé and
+    shows before → after. Detail: **Layer 15**. → `rescore_tailored_resume`
+
+Steps 1–6 are the agent working alone. Step 7 is you. Steps 8–10 only happen because you
+said so.
 
 ## Layer 4 — What it's actually made of (tools it can use)
 
@@ -221,15 +228,16 @@ description of what it "would" do.
 
 ## Layer 9 — What powers the "thinking" part, and why nothing breaks without it
 
-Almost everything above — the trick-scanning, the hard-rule checks, the
-decision of what to do next, the human-approval gate, the drafting — is
-plain, deterministic code. No AI model is involved in any of that, and none
-of it can be talked out of its rules.
+The AI is used at **three** points, and only ever as a *reader* that reports what it
+sees: reading the posting (step 1), matching the résumé against it (step 3), and writing
+the draft (step 8). Detail on the first of those is in **Layer 9b** below.
 
-The **one** exception is the skill-matching step, which can optionally call
-an AI model to compare the résumé against the posting more like a person
-would (catching skills phrased differently than expected), instead of the
-basic keyword-matching approach. This is completely optional and swappable:
+Everything that **decides** is plain, deterministic code and cannot be talked out of its
+rules: the hard-rule checks, the branch that picks reject/ask/pause, and the human
+approval gate. The AI has no way to approve, reject, skip a step, or set a stage — it
+answers a narrow question and deterministic code reads the answer.
+
+This is completely optional and swappable:
 
 - Which AI model is used is picked by one setting (currently set to
   DeepSeek's `deepseek-chat`; it could be switched to Claude or turned off

@@ -31,13 +31,19 @@ the current state and the latest observation. Verified branching (see
 
 All four required tests produce distinct executed action sequences. No draft is
 ever produced without a human Approve/Edit/Reject decision (`applyHumanDecision`
-in `agent.ts`), and every drafted bullet is a literal quote pulled from the
-candidate's own resume text — nothing is invented.
+in `agent.ts`). Every factual claim in the generated material either traces back
+to the candidate's own résumé (or the note they typed) or is **visibly flagged**
+by `src/lib/draftVerifier.ts` — flagged lines are shown to the human, never
+silently removed and never silently kept.
 
 ## Screens
 
 - `/` — dashboard of evaluated postings (color-coded stage badge, color-coded
-  fit score, injection flag)
+  fit score, injection flag, status filters and title search)
+- `/testlab` — every built-in test case, what it proves, and a Run button that
+  executes it against the real agent showing expected vs actual
+- `/harness` — every layer of the agent in plain English with the settings it
+  actually uses, including the editable prompt text, per profile
 - `/jobs/new` — add a posting by pasting text or scraping a URL
 - `/jobs/[id]` — full evaluation, a grounded "why this role fits you" panel
   (distinct from the missing-skills list), hard-constraint/injection
@@ -91,11 +97,14 @@ text yourself," which always works regardless of the source site.
 
 ## Grounding / no-fabrication
 
-`draftApplication()` never generates free-text claims about the candidate. It
-only emits `skill: "<exact line copied from resume.md>"` bullets for skills
-that were actually matched, plus the human's edit note verbatim if one was
-given. This makes "never fabricate" mechanically true rather than aspirational
-— there's no code path that can assert something not present in resume.md.
+`draftApplication()` produces two kinds of material, guarded differently. The
+deterministic evidence bullets are literal `resume.md` quotes — nothing else can
+be emitted there. The cover letter and tailored résumé are written by a model
+that is asked to rephrase, so they are checked afterwards by
+`src/lib/draftVerifier.ts`: any sentence containing a number, employer, tool or
+credential found in neither the résumé nor the human's note is flagged for the
+human. Flagged lines are shown, never silently removed. See
+[`docs/architecture/06-guardrails.md`](docs/architecture/06-guardrails.md).
 
 ## Files
 
@@ -104,7 +113,7 @@ given. This makes "never fabricate" mechanically true rather than aspirational
 - `src/lib/db.ts` — Turso/libSQL client + schema
 - `src/app/api/**` — candidate profile, jobs (create/list/detail), scrape,
   approve
-- `src/app/**/page.tsx` — the four screens above
+- `src/app/**/page.tsx` — the screens above
 - `src/data/` — starter kit: `resume.md`, `preferences.md`, `jobs/J001-J006.md`
   (J004 has the required embedded prompt injection)
 - `scripts/run-tests.ts` — runs the agent directly against all six postings

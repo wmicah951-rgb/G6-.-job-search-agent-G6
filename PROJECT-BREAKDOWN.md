@@ -217,13 +217,13 @@ Core files: `src/lib/agent.ts` (the harness), `src/lib/draftVerifier.ts` (the ch
 
 | Suite | What it proves | Result |
 |---|---|---|
-| `scripts/run-tests.ts` | 16 postings, full traces | 4/4 required sequences distinct |
+| `scripts/run-tests.ts` | 15 postings, full traces | 4/4 required sequences distinct |
 | `scripts/conformance.ts` (AI) | Every gate on DeepSeek | 13/13 |
-| `scripts/conformance.ts` (no AI) | Every gate with **no model at all** | 8/8 |
+| `scripts/conformance.ts` (no AI) | Every gate with **no model at all** | 9/9 |
 | `scripts/verify-tests.ts` | Draft checking, incl. false-alarm fixtures | 18/18 |
 | `scripts/local-e2e.mjs` | Whole app over HTTP | 48/48 |
 | `scripts/stress-draft.mjs` | Résumés are actually submittable | all pass |
-| `scripts/stress-suite.ts` | Coverage, arithmetic, monotonicity, discrimination, stability, edge cases, post-draft | 59/59 |
+| `scripts/stress-suite.ts` | Coverage, arithmetic, monotonicity, discrimination, stability, edge cases, post-draft | 64/64 |
 | `scripts/profile-matrix.ts` | Accuracy across three careers, requirement by requirement | diagonal |
 
 There is also a **Harness tab** (`/harness`) showing every layer in plain English with

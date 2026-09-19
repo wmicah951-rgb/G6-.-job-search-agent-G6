@@ -6,7 +6,7 @@ Lists every evaluated posting: title, source (pasted or a URL), stage (color-
 coded — green tones for approved/drafted, amber for awaiting approval, red for
 a hard-constraint auto-rejection, neutral gray for a low-fit auto-rejection or
 human rejection), fit score (color-coded to the same tiers the agent itself
-decides on — green ≥ 70%, amber ≥ the 34% auto-reject threshold, red below it),
+decides on — green ≥ 70%, amber ≥ 60%, red below it),
 and an "injection flagged" badge when relevant. Backed by `GET /api/jobs`.
 
 ## `/jobs/new` — Add a posting (`src/app/jobs/new/page.tsx`)

@@ -9,7 +9,7 @@ Hand this to a teammate and they can find their way in without asking.
 
 | # | File | Who it's for | What it answers |
 |---|---|---|---|
-| 1 | **[PROJECT-BREAKDOWN.md](PROJECT-BREAKDOWN.md)** | Everyone. **Start here.** | The whole system in 14 sections, one per slide. What it does, why it counts as an agent, every guardrail, how scoring works, the evidence. |
+| 1 | **[PROJECT-BREAKDOWN.md](PROJECT-BREAKDOWN.md)** | Everyone. **Start here.** | The whole system in 15 sections, one per slide. What it does, why it counts as an agent, every guardrail, how scoring works, the evidence. |
 | 2 | **[G6-AGENT.md](G6-AGENT.md)** | Presenting in class | The same system in plain language, layer by layer. No code. This is the one to have open while talking. |
 | 3 | **[TESTING-GUIDE.md](TESTING-GUIDE.md)** | Anyone verifying it works | Click-through script: what to click, what you should see, and what should **not** happen. |
 | 4 | **[HANDOFF.md](HANDOFF.md)** | Whoever picks this up next | What is done, what is open, and the traps to avoid before you change anything. |
@@ -41,12 +41,13 @@ Every command, what it proves, and roughly how long it takes.
 
 | Command | Proves | Time |
 |---|---|---|
-| `npx tsx scripts/run-tests.ts` | 16 postings with full decision traces; the four required sequences are distinct | ~2 min |
+| `npx tsx scripts/run-tests.ts` | 15 postings with full decision traces; the four required sequences are distinct | ~2 min |
 | `npx tsx scripts/conformance.ts` | 13/13 gates on the configured model | ~2 min |
-| `LLM_PROVIDER=none DEEPSEEK_API_KEY= npx tsx scripts/conformance.ts` | 8/8 gates with **no AI at all** — the app never depends on the model | ~5 s |
-| **`npx tsx scripts/stress-suite.ts`** | **59 checks across 7 dimensions — see below** | ~6 min |
-| `npx tsx scripts/verify-tests.ts` | 19 draft-verification checks, including zero false alarms on honest rewording | ~5 s |
-| `npx tsx scripts/knob-tests.ts` | 15 checks that every Quick-match knob round-trips and edits exactly one line | ~5 s |
+| `LLM_PROVIDER=none DEEPSEEK_API_KEY= npx tsx scripts/conformance.ts` | 9/9 gates with **no AI at all** — the app never depends on the model | ~5 s |
+| **`npx tsx scripts/stress-suite.ts`** | **64 checks across 7 dimensions — see below** | ~6 min |
+| `npx tsx scripts/verify-tests.ts` | 18 draft-verification checks, including zero false alarms on honest rewording | ~5 s |
+| `npx tsx scripts/doc-check.ts` | The docs still match the code: every agent action is in the inventory, and no doc repeats a claim that has become false | ~2 s |
+| `npx tsx scripts/knob-tests.ts` | 16 checks that every Quick-match knob round-trips and edits exactly one line | ~5 s |
 | `npx tsx scripts/profile-matrix.ts` | Accuracy diagnostic: every résumé against every posting, requirement by requirement | ~4 min |
 | `node scripts/local-e2e.mjs` | 48 checks over real HTTP (needs the server running) | ~4 min |
 | `node scripts/harness-tests.mjs` | 16 checks that settings persist, clamp, refuse bad input and reach the agent | ~1 min |

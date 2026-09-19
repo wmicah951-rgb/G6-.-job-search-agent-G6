@@ -8,13 +8,25 @@
 // a structured trace entry: stateBefore -> observation -> availableActions ->
 // selectedAction -> result -> stateAfter.
 //
-// Skill/requirement matching is the ONE step that can optionally call an LLM
-// (see performFitEvaluation() below and src/lib/llmEvaluator.ts) for more
-// semantically flexible matching than fixed-dictionary keyword search. Nothing
-// else does: the injection scan, hard-constraint checks, the branch that
-// decides reject/pause-for-human, and the human-approval gate are all plain
-// deterministic code, completely untouched by whatever the LLM returns. The
-// LLM is a tool the agent calls, never the decision-maker.
+// The LLM is used at THREE points, and only ever as a reader that reports
+// observations:
+//   1. assessPosting()   - reads the posting for injection attempts, work
+//                          arrangement and clearance (agent.ts, decision point 1)
+//   2. performFitEvaluation() - matches resume against the posting's requirements
+//   3. draftApplication() - writes the cover letter and tailored resume, after a
+//                          human has approved
+//
+// What the LLM can NEVER do: approve, reject, skip a step, or decide anything. Every
+// branch - reject on a hard constraint, reject on low fit, pause for a human, ask a
+// clarifying question - is plain deterministic code below, untouched by whatever the
+// model returns. Every model claim is verified before it is trusted: resume quotes must
+// be literal substrings of the resume (performFitEvaluation), injection snippets must be
+// literal substrings of the posting (assessPosting), and generated application text is
+// checked by src/lib/draftVerifier.ts, which flags anything it cannot trace.
+//
+// With no model configured at all the agent still runs end to end on a deterministic
+// keyword matcher and a regex injection floor, and still produces the four required
+// action sequences.
 
 import {
   evaluateFitWithLlm,
@@ -1102,8 +1114,8 @@ export function applyClarificationAnswer(
         ? "treat this posting as compatible with the remote/hybrid preference"
         : "treat this posting as a violation of the remote/hybrid preference"
     }.`,
-    ["reject_hard_constraint", "reject_low_fit", "request_human_approval"],
-    "ask_user_clarification",
+    ["human_answers_clarification"],
+    "human_answers_clarification",
     "Clarification resolved. Resuming evaluation with the human's answer incorporated.",
     before,
     state
@@ -1197,7 +1209,7 @@ export async function applyHumanDecision(
     state = { ...state, stage: "rejected_by_human" };
     log(
       "Human selected: Reject.",
-      ["draft_application", "discard"],
+      ["human_approve", "human_edit", "discard"],
       "discard",
       "Human rejected the evaluation. No draft produced.",
       before,
@@ -1210,8 +1222,8 @@ export async function applyHumanDecision(
     state = { ...state, stage: "edited", approvalNote: editNote };
     log(
       `Human selected: Edit. Note: "${editNote}"`,
-      ["draft_application", "discard"],
-      "draft_application",
+      ["human_edit", "human_approve", "discard"],
+      "human_edit",
       "Human edited the evaluation notes and approved drafting to proceed with the edit applied.",
       before,
       state
@@ -1220,8 +1232,8 @@ export async function applyHumanDecision(
     state = { ...state, stage: "approved" };
     log(
       "Human selected: Approve.",
-      ["draft_application", "discard"],
-      "draft_application",
+      ["human_approve", "human_edit", "discard"],
+      "human_approve",
       "Human approved. Proceeding to draft application material grounded only in resume.md.",
       before,
       state
