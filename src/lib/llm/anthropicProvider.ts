@@ -1,5 +1,15 @@
 import Anthropic from "@anthropic-ai/sdk";
 import {
+  ADVISE_JSON_SCHEMA,
+  ADVISE_SYSTEM_PROMPT,
+  ADVISE_TOOL_DESCRIPTION,
+  ADVISE_TOOL_NAME,
+  type LlmAdvice,
+  CONTROL_JSON_SCHEMA,
+  CONTROL_SYSTEM_PROMPT,
+  CONTROL_TOOL_DESCRIPTION,
+  CONTROL_TOOL_NAME,
+  type LlmActionChoice,
   ASSESS_JSON_SCHEMA,
   ASSESS_SYSTEM_PROMPT,
   ASSESS_TOOL_DESCRIPTION,
@@ -73,6 +83,58 @@ export const anthropicProvider: LlmProvider = {
       );
       if (!toolUse) throw new Error("Anthropic response did not include the expected assessment tool call.");
       return toolUse.input as LlmPostingAssessment;
+    } finally {
+      clearTimeout(timeout);
+    }
+  },
+
+  async adviseHuman(situation, opts) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), opts?.timeoutMs ?? 30000);
+    try {
+      const response = await getClient().messages.create(
+        {
+          model: MODEL,
+          max_tokens: 1400,
+          temperature: 0,
+          system: opts?.systemPrompt ?? ADVISE_SYSTEM_PROMPT,
+          tools: [{ name: ADVISE_TOOL_NAME, description: ADVISE_TOOL_DESCRIPTION, input_schema: ADVISE_JSON_SCHEMA }],
+          tool_choice: { type: "tool", name: ADVISE_TOOL_NAME },
+          messages: [{ role: "user", content: situation }],
+        },
+        { signal: controller.signal }
+      );
+      const toolUse = response.content.find((b): b is Anthropic.ToolUseBlock => b.type === "tool_use");
+      if (!toolUse) throw new Error("Anthropic response did not include the expected advice tool call.");
+      return toolUse.input as LlmAdvice;
+    } finally {
+      clearTimeout(timeout);
+    }
+  },
+
+  async chooseAction(situation, opts) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), opts?.timeoutMs ?? TIMEOUT_MS);
+    try {
+      const response = await getClient().messages.create(
+        {
+          model: MODEL,
+          max_tokens: 200,
+          temperature: 0,
+          system: opts?.systemPrompt ?? CONTROL_SYSTEM_PROMPT,
+          tools: [
+            { name: CONTROL_TOOL_NAME, description: CONTROL_TOOL_DESCRIPTION, input_schema: CONTROL_JSON_SCHEMA },
+          ],
+          tool_choice: { type: "tool", name: CONTROL_TOOL_NAME },
+          messages: [{ role: "user", content: situation }],
+        },
+        { signal: controller.signal }
+      );
+      const toolUse = response.content.find(
+        (b): b is Anthropic.ToolUseBlock => b.type === "tool_use"
+      );
+      if (!toolUse) throw new Error("Anthropic response did not include the expected action tool call.");
+      return toolUse.input as LlmActionChoice;
     } finally {
       clearTimeout(timeout);
     }

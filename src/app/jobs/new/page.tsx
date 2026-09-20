@@ -141,18 +141,18 @@ export default function NewJobPage() {
       {mode === "url" && (
         <div className="mb-5 border border-neutral-200 bg-white rounded-2xl p-5 shadow-xs">
           <label className="block text-sm font-semibold text-neutral-800 mb-1.5">Posting URL</label>
-          <div className="flex gap-2.5">
+          <div className="flex flex-wrap gap-2.5">
             <input
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               placeholder="https://company.com/careers/data-analyst"
-              className="flex-1 border border-neutral-300 rounded-xl px-4 py-2.5 text-sm bg-white text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-800"
+              className="flex-1 min-w-0 border border-neutral-300 rounded-xl px-4 py-2.5 text-sm bg-white text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-800"
             />
             <button
               type="button"
               onClick={handleScrape}
               disabled={scraping || !url.trim()}
-              className="text-sm font-medium bg-neutral-900 text-white px-5 py-2.5 rounded-xl disabled:opacity-50 hover:bg-neutral-800 transition-colors cursor-pointer"
+              className="shrink-0 text-sm font-medium bg-neutral-900 text-white px-5 py-2.5 rounded-xl disabled:opacity-50 hover:bg-neutral-800 transition-colors cursor-pointer"
             >
               {scraping ? "Fetching…" : "Fetch Posting"}
             </button>

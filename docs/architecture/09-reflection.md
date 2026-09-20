@@ -16,7 +16,11 @@ observes, which is the actual bar the assignment sets ("select among materially
 different next actions based on its current observation and state").
 
 Concretely, from the traces in
-[08-testing-evidence.md](08-testing-evidence.md):
+[08-testing-evidence.md](08-testing-evidence.md) (note: the bullets below describe an earlier
+fixed-order version. The current agent has an AI controller that chooses among permitted actions,
+so **J003 now ends after 3 steps** because the controller skipped the fit evaluation once the
+violation was known, and every trace step shows who chose it and why. Rewrite this in your own words
+from the current traces):
 
 - **J003** terminates after 4 steps at `reject_hard_constraint` and never even
   considers the human-approval step — despite a *perfect* 100% skill match.

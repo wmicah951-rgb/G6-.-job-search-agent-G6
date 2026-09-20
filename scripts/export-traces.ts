@@ -25,6 +25,10 @@ const slim = (trace: any[]) =>
     observation: t.observation,
     result: t.result,
     stageAfter: t.stateAfter?.stage,
+    chosenBy: t.chosenBy,
+    brain: t.brain,
+    thinking: t.thinking,
+    modelReasoning: t.modelReasoning,
   }));
 
 async function main() {
@@ -78,8 +82,8 @@ async function main() {
 
   // J007 ASK_USER answered both ways.
   const j7 = await runAgent("J007", job("J007"), resume, prefs);
-  out.runs.J007_compatible = { trace: slim(applyClarificationAnswer(j7, "compatible").trace) };
-  out.runs.J007_violation = { trace: slim(applyClarificationAnswer(j7, "violation").trace) };
+  out.runs.J007_compatible = { trace: slim((await applyClarificationAnswer(j7, "compatible", { resumeText: resume, jobText: job("J007") })).trace) };
+  out.runs.J007_violation = { trace: slim((await applyClarificationAnswer(j7, "violation", { resumeText: resume, jobText: job("J007") })).trace) };
 
   const seqs = new Set(
     ["J001", "J002", "J003", "J004"].map((id) => out.runs[id].trace.map((t: any) => t.action).join(">"))

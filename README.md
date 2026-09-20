@@ -17,24 +17,67 @@ see [`docs/architecture/`](docs/architecture/00-index.md).
 
 ## What makes this an agent, not a workflow
 
-`src/lib/agent.ts` implements a genuine decision engine: at each step it selects
-the next action from a set of materially different available actions, based on
-the current state and the latest observation. Verified branching (see
-`scripts/run-tests.ts`):
+`src/lib/agent.ts` runs a **select -> act -> observe loop**. Before each step the harness
+computes which actions are *permitted* from the current state (`permittedActions()`); if
+several are, an AI controller **chooses** one from a structured state summary (it never sees
+the posting text) and its reason is logged; if only one is permitted a guardrail decides;
+with no model the built-in default policy chooses. Every step records who chose it
+(`chosenBy`: model / harness / policy).
 
-| Test | Posting | Action sequence |
+What the model decides at run time: the order of checks, whether to skip the costly fit
+evaluation once a hard violation makes the outcome final, and borderline calls within 10
+points of the candidate's minimum fit. What it can never do, because those actions are not on
+its list: skip the injection scan, drop a hard constraint, approve past a violation, reject a
+clearly good fit, or produce a draft (only `applyHumanDecision` can, after a human decision).
+
+Typical live runs (`npx tsx scripts/controller-demo.ts`; the model may order steps differently):
+
+| Test | Posting | Action sequence (deepseek-chat controller) |
 |---|---|---|
-| J001 | obvious fit | scan → evaluate → check_constraints → **request_human_approval** |
-| J002 | partial fit | scan → evaluate → check_constraints → **reject_low_fit** |
-| J003 | hard-constraint conflict | scan → evaluate → check_constraints → **reject_hard_constraint** |
-| J004 | prompt injection embedded | scan → **flag_injection_and_continue** → evaluate → check_constraints → request_human_approval |
+| J001 | obvious fit | scan -> check_hard_constraints -> evaluate_fit -> **request_human_approval** |
+| J002 | partial fit (in the judgment zone) | ... -> evaluate_fit -> **request_human_approval** or **reject_low_fit**, chosen from the evidence |
+| J003 | hard-constraint conflict | scan -> check_hard_constraints -> **reject_hard_constraint** (fit evaluation skipped: outcome already final) |
+| J004 | prompt injection embedded | scan -> **flag_injection_and_continue** -> check_hard_constraints -> evaluate_fit -> request_human_approval |
 
-All four required tests produce distinct executed action sequences. No draft is
-ever produced without a human Approve/Edit/Reject decision (`applyHumanDecision`
-in `agent.ts`). Every factual claim in the generated material either traces back
-to the candidate's own résumé (or the note they typed) or is **visibly flagged**
-by `src/lib/draftVerifier.ts` — flagged lines are shown to the human, never
-silently removed and never silently kept.
+With no model (or `AGENT_CONTROL=policy`) the default policy reproduces the original fixed
+order exactly. A hostile controller is tested in `scripts/hostile-model-test.mjs`. No draft is
+ever produced without a human Approve/Edit/Reject decision. Every factual claim in the
+generated material either traces back to the candidate's own résumé (or the note they typed)
+or is **visibly flagged** by `src/lib/draftVerifier.ts`.
+
+## The agent's AI roles, and what you see on screen
+
+Five AI roles, each with its own section in `src/data/agent-guidelines.md`: **Reader** (what the
+posting says), **Matcher** (résumé vs requirements, every match quoted), **Controller** (picks
+the next action from the permitted list), **Advisor** (tells the person what it thinks) and
+**Drafter** (writes only after a human approves). Two things stay pure code: the hard rules and
+the draft checker.
+
+Nothing on the approval screen is fixed text any more. When the agent stops for you, the
+**Advisor** writes a recommendation, ranks the missing skills by how much they matter, and builds
+the "AI-recommended additions" presets from *your* résumé (each backed by a résumé quote, checked
+by code). The trace shows, for every step, whether an **AI** or a **code rule** produced it, who
+chose it, and the agent's own thinking. The Test Lab shows the same per test, plus the advisor's
+recommendation.
+
+**Local models (Ollama).** Set `LLM_PROVIDER=custom` with a local `LLM_BASE_URL` and small-model
+mode turns on automatically (`LLM_SMALL=1/0` to force). A weak model is given easier questions:
+a numbered menu for the Controller, numbered résumé lines to point at for the Matcher, and
+harness-built choices to rank for the Advisor. Slower, but the same guardrails and the same premise.
+
+## The agent reads a markdown rulebook on every run
+
+`src/data/agent-guidelines.md` is loaded by `src/lib/guidelines.ts` at the start of **every**
+run (no caching) and becomes the controller's instructions, plus the width of its judgment
+zone (`Judgment zone: 10 points`). Edit the guidance and the next run decides differently;
+every trace records which version it read (`guidelines: agent-guidelines.md@<hash>`, also in
+`state.guidelines`). Proof: `npx tsx scripts/guidelines-proof.ts` runs the same borderline
+postings under a strict, a lenient and a zero-discretion version of the file, then under a
+file that tells the agent to switch its guardrails off, which changes nothing.
+
+The file guides **judgment**. Its "Never" section documents rules the harness enforces in code
+(`permittedActions()`), so they hold even if the file is edited badly. If the file is missing
+the agent falls back to a built-in default and says so in the trace.
 
 ## Screens
 

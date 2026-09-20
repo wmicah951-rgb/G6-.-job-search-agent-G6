@@ -67,7 +67,10 @@ for (const [id, stage] of expect) {
   const r = await post(t(id), fs.readFileSync(dir + id + ".md", "utf-8"));
   ids.push(r.b.id);
   made[id] = r.b.id;
-  check(id + " -> " + stage, r.b.evaluation.state.stage === stage, "got " + r.b.evaluation.state.stage);
+  // J002 sits inside the judgment zone (within 10 points of the bar): the AI controller may hand
+  // it to the human or reject it, so either is a correct outcome for it.
+  const okStages = id === "J002" ? [stage, "awaiting_approval"] : [stage];
+  check(id + " -> " + okStages.join(" or "), okStages.includes(r.b.evaluation.state.stage), "got " + r.b.evaluation.state.stage);
 }
 
 // 4c. HITL: REJECT ends with no draft, then approving is refused (409)

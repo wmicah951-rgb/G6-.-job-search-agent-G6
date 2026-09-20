@@ -12,6 +12,24 @@ type TraceStep = {
   selectedAction: string;
   result: string;
   stateAfter: any;
+  chosenBy?: "model" | "harness" | "policy";
+  modelReasoning?: string;
+  overruled?: string;
+  brain?: "ai" | "code";
+  thinking?: string;
+  guidelines?: string;
+};
+
+type Advice = {
+  source: "model" | "policy";
+  mode: "approval" | "rejected_low_fit" | "clarification";
+  headline: string;
+  recommendation: string;
+  recommendationWhy: string;
+  strengths: { requirement: string; evidenceQuote: string }[];
+  rankedGaps: { gap: string; importance: "critical" | "helpful" | "minor" | "unranked"; why: string; bridgeQuestion: string }[];
+  draftPresets: { label: string; instruction: string; evidenceQuote: string }[];
+  overruled?: string;
 };
 
 type Evaluation = {
@@ -50,7 +68,7 @@ type Evaluation = {
     comparable?: boolean;
     requirementsCompared?: number;
   } | null;
-  state?: { matchedEvidence?: Record<string, string> } | null;
+  state?: { matchedEvidence?: Record<string, string>; advice?: Advice | null; guidelines?: string } | null;
   profileName: string | null;
   trace: TraceStep[];
 };
@@ -177,6 +195,9 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
   const [showScrollTop, setShowScrollTop] = useState(false);
 
   function getSmartSuggestions(ev: Evaluation, title: string): string {
+    // The AI advisor's tailored presets come first; the old derived text is only a fallback.
+    const advised = ev.state?.advice?.draftPresets ?? [];
+    if (advised.length > 0) return advised.slice(0, 3).map((p) => p.instruction).join("\n");
     const points: string[] = [];
     if (ev.matchedSkills && ev.matchedSkills.length > 0) {
       points.push(`- Emphasize matched skills: ${ev.matchedSkills.slice(0, 5).join(", ")}`);
@@ -356,9 +377,9 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
     setCollapsedResume(!expand);
   }
 
-  function addMissingSkillToDraft(skill: string) {
+  function addMissingSkillToDraft(skill: string, bridgeQuestion?: string) {
     setAddedSkills((prev) => (prev.includes(skill) ? prev : [...prev, skill]));
-    const addition = `- Experience with ${skill} (or equivalent): I have related experience in [describe your hands-on work or similar tool/project]`;
+    const addition = `- Experience with ${skill} (or equivalent): [answer honestly, then delete these brackets — ${bridgeQuestion ?? "describe your hands-on work or similar tool/project"}]`;
     setEditNote((prev) => (prev ? `${prev}\n${addition}` : addition));
     triggerToast(`Added "${skill}" to draft instructions!`);
     const el = document.getElementById("draft-instructions-box");
@@ -379,6 +400,55 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
     if (el) {
       el.scrollIntoView({ behavior: "smooth", block: "center" });
     }
+  }
+
+
+  // The agent's own words: what its advisor thinks, why, and what it recommends you do.
+  function AdvicePanel({ a, tone }: { a: Advice; tone: "amber" | "sky" | "neutral" }) {
+    const fromAi = a.source === "model";
+    const rec: Record<string, string> = {
+      approve: "Approve and draft",
+      edit: "Approve with instructions (bridge the gaps first)",
+      reject: "Reject / leave it",
+      override: "Apply anyway",
+      answer_compatible: "Treat as compatible",
+      answer_violation: "Treat as a violation",
+      none: "No recommendation",
+    };
+    return (
+      <div className={`rounded-xl border p-3.5 mb-4 bg-white ${tone === "sky" ? "border-sky-300" : tone === "amber" ? "border-amber-300" : "border-neutral-300"}`}>
+        <div className="flex flex-wrap items-center gap-2 mb-1.5">
+          <span className="font-bold text-neutral-900 text-sm">🧠 The agent&apos;s recommendation</span>
+          <span
+            className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${fromAi ? "bg-indigo-100 text-indigo-800" : "bg-amber-100 text-amber-800"}`}
+            title={fromAi ? "Written by the AI advisor for this résumé and this job" : "No AI available: filled by the built-in default policy"}
+          >
+            {fromAi ? "AI advisor" : "default policy (no AI)"}
+          </span>
+        </div>
+        <p className="text-sm text-neutral-900 leading-relaxed">{a.headline}</p>
+        {a.recommendation !== "none" && (
+          <p className="text-sm mt-1.5">
+            <span className="font-semibold text-indigo-900">Recommends: {rec[a.recommendation] ?? a.recommendation}.</span>{" "}
+            <span className="text-neutral-700">{a.recommendationWhy}</span>
+          </p>
+        )}
+        {a.strengths.length > 0 && (
+          <div className="mt-2">
+            <p className="text-xs font-semibold text-neutral-600 mb-1">Strengths it would lead with (each backed by your résumé):</p>
+            <ul className="text-xs text-neutral-700 space-y-1">
+              {a.strengths.map((st, i) => (
+                <li key={i}>
+                  <span className="font-medium">{st.requirement}</span>
+                  <span className="text-neutral-500"> — “{st.evidenceQuote}”</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {a.overruled && <p className="text-[11px] text-red-700 mt-2">Harness note: {a.overruled}.</p>}
+      </div>
+    );
   }
 
   if (loading || !data) {
@@ -407,9 +477,17 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
   // Gaps ordered by how badly this employer needs them: hard requirements first,
   // "nice to have" after. That ordering is what tells you where to spend your effort.
   const preferredSet = new Set((ev.missingPreferredSkills ?? []).map((s) => s.toLowerCase()));
+  const advice = ev.state?.advice ?? null;
+  const advisedGap = (skill: string) =>
+    advice?.rankedGaps.find((g) => g.gap.trim().toLowerCase() === skill.trim().toLowerCase());
+  const IMPORTANCE_ORDER: Record<string, number> = { critical: 0, helpful: 1, minor: 2, unranked: 3 };
   const rankedMissing = ev.missingSkills
-    .map((skill) => ({ skill, required: !preferredSet.has(skill.toLowerCase()) }))
-    .sort((a, b) => Number(b.required) - Number(a.required));
+    .map((skill) => ({ skill, required: !preferredSet.has(skill.toLowerCase()), advised: advisedGap(skill) }))
+    .sort((a, b) =>
+      advice && advice.source === "model"
+        ? (IMPORTANCE_ORDER[a.advised?.importance ?? "unranked"] ?? 3) - (IMPORTANCE_ORDER[b.advised?.importance ?? "unranked"] ?? 3)
+        : Number(b.required) - Number(a.required)
+    );
 
   return (
     <div className="w-full max-w-5xl mx-auto pb-24 font-sans">
@@ -527,7 +605,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
           <span>
             Engine:{" "}
             <strong className="text-neutral-700">
-              {ev.fitMethod === "llm" ? "LLM semantic matching" : "Deterministic keyword matching"}
+              {ev.fitScore === null ? "Skills check skipped (a hard rule already decided this)" : ev.fitMethod === "llm" ? "LLM semantic matching" : "Deterministic keyword matching"}
             </strong>
           </span>
         </div>
@@ -645,7 +723,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
               })}
             </div>
           ) : (
-            <p className="text-sm text-neutral-500 italic mb-3">No direct keyword skill matches detected.</p>
+            <p className="text-sm text-neutral-500 italic mb-3">{ev.fitScore === null ? "Not evaluated: the agent chose to skip the skills check because a hard rule already decided this job." : "No direct keyword skill matches detected."}</p>
           )}
 
           {ev.stage === "awaiting_approval" && ev.matchedSkills.length > 0 && (
@@ -677,7 +755,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
 
           {ev.missingSkills.length > 0 ? (
             <ul className="divide-y divide-neutral-100 mb-3">
-              {rankedMissing.map(({ skill, required }, idx) => {
+              {rankedMissing.map(({ skill, required, advised }, idx) => {
                 const gapNote = ev.gapNotes?.find(
                   (g) => g.skill.trim().toLowerCase() === skill.trim().toLowerCase()
                 );
@@ -706,6 +784,23 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                       >
                         {required ? "required" : "nice to have"}
                       </span>
+                      {advice?.source === "model" && advised && advised.importance !== "unranked" && (
+                        <span
+                          className={`ml-1.5 text-[10px] px-1.5 py-0.5 rounded border font-semibold ${
+                            advised.importance === "critical"
+                              ? "bg-red-600 text-white border-red-700"
+                              : advised.importance === "helpful"
+                              ? "bg-indigo-50 text-indigo-800 border-indigo-300"
+                              : "bg-neutral-100 text-neutral-600 border-neutral-300"
+                          }`}
+                          title="Ranked by the AI advisor"
+                        >
+                          AI: {advised.importance}
+                        </span>
+                      )}
+                      {advice?.source === "model" && advised?.why && (
+                        <p className="text-xs text-indigo-800 mt-0.5">🧠 {advised.why}</p>
+                      )}
                       {gapNote && (
                         <p className="text-xs text-neutral-500 mt-0.5">
                           {gapNote.status === "not_addressed" ? "Not addressed in draft: " : "In draft: "}
@@ -717,7 +812,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                       <button
                         type="button"
                         disabled={added}
-                        onClick={() => addMissingSkillToDraft(skill)}
+                        onClick={() => addMissingSkillToDraft(skill, advised?.bridgeQuestion)}
                         className={`text-xs whitespace-nowrap shrink-0 px-2 py-1 rounded-lg border ${
                           added
                             ? "bg-neutral-100 text-neutral-400 border-neutral-200 cursor-not-allowed"
@@ -737,7 +832,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
               })}
             </ul>
           ) : (
-            <p className="text-sm text-neutral-500 mb-3">No missing skills identified — full coverage.</p>
+            <p className="text-sm text-neutral-500 mb-3">{ev.fitScore === null ? "Not evaluated: the skills check was skipped, so nothing is known about skill gaps for this job." : "No missing skills identified — full coverage."}</p>
           )}
 
           {/* Quick custom skill bridge input */}
@@ -746,12 +841,12 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
               <label className="block text-xs font-medium text-neutral-700 mb-1">
                 Have a similar skill or equivalent tool?
               </label>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <input
                   value={customSkillInput}
                   onChange={(e) => setCustomSkillInput(e.target.value)}
                   placeholder="e.g. I have 2 yrs MySQL & Snowflake which is similar to Postgres..."
-                  className="flex-1 border border-neutral-300 rounded-lg px-3 py-1.5 text-xs bg-white text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-400"
+                  className="flex-1 min-w-0 border border-neutral-300 rounded-lg px-3 py-1.5 text-xs bg-white text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-400"
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && customSkillInput.trim()) {
                       addCustomBridgeToDraft("", customSkillInput);
@@ -853,20 +948,21 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
         <div className="border border-sky-300 bg-sky-50 rounded-2xl p-5 mb-6 shadow-sm">
           <div className="font-semibold text-sky-950 mb-1.5">Clarification needed before proceeding</div>
           <p className="text-sm text-sky-900 mb-4">{ev.clarificationQuestion}</p>
+          {advice && <AdvicePanel a={advice} tone="sky" />}
           <div className="flex flex-wrap gap-2.5">
             <button
               disabled={deciding}
               onClick={() => clarify("compatible")}
               className="text-sm bg-sky-700 hover:bg-sky-800 text-white font-medium px-4 py-2 rounded-lg disabled:opacity-50 transition-colors shadow-xs cursor-pointer"
             >
-              Treat as compatible
+              Treat as compatible{advice?.recommendation === "answer_compatible" ? "  (agent recommends)" : ""}
             </button>
             <button
               disabled={deciding}
               onClick={() => clarify("violation")}
               className="text-sm bg-neutral-700 hover:bg-neutral-800 text-white font-medium px-4 py-2 rounded-lg disabled:opacity-50 transition-colors shadow-xs cursor-pointer"
             >
-              Treat as a violation
+              Treat as a violation{advice?.recommendation === "answer_violation" ? "  (agent recommends)" : ""}
             </button>
           </div>
         </div>
@@ -889,12 +985,16 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
             that closes these gaps, say so and carry on.
           </p>
 
+          {advice && <AdvicePanel a={advice} tone="neutral" />}
+
           {ev.missingSkills.length > 0 && (
             <div className="bg-neutral-50 border border-neutral-200 rounded-xl p-3 mb-3">
               <p className="text-xs font-semibold text-neutral-700 mb-1.5">
-                What it says you are missing:
+                What it says you are missing{advice?.source === "model" ? " (ranked by the AI advisor)" : ""}:
               </p>
-              <p className="text-sm text-neutral-800">{ev.missingSkills.join(" · ")}</p>
+              <p className="text-sm text-neutral-800">
+                {rankedMissing.map((m) => m.skill).join(" · ")}
+              </p>
             </div>
           )}
 
@@ -918,6 +1018,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
             className="text-sm bg-neutral-900 hover:bg-neutral-800 text-white font-bold px-5 py-2.5 rounded-xl disabled:opacity-50 transition-all shadow-sm cursor-pointer"
           >
             {overriding ? "Reopening…" : "Apply anyway — I'll bridge the gaps"}
+            {advice?.recommendation === "override" ? "  (agent recommends)" : ""}
           </button>
           <p className="text-xs text-neutral-500 mt-2">
             This does not change the score or hide the gaps. It reopens the job at the
@@ -946,48 +1047,34 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
             The agent has matched your background and verified hard constraints. Review or customize the drafting instructions in the white box below. The LLM uses these focus points to write a cover letter and re-tailor your resume. Every factual claim it produces is then checked back against your resume, and anything it cannot trace is flagged for you — never silently removed.
           </p>
 
-          {/* Quick preset buttons to quickly populate/modify instructions */}
+          {advice && <AdvicePanel a={advice} tone="amber" />}
+
+          {/* Presets come from the AI advisor: tailored to THIS résumé and THIS job, each backed by a
+              résumé quote. They are never fixed text. */}
           <div className="flex flex-wrap items-center gap-1.5 mb-2">
-            <span className="text-xs font-semibold text-amber-950 mr-1">Quick additions:</span>
-            <button
-              type="button"
-              onClick={() =>
-                setEditNote((prev) =>
-                  prev ? `${prev}\n- Focus heavily on SQL, Postgres, and Python data pipelines` : "- Focus heavily on SQL, Postgres, and Python data pipelines"
-                )
-              }
-              className="text-xs bg-white border border-amber-300 hover:bg-amber-100 text-amber-900 px-2 py-1 rounded-md transition-colors cursor-pointer font-medium"
-            >
-              + SQL/Python Focus
-            </button>
-            <button
-              type="button"
-              onClick={() =>
-                setEditNote((prev) =>
-                  prev ? `${prev}\n- Highlight leadership and executive reporting experience` : "- Highlight leadership and executive reporting experience"
-                )
-              }
-              className="text-xs bg-white border border-amber-300 hover:bg-amber-100 text-amber-900 px-2 py-1 rounded-md transition-colors cursor-pointer font-medium"
-            >
-              + Executive Reporting
-            </button>
-            <button
-              type="button"
-              onClick={() =>
-                setEditNote((prev) =>
-                  prev ? `${prev}\n- Quantify measurable impact and efficiency improvements` : "- Quantify measurable impact and efficiency improvements"
-                )
-              }
-              className="text-xs bg-white border border-amber-300 hover:bg-amber-100 text-amber-900 px-2 py-1 rounded-md transition-colors cursor-pointer font-medium"
-            >
-              + Quantify Impact
-            </button>
+            <span className="text-xs font-semibold text-amber-950 mr-1">
+              {advice?.source === "model" ? "AI-recommended additions:" : "Suggested additions (default, no AI):"}
+            </span>
+            {(advice?.draftPresets ?? []).map((pr, i) => (
+              <button
+                key={i}
+                type="button"
+                title={`Backed by your résumé: “${pr.evidenceQuote}”`}
+                onClick={() => setEditNote((prev) => (prev ? `${prev}\n${pr.instruction}` : pr.instruction))}
+                className="text-xs bg-white border border-indigo-300 hover:bg-indigo-50 text-indigo-900 px-2 py-1 rounded-md transition-colors cursor-pointer font-medium"
+              >
+                + {pr.label}
+              </button>
+            ))}
+            {(advice?.draftPresets ?? []).length === 0 && (
+              <span className="text-xs text-amber-900">Nothing to suggest yet: no matched evidence to build on.</span>
+            )}
             <button
               type="button"
               onClick={() => setEditNote(getSmartSuggestions(ev, data.job.title))}
               className="text-xs bg-amber-200/80 hover:bg-amber-200 text-amber-900 px-2 py-1 rounded-md transition-colors cursor-pointer font-medium ml-auto"
             >
-              ↺ Reset to Default Suggestions
+              ↺ Reset to the agent&apos;s suggestion
             </button>
           </div>
 
@@ -1028,6 +1115,9 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                   ? "Approve — use the instructions above"
                   : "Approve & Draft Application"}
               </span>
+              {advice && (advice.recommendation === "approve" || advice.recommendation === "edit") && (
+                <span className="text-[10px] bg-white/25 px-1.5 py-0.5 rounded-full font-semibold">agent recommends</span>
+              )}
             </button>
             {editNote.trim() && (
               <button
@@ -1044,7 +1134,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
               onClick={() => decide("reject")}
               className="text-sm bg-neutral-600 hover:bg-neutral-700 text-white font-medium px-4 py-2.5 rounded-xl disabled:opacity-50 transition-colors cursor-pointer ml-auto"
             >
-              ✕ Reject Job
+              ✕ Reject Job{advice?.recommendation === "reject" ? "  (agent recommends)" : ""}
             </button>
           </div>
           <p className="text-xs text-amber-900/80 mt-2">
@@ -1524,7 +1614,52 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
               <div key={t.step} className="border border-neutral-200 bg-neutral-50/70 rounded-xl p-3.5 text-xs">
                 <div className="font-mono font-bold text-neutral-900 mb-1 flex items-center justify-between">
                   <span>Step {t.step}: {t.selectedAction}</span>
+                  {t.brain && (
+                    <span
+                      className={`text-[10px] font-sans font-semibold px-2 py-0.5 rounded-full mr-1 ${
+                        t.brain === "ai" ? "bg-indigo-600 text-white" : "bg-neutral-300 text-neutral-800"
+                      }`}
+                      title={t.brain === "ai" ? "An AI produced this step's output" : "A deterministic code rule produced this step (no AI)"}
+                    >
+                      {t.brain === "ai" ? "🧠 AI thinking" : "⚙ code rule"}
+                    </span>
+                  )}
+                  {t.chosenBy && (
+                    <span
+                      className={`text-[10px] font-sans font-semibold px-2 py-0.5 rounded-full ${
+                        t.chosenBy === "model"
+                          ? "bg-indigo-100 text-indigo-800"
+                          : t.chosenBy === "harness"
+                          ? "bg-neutral-200 text-neutral-700"
+                          : "bg-amber-100 text-amber-800"
+                      }`}
+                      title={
+                        t.chosenBy === "model"
+                          ? "The AI controller chose this from the actions the harness permitted"
+                          : t.chosenBy === "harness"
+                          ? "Only one action was permitted here, so a guardrail decided"
+                          : "The built-in policy chose (no AI controller, or it failed / proposed a forbidden action)"
+                      }
+                    >
+                      {t.chosenBy === "model" ? "AI chose" : t.chosenBy === "harness" ? "guardrail" : "default policy"}
+                    </span>
+                  )}
                 </div>
+                {t.availableActions.length > 1 && (
+                  <div className="text-neutral-500 mb-1">
+                    <span className="text-neutral-400 font-mono">permitted:</span> {t.availableActions.join(" | ")}
+                  </div>
+                )}
+                {(t.thinking || t.modelReasoning) && (
+                  <div className="text-indigo-900 bg-indigo-50 border border-indigo-200 rounded-lg px-2.5 py-1.5 mb-1.5 whitespace-pre-line">
+                    <span className="text-indigo-500 font-mono">agent&apos;s thinking:</span> {t.thinking || t.modelReasoning}
+                  </div>
+                )}
+                {t.overruled && (
+                  <div className="text-red-700 mb-1">
+                    <span className="font-mono">harness overruled:</span> {t.overruled}
+                  </div>
+                )}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 mb-1 text-neutral-600">
                   <div><span className="text-neutral-400">Before:</span> {t.stateBefore.stage}</div>
                   <div><span className="text-neutral-400">After:</span> {t.stateAfter.stage}</div>

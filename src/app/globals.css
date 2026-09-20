@@ -43,3 +43,16 @@ input::placeholder,
 textarea::placeholder {
   color: #9ca3af;
 }
+
+/* The top nav's link strip scrolls horizontally instead of wrapping, so a narrow
+   (phone-width) viewport never has to grow the whole page to fit "Harness" and
+   "Test Lab" — that used to force the entire body ~100px wider than the screen.
+   Scrollbar hidden since it's a nav affordance, not a content area; all links
+   stay reachable by touch/trackpad swipe or keyboard tab. */
+.nav-scroll {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.nav-scroll::-webkit-scrollbar {
+  display: none;
+}

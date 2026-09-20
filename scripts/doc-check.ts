@@ -26,7 +26,7 @@ const agent = read("src", "lib", "agent.ts");
 // immediately after the availableActions array. Collect them from the calls rather
 // than guessing, so this can't fall out of step either.
 const actions = new Set<string>();
-for (const m of agent.matchAll(/\]\s*,\s*\n\s*"([a-z_]+)"\s*,/g)) actions.add(m[1]);
+for (const m of agent.matchAll(/(?:\]|permitted)\s*,\s*\n\s*"([a-z_]+)"\s*,/g)) actions.add(m[1]);
 
 check("found the agent's action list", actions.size >= 10, `${actions.size} actions: ${[...actions].sort().join(", ")}`);
 

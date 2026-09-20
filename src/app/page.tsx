@@ -147,6 +147,7 @@ export default function Dashboard() {
   // on you, which is the only group with anything to do.
   const [filter, setFilter] = useState<"all" | "todo" | "drafted" | "rejected" | "flagged">("all");
   const [query, setQuery] = useState("");
+  const [sort, setSort] = useState<"rank" | "newest">("rank");
   const [loading, setLoading] = useState(true);
   const [activeProfileName, setActiveProfileName] = useState<string | null>(null);
 
@@ -191,11 +192,27 @@ export default function Dashboard() {
 
   const countFor = (key: typeof filter) => jobs.filter((j) => inGroup(j, key)).length;
 
-  const visibleJobs = jobs.filter(
-    (j) =>
-      inGroup(j, filter) &&
-      (!query.trim() || j.title.toLowerCase().includes(query.trim().toLowerCase()))
-  );
+  // Ranking: jobs still worth pursuing first, best fit at the top; auto-rejected on a
+  // low score next; hard-constraint rejections last (they are down-ranked regardless of
+  // skill fit, e.g. a 82% match that needs 5+ years and a clearance).
+  function rankTier(j: JobRow): number {
+    if (j.stage === "rejected_hard_constraint") return 2;
+    if (j.stage === "rejected_low_fit" || j.stage === "rejected_by_human") return 1;
+    return 0;
+  }
+  const visibleJobs = jobs
+    .filter(
+      (j) =>
+        inGroup(j, filter) &&
+        (!query.trim() || j.title.toLowerCase().includes(query.trim().toLowerCase()))
+    )
+    .sort((a, b) =>
+      sort === "newest"
+        ? (b.created_at ?? "").localeCompare(a.created_at ?? "")
+        : rankTier(a) - rankTier(b) ||
+          (b.fit_score ?? -1) - (a.fit_score ?? -1) ||
+          (b.created_at ?? "").localeCompare(a.created_at ?? "")
+    );
 
   return (
     <div className="w-full max-w-6xl mx-auto font-sans">
@@ -255,11 +272,20 @@ export default function Dashboard() {
               </button>
             );
           })}
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value as "rank" | "newest")}
+            className="ml-auto border border-neutral-300 rounded-lg px-2 py-1.5 text-xs bg-white text-neutral-900"
+            aria-label="Sort postings"
+          >
+            <option value="rank">Ranked: best fit first</option>
+            <option value="newest">Newest first</option>
+          </select>
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search titles…"
-            className="ml-auto w-44 border border-neutral-300 rounded-lg px-3 py-1.5 text-xs bg-white text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-800"
+            className="w-44 border border-neutral-300 rounded-lg px-3 py-1.5 text-xs bg-white text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-800"
           />
         </div>
       )}
@@ -279,16 +305,25 @@ export default function Dashboard() {
         </div>
       )}
 
-      <div className="grid gap-3">
+      {/* min-w-0 on the grid so its single implicit column isn't held to the "auto" default
+          of min-width: auto (a card's un-wrappable content, e.g. the truncated title, would
+          otherwise force the whole track — and with it the page — wider than the viewport). */}
+      <div className="grid gap-3 min-w-0">
         {visibleJobs.map((j) => (
           <a
             key={j.id}
             href={`/jobs/${j.id}`}
-            className="block border border-neutral-200 bg-white rounded-xl p-4 sm:p-5 hover:border-neutral-400 hover:shadow-xs transition"
+            // min-w-0: same reason — a grid item defaults to min-width: auto too.
+            className="block min-w-0 border border-neutral-200 bg-white rounded-xl p-4 sm:p-5 hover:border-neutral-400 hover:shadow-xs transition"
           >
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="min-w-0 flex-1">
-                <div className="font-semibold text-neutral-900 text-base truncate">{j.title}</div>
+                <div className="font-semibold text-neutral-900 text-base truncate">
+                  {sort === "rank" && (
+                    <span className="text-neutral-400 font-mono text-sm mr-2">#{visibleJobs.indexOf(j) + 1}</span>
+                  )}
+                  {j.title}
+                </div>
                 <div className="text-xs text-neutral-500 mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1">
                   {j.source_url ? (
                     <span

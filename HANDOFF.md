@@ -43,6 +43,10 @@ still fully functional, still passes the four required tests.
 | `npx tsx scripts/export-traces.ts` then `python3 scripts/build-submission-pdf.py` | Rebuilds G6_Job_Search_Agent_Submission.pdf with freshly generated traces |
 | `node scripts/hostile-model-test.mjs` | A deliberately hostile model cannot change any decision (run with `MODE=draft-only` to attack drafting) |
 | `npx tsx scripts/doc-check.ts` | The docs still match the code: every agent action is in the inventory, and no doc repeats a claim that has become false |
+| Test Lab (`/testlab`) | 19 tests including the four class-page scenarios (K001-K004). Each shows the agent's brain step by step (AI thinking vs code rule) and the advisor's recommendation. All 19 pass on DeepSeek |
+| `set -a && source .env.local && set +a && npx tsx scripts/guidelines-proof.ts` | Proves the agent is driven by `src/data/agent-guidelines.md`: same postings, edited guidance, different decisions; and a file that tries to disable guardrails has no effect on them |
+| `set -a && source .env.local && set +a && npx tsx scripts/controller-demo.ts` | Prints who chose each action (AI / guardrail / default policy) and the model's reason, per posting. The runtime evidence that the model selects actions |
+| `npx tsx scripts/kit-tests.ts [kitDir]` | The four class cases judged against the Week 2 page's expectations; pass the official starter-kit folder to run the real files |
 | `npx tsx scripts/knob-tests.ts` | 16 checks: every knob round-trips and edits exactly one line of preferences.md |
 
 There is also a **Test Lab** tab in the app that runs any case live and shows expected
@@ -133,6 +137,19 @@ vs actual. Good for the demo.
    Deleting it was blocked by a permission guard; remove it from the Profiles page.
 8. **Preview-environment env vars are not set on Vercel** — only Production and
    Development. Preview deploys will not have a database or model.
+8b. **The draft checker catches invented specifics, not stretched activities.** Found live on 20 Sep:
+    a draft said the POS cleanup "required coordinating with the teams who owned each system", which
+    the résumé does not say, and the checker reported "nothing was invented" (it looks for numbers,
+    employers, tools and credentials). The stretch started from an Advisor preset, so the Advisor
+    prompt and the `Layer 3 — Advisor agent` section now forbid inferring coordination, leadership or
+    ownership beyond the quoted line. A verb-level check in `draftVerifier.ts` would be the real fix.
+8c. **FIXED (20 Sep):** a dropped (proposed-but-unverifiable) match added a flat 1.0 to the
+    scoring denominator regardless of whether it was required or preferred, while a genuinely
+    missing PREFERRED requirement only costs 0.5. That meant a model that tried a preferred
+    match and failed verification scored the candidate worse than a model that just admitted
+    the requirement was missing — backwards. Now a dropped match costs the same as a missing
+    one of the same priority. Verified against `scripts/stress-suite.ts` (arithmetic and
+    coverage checks) and `scripts/verify-tests.ts`; both stay green.
 9. **Model detection is probabilistic.** Across many runs, one conformance case diverged
    once. Re-running passed. This is inherent to using a model as a reader, which is why
    the keyword floor and the human gate both remain.

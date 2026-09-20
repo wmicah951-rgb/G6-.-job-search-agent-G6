@@ -52,12 +52,34 @@ One row per job (1:1 with `jobs`), holding the agent's full output.
 | `injection_snippets` | TEXT (JSON array) | |
 | `approval_note` | TEXT, nullable | the human's edit note, if any |
 | `draft` | TEXT, nullable | null until a human approves/edits |
+| `cover_letter` | TEXT, nullable | added by a migration; the AI-drafted letter |
+| `tailored_resume` | TEXT, nullable | added by a migration; the AI-tailored résumé |
 | `profile_id` | TEXT | which profile evaluated this job |
 | `profile_name` | TEXT | **denormalized** copy of the profile's name at evaluation time, so it still displays correctly even if that profile is later renamed or deleted |
 | `resume_snapshot` | TEXT | **the exact resume text used at evaluation time** |
-| `trace_json` | TEXT (JSON) | the full structured decision trace |
-| `state_json` | TEXT (JSON) | the full `AgentState` object |
+| `trace_json` | TEXT (JSON) | the full structured decision trace — every step, who chose it (`chosenBy`), whether an AI or code rule produced it (`brain`), and the agent's own reasoning (`thinking`) |
+| `state_json` | TEXT (JSON) | the full `AgentState` object, including `redFlags`, `guidelines` (which version of the rulebook this run read), `judgmentMargin`, and `advice` (the AI advisor's recommendation, ranked gaps and drafting presets) |
 | `updated_at` | TEXT | |
+
+## `harness_settings`
+
+Per-profile overrides for the tunable settings on the `/harness` screen —
+thresholds and the editable *prose* portions of each AI role's prompt (never
+the JSON schema a role must reply in, so a bad edit can degrade wording but
+cannot break parsing).
+
+| Column | Type | Notes |
+|---|---|---|
+| `profile_id` | TEXT | part of the composite PK |
+| `key` | TEXT | part of the composite PK — which setting |
+| `value` | TEXT | |
+| `updated_at` | TEXT | |
+
+Sparse by design: a row exists **only** for a setting someone actually changed.
+An empty table means "every profile uses the shipped defaults," so improving a
+default in code (or in `src/data/agent-guidelines.md`, which is not stored here
+at all — it is read from disk on every run) reaches every profile that has not
+overridden it, and "Reset" on the Harness screen is a `DELETE`, not a copy.
 
 ### Why `resume_snapshot` exists
 

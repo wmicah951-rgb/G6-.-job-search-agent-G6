@@ -116,8 +116,18 @@ const LAYERS: Layer[] = [
     ],
   },
   {
-    key: "approve",
+    key: "decide",
     n: 5,
+    title: "Decide (the AI controller)",
+    what: "Not edited on this page. Before every step the harness computes which actions are PERMITTED from the state so far; if more than one is (e.g. reject vs. ask a human, near the fit bar), an AI controller picks one and its reasoning is logged in the trace. If only one action is permitted, a guardrail picks it — no AI involved.",
+    decides: "The order fit/constraints are checked, whether to skip a costly fit evaluation once a hard-constraint violation is already final, and — only within the \"judgment zone\" around your fit bar — whether a borderline job goes to you or gets auto-rejected.",
+    locked:
+      "This role's instructions and its judgment-zone width live in src/data/agent-guidelines.md (\"Layer 3\" sections), not in a textbox here — edit that file directly; the agent re-reads it on every run. It can never skip the injection scan, drop a hard constraint, approve past a violation, or draft. AGENT_CONTROL=policy turns it off entirely (same behaviour as no model configured).",
+    knobs: [],
+  },
+  {
+    key: "approve",
+    n: 6,
     title: "The human approval gate",
     what: "The agent pauses and hands the decision to you: Approve, Approve with instructions, or Reject.",
     decides: "Nothing is drafted until you click.",
@@ -126,8 +136,18 @@ const LAYERS: Layer[] = [
     knobs: [],
   },
   {
+    key: "advise",
+    n: 7,
+    title: "Advise you (the AI advisor)",
+    what: "Not edited on this page. Whenever the agent stops for you — the approval gate, a low-fit rejection, or an ASK_USER question — an AI advisor reads the evaluation facts and your résumé (never the posting text) and recommends what to do, ranks the gaps, and writes the drafting-instruction presets you see above the Approve buttons.",
+    decides: "A recommendation, a gap ranking, and up to 4 tailored presets. Never a decision itself — you still click.",
+    locked:
+      "Every quote it uses must be a literal résumé substring, verified in code; a recommendation that isn't one of the real options is replaced. Its instructions live in src/data/agent-guidelines.md (\"Advisor agent\" section). With no model, a deterministic default fills the same panel.",
+    knobs: [],
+  },
+  {
     key: "draft",
-    n: 6,
+    n: 8,
     title: "Draft the application",
     what: "Writes a cover letter and re-tailors your resume for the role, grounded only in your resume and any instructions you typed.",
     decides: "Produces text. Employers, job titles, degrees and dates are copied exactly; only wording, grouping and emphasis change.",
@@ -139,7 +159,7 @@ const LAYERS: Layer[] = [
   },
   {
     key: "verify",
-    n: 7,
+    n: 9,
     title: "Check the AI's own work",
     what: "Reads back every sentence it wrote. Rewording can only clear a sentence; only an unsourced hard fact (a number, employer, tool or credential) can flag one.",
     decides: "Flags untraceable claims for you. It never silently deletes anything.",
@@ -252,7 +272,10 @@ export default function HarnessPage() {
       <p className="text-sm text-neutral-600 mb-4 leading-relaxed">
         Every layer the agent runs, in plain English, with the settings it actually uses. The brain itself is chosen in .env.local with LLM_PROVIDER — DeepSeek, Claude, or any local model on Ollama (no API key needed).
         The AI is the brain; this is the harness around it. Changes apply to the{" "}
-        <strong>{profileName || "active"}</strong> profile only.
+        <strong>{profileName || "active"}</strong> profile only. Two layers below (Decide, Advise)
+        are read-only here — their instructions live in{" "}
+        <code className="text-xs bg-neutral-100 px-1 py-0.5 rounded">src/data/agent-guidelines.md</code>,
+        a plain file the agent re-reads on every run, so edit it directly instead.
       </p>
 
       <div className="border border-neutral-200 bg-white rounded-2xl p-4 mb-5 shadow-xs flex flex-wrap items-center gap-3">

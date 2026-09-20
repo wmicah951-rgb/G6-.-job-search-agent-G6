@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db, ensureSchema } from "@/lib/db";
+import { db, ensureSchema, getActiveProfile, loadHarnessOverrides } from "@/lib/db";
+import { resolveSettings } from "@/lib/harnessSettings";
 import { applyLowFitOverride, type EvaluationResult } from "@/lib/agent";
 
 // The human overrules the agent's own low-fit auto-rejection ("Apply anyway").
@@ -20,7 +21,7 @@ export async function POST(req: NextRequest) {
 
   const c = db();
   const evalRes = await c.execute({
-    sql: "SELECT trace_json, state_json FROM evaluations WHERE job_id = ?",
+    sql: "SELECT trace_json, state_json, resume_snapshot FROM evaluations WHERE job_id = ?",
     args: [jobId],
   });
 
@@ -46,7 +47,14 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const result = applyLowFitOverride(prior, reason);
+  const jobRes = await c.execute({ sql: "SELECT raw_text FROM jobs WHERE id = ?", args: [jobId] });
+  const activeProfile = await getActiveProfile();
+  const settings = resolveSettings(await loadHarnessOverrides(activeProfile.id));
+  const result = await applyLowFitOverride(prior, reason, {
+    resumeText: (evalRes.rows[0].resume_snapshot as string) || null,
+    jobText: (jobRes.rows[0]?.raw_text as string) ?? "",
+    settings,
+  });
 
   await c.execute({
     sql: `UPDATE evaluations SET stage = ?, approval_note = ?, trace_json = ?,

@@ -211,12 +211,15 @@ export default function UploadPage() {
           </button>
         </div>
 
-        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-neutral-100">
+        {/* flex-wrap + min-w-0: an <input>'s intrinsic width (~20 chars by default) doesn't
+            shrink below that on its own, so on a narrow screen it was pushing the button off
+            the right edge of the page instead of giving way to it. */}
+        <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-neutral-100">
           <input
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             placeholder="New profile name (e.g. Profile 2 — PM track)"
-            className="flex-1 border border-neutral-300 rounded-md px-3 py-1.5 text-sm bg-white text-neutral-900 placeholder:text-neutral-400"
+            className="flex-1 min-w-0 border border-neutral-300 rounded-md px-3 py-1.5 text-sm bg-white text-neutral-900 placeholder:text-neutral-400"
           />
           <button
             onClick={handleCreate}

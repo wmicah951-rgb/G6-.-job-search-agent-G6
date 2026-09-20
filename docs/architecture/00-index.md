@@ -23,17 +23,19 @@ generated output you have to re-derive from a tool; it's the primary source.
 
 ## One-sentence summary of the system
 
-A deterministic, rule-based agent reads a job posting and a candidate's resume,
-walks through a small state machine that branches differently depending on what
-it finds (skill fit, hard-constraint conflicts, embedded prompt injection), stops
-and waits for a human Approve/Edit/Reject decision before producing any
+An agent reads a job posting and a candidate's resume in a select → act → observe loop: the
+harness computes which actions are permitted, an AI controller picks among them (or a guardrail
+decides when only one is allowed), and different inputs walk different-length paths (skill fit,
+hard-constraint conflicts, embedded prompt injection). When it stops it asks a human for an
+Approve/Edit/Reject decision, with an AI advisor's recommendation, before producing any
 application material, and logs every step as a structured trace
-(`state_before → observation → available_actions → selected_action → result → state_after`).
+(`state_before → observation → available_actions → selected_action → result → state_after`, plus who
+chose the step and the agent's own reasoning).
 
-The agent calls an AI model at three points — reading the posting, matching the
-résumé against it, and drafting after a human approves — and **only ever as a
-reader that reports observations**. It cannot approve, reject, skip a step or
-decide anything; every branch is deterministic code, and every claim the model
-makes is verified before it is trusted. With no model configured at all the agent
+The AI plays five roles — Reader, Matcher, Controller, Advisor and Drafter — each following its
+own layer of `src/data/agent-guidelines.md`, which the agent reads on every run. The Controller
+picks only from actions the harness permits; the AI cannot approve, skip a guardrail, set a stage
+or draft without a human. Every claim the model makes is verified before it is trusted, and the
+Controller and Advisor never see the posting text. With no model configured at all the agent
 still runs end to end and still produces the four required action sequences. See
 [10-setup-and-deployment.md](10-setup-and-deployment.md).

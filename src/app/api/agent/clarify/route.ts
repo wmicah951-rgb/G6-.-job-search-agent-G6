@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db, ensureSchema } from "@/lib/db";
+import { db, ensureSchema, getActiveProfile, loadHarnessOverrides } from "@/lib/db";
+import { resolveSettings } from "@/lib/harnessSettings";
 import { applyClarificationAnswer, type EvaluationResult } from "@/lib/agent";
 
 // Resolves an ASK_USER pause (see detectLocationAmbiguity in agent.ts) — the
@@ -21,7 +22,7 @@ export async function POST(req: NextRequest) {
 
   const c = db();
   const evalRes = await c.execute({
-    sql: "SELECT trace_json, state_json FROM evaluations WHERE job_id = ?",
+    sql: "SELECT trace_json, state_json, resume_snapshot FROM evaluations WHERE job_id = ?",
     args: [jobId],
   });
 
@@ -43,7 +44,14 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const result = applyClarificationAnswer(prior, answer as "compatible" | "violation");
+  const jobRes = await c.execute({ sql: "SELECT raw_text FROM jobs WHERE id = ?", args: [jobId] });
+  const activeProfile = await getActiveProfile();
+  const settings = resolveSettings(await loadHarnessOverrides(activeProfile.id));
+  const result = await applyClarificationAnswer(prior, answer as "compatible" | "violation", {
+    resumeText: (evalRes.rows[0].resume_snapshot as string) || null,
+    jobText: (jobRes.rows[0]?.raw_text as string) ?? "",
+    settings,
+  });
 
   await c.execute({
     sql: `UPDATE evaluations SET stage = ?, hard_constraint_violations = ?, trace_json = ?,

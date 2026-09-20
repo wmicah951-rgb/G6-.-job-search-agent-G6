@@ -1,5 +1,14 @@
 import OpenAI from "openai";
 import {
+  ADVISE_JSON_SCHEMA,
+  ADVISE_SYSTEM_PROMPT,
+  ADVISE_TOOL_DESCRIPTION,
+  ADVISE_TOOL_NAME,
+  type LlmAdvice,
+  CONTROL_JSON_SCHEMA,
+  CONTROL_SYSTEM_PROMPT,
+  CONTROL_TOOL_DESCRIPTION,
+  CONTROL_TOOL_NAME,
   ASSESS_JSON_SCHEMA,
   ASSESS_SYSTEM_PROMPT,
   ASSESS_TOOL_DESCRIPTION,
@@ -17,6 +26,7 @@ import {
   MAX_INPUT_CHARS,
   TIMEOUT_MS,
   userPrompt,
+  type LlmActionChoice,
   type LlmDraftResult,
   type LlmFitResult,
   type LlmPostingAssessment,
@@ -150,6 +160,87 @@ export function makeOpenAiCompatProvider(cfg: CompatConfig): LlmProvider {
       );
     },
 
+    adviseHuman(situation, opts) {
+      return callStructured<LlmAdvice>(
+        opts?.systemPrompt ?? ADVISE_SYSTEM_PROMPT,
+        situation,
+        ADVISE_TOOL_NAME,
+        ADVISE_TOOL_DESCRIPTION,
+        ADVISE_JSON_SCHEMA,
+        1400,
+        opts?.timeoutMs ?? 30000
+      );
+    },
+
+    async completeJson(system, user, maxTokens, timeoutMs) {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        const r = await client().chat.completions.create(
+          {
+            model: cfg.model(),
+            max_tokens: maxTokens,
+            temperature: 0,
+            messages: [
+              { role: "system", content: system + "\n\nRespond with ONLY a JSON object. No prose, no code fences." },
+              { role: "user", content: user },
+            ],
+            response_format: { type: "json_object" },
+          },
+          { signal: controller.signal }
+        );
+        return parseJsonLoose<unknown>(r.choices[0]?.message?.content);
+      } finally {
+        clearTimeout(timeout);
+      }
+    },
+
+    async chooseAction(situation, opts) {
+      // SMALL-MODEL MODE. A weak local model is unreliable at tool calls but fine at picking a
+      // number from a short list, so show a numbered menu and read back one digit.
+      if (opts?.plainMenu && opts.plainMenu.length > 0) {
+        const menu = opts.plainMenu;
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), opts.timeoutMs ?? TIMEOUT_MS);
+        try {
+          const r = await client().chat.completions.create(
+            {
+              model: cfg.model(),
+              max_tokens: 60,
+              temperature: 0,
+              messages: [
+                { role: "system", content: (opts.systemPrompt ?? CONTROL_SYSTEM_PROMPT).slice(0, 3500) },
+                {
+                  role: "user",
+                  content:
+                    `${situation}\n\nPick the next action. Options:\n` +
+                    menu.map((m, i) => `${i + 1}) ${m}`).join("\n") +
+                    `\n\nReply with ONLY the option number, then a dash, then one short reason.`,
+                },
+              ],
+            },
+            { signal: controller.signal }
+          );
+          const text = r.choices[0]?.message?.content ?? "";
+          const n = parseInt((text.match(/\d+/) ?? ["0"])[0], 10);
+          const action = menu[n - 1];
+          if (!action) throw new Error(`Model reply did not contain a valid option number: ${text.slice(0, 60)}`);
+          return { action, reasoning: text.replace(/^\s*\d+\s*[).:-]?\s*[-–:]?\s*/, "").trim() };
+        } finally {
+          clearTimeout(timeout);
+        }
+      }
+      return callStructured<LlmActionChoice>(
+        opts?.systemPrompt ?? CONTROL_SYSTEM_PROMPT,
+        situation,
+        CONTROL_TOOL_NAME,
+        CONTROL_TOOL_DESCRIPTION,
+        CONTROL_JSON_SCHEMA,
+        200,
+        opts?.timeoutMs ?? TIMEOUT_MS
+      );
+    },
+
     draftApplicationMaterials(matchedEvidence, missingSkills, jobText, resumeText, editNote, opts) {
       return callStructured<LlmDraftResult>(
         opts?.systemPrompt ?? DRAFT_SYSTEM_PROMPT,
@@ -158,7 +249,7 @@ export function makeOpenAiCompatProvider(cfg: CompatConfig): LlmProvider {
         DRAFT_TOOL_DESCRIPTION,
         DRAFT_JSON_SCHEMA,
         3000,
-        45000
+        opts?.timeoutMs ?? 45000
       );
     },
 

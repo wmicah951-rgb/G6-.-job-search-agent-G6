@@ -49,7 +49,7 @@ action sequences**, not the same steps with different numbers.
 
 ### 1. Obvious fit `[J001]`
 **Expect:** "Awaiting your approval", fit 100%. Scroll down: the amber **Human Approval
-Gate**. Open "Agent Decision Trace" — 4 steps ending in `request_human_approval`.
+Gate**. Open "Agent Decision Trace" — about 5 steps ending in `request_human_approval` then `advise_human`. Each step is tagged 🧠 AI thinking or ⚙ code rule and shows who chose it and the agent's reasoning. Above the approval buttons you should see **"The agent's recommendation"** (AI advisor) and **AI-recommended additions** presets, each hoverable to show the résumé line that backs it.
 
 **Should NOT happen:** no cover letter or résumé exists yet. Nothing is drafted before
 you approve.
@@ -67,7 +67,8 @@ only for the *same* skill at lower depth, never a different tool.
 
 ### 3. Just below the bar `[J2.5]` — **the override test**
 **Expect:** "Auto-rejected — low fit", fit ~53%. **No draft.** Below it, a white panel:
-*"The agent ruled this out — but you get the final say."*
+*"The agent ruled this out — but you get the final say"* with the AI advisor's own
+recommendation (usually "reject" here, with its reasoning) above the missing-skills list.
 
 Now:
 - Type a reason, e.g. *"I used Tableau and dbt in a university capstone project."*
@@ -81,9 +82,11 @@ missing list is **unchanged**. Open the trace — there is a new step
 The agent must never look like it changed its own mind.
 
 ### 4. Hard constraint `[J003]` — **not overridable**
-**Expect:** "Auto-rejected — hard constraint" listing 5+ years / clearance / on-site.
-Fit is ~60% — a decent skill match that was rejected anyway. That is the point: hard
-rules beat skill fit.
+**Expect:** "Auto-rejected — hard constraint" listing 5+ years / clearance / on-site. The
+Fit Score tile often shows **"—"**: the AI controller judged the violation final and chose
+to skip the (model-costing) fit evaluation entirely — a shorter, 3-step trace. If it did
+run fit first, expect a decent skill match rejected anyway. Either way, the point is the
+same: hard rules beat skill fit, whichever order the checks ran in.
 
 **Should NOT happen:** **no "Apply anyway" button here.** Years, clearance and on-site
 are your own stated non-negotiables, not a heuristic score. If you see the override
@@ -135,7 +138,9 @@ the scanner now ignores a match that is negated.)
 
 ## D. The draft, and proving it didn't make things up
 
-Go back to row 1 or 2 and click **Approve & Draft Application** (~10–20s).
+Go back to row 1 or 2. The instructions box is now pre-filled by the AI advisor's own
+drafting presets (not blank), so the green button reads **"Approve — use the
+instructions above"** by default, tagged *agent recommends*. Click it (~10–20s).
 
 **Expect** three things above the draft:
 

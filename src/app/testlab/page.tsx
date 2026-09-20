@@ -11,7 +11,7 @@ type TestCase = {
   injection: boolean;
   arrangement?: string;
   requires: "any" | "llm";
-  group: "required" | "branching" | "injection" | "control";
+  group: "required" | "class" | "branching" | "injection" | "control";
   profileSensitive?: boolean;
 };
 
@@ -36,11 +36,31 @@ type Result = {
     missingSkills: string[];
     matchStrength: Record<string, string>;
     fitReasoning: string | null;
+    guidelines?: string | null;
+    advice?: {
+      source: "model" | "policy";
+      headline: string;
+      recommendation: string;
+      recommendationWhy: string;
+      strengths: { requirement: string; evidenceQuote: string }[];
+      rankedGaps: { gap: string; importance: string; why: string }[];
+      draftPresets: { label: string; instruction: string; evidenceQuote: string }[];
+    } | null;
+    steps?: {
+      step: number;
+      action: string;
+      chosenBy: "model" | "harness" | "policy" | null;
+      brain: "ai" | "code" | null;
+      thinking: string | null;
+      permitted: string[];
+      result: string;
+    }[];
   };
 };
 
 const GROUP_LABEL: Record<string, string> = {
   required: "The four the assignment requires",
+  class: "Class-page scenarios (rebuilt from the Week 2 Evaluate page; swap in the official kit files when you have them)",
   branching: "Other branches the agent can take",
   injection: "Prompt injection, escalating in subtlety",
   control: "False-positive control",
@@ -111,7 +131,7 @@ export default function TestLabPage() {
   const failed = done.filter((r) => !r.pass).length;
   const skipped = Object.values(results).filter((r) => r.skipped).length;
 
-  const groups = ["required", "branching", "injection", "control"] as const;
+  const groups = ["required", "class", "branching", "injection", "control"] as const;
 
   return (
     <div className="w-full max-w-5xl mx-auto pb-24">
@@ -348,6 +368,73 @@ export default function TestLabPage() {
                               <div className="text-neutral-700 border-l-2 border-sky-300 pl-2">
                                 <span className="text-neutral-500">Model&apos;s reasoning: </span>
                                 {r.actual.fitReasoning}
+                              </div>
+                            )}
+
+                            {/* The agent's brain, step by step */}
+                            {r.actual.steps && r.actual.steps.length > 0 && (
+                              <div className="mt-2 border-t border-neutral-200 pt-2">
+                                <div className="font-semibold text-neutral-900 mb-1">
+                                  🧠 The agent&apos;s brain, step by step
+                                  {r.actual.guidelines && (
+                                    <span className="ml-2 font-normal text-neutral-500">rulebook: {r.actual.guidelines}</span>
+                                  )}
+                                </div>
+                                <ol className="space-y-1.5">
+                                  {r.actual.steps.map((st) => (
+                                    <li key={st.step} className="border border-neutral-200 rounded-lg p-2 bg-neutral-50/70">
+                                      <div className="flex flex-wrap items-center gap-1.5">
+                                        <span className="font-mono font-bold">{st.step}. {st.action}</span>
+                                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${st.brain === "ai" ? "bg-indigo-600 text-white" : "bg-neutral-300 text-neutral-800"}`}>
+                                          {st.brain === "ai" ? "🧠 AI thinking" : "⚙ code rule"}
+                                        </span>
+                                        {st.chosenBy && (
+                                          <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${st.chosenBy === "model" ? "bg-indigo-100 text-indigo-800" : st.chosenBy === "harness" ? "bg-neutral-200 text-neutral-700" : "bg-amber-100 text-amber-800"}`}>
+                                            {st.chosenBy === "model" ? "AI chose" : st.chosenBy === "harness" ? "guardrail" : "default policy"}
+                                          </span>
+                                        )}
+                                        {st.permitted.length > 1 && (
+                                          <span className="text-[10px] text-neutral-500">options: {st.permitted.join(" | ")}</span>
+                                        )}
+                                      </div>
+                                      {st.thinking && (
+                                        <div className="mt-1 text-indigo-900 bg-indigo-50 border border-indigo-200 rounded px-2 py-1 whitespace-pre-line">
+                                          {st.thinking}
+                                        </div>
+                                      )}
+                                      <div className="mt-1 text-neutral-600">{st.result.slice(0, 260)}</div>
+                                    </li>
+                                  ))}
+                                </ol>
+                              </div>
+                            )}
+
+                            {/* What the agent tells the person at the stop */}
+                            {r.actual.advice && (
+                              <div className="mt-2 border border-indigo-200 bg-indigo-50/60 rounded-lg p-2.5">
+                                <div className="font-semibold text-indigo-950 mb-1">
+                                  The agent&apos;s recommendation to the person{" "}
+                                  <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-white border border-indigo-300 text-indigo-800">
+                                    {r.actual.advice.source === "model" ? "AI advisor" : "default policy (no AI)"}
+                                  </span>
+                                </div>
+                                <div className="text-neutral-900">{r.actual.advice.headline}</div>
+                                <div className="text-neutral-700 mt-0.5">
+                                  Recommends <strong>{r.actual.advice.recommendation}</strong>
+                                  {r.actual.advice.recommendationWhy ? `: ${r.actual.advice.recommendationWhy}` : ""}
+                                </div>
+                                {r.actual.advice.rankedGaps.length > 0 && (
+                                  <div className="mt-1">
+                                    <span className="text-neutral-500">Gaps, ranked: </span>
+                                    {r.actual.advice.rankedGaps.map((g) => `${g.gap} (${g.importance})`).join(" › ")}
+                                  </div>
+                                )}
+                                {r.actual.advice.draftPresets.length > 0 && (
+                                  <div className="mt-1">
+                                    <span className="text-neutral-500">Tailored drafting presets: </span>
+                                    {r.actual.advice.draftPresets.map((p) => p.label).join(" · ")}
+                                  </div>
+                                )}
                               </div>
                             )}
                           </div>

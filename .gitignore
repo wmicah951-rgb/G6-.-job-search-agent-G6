@@ -32,11 +32,8 @@ yarn-error.log*
 
 # env files
 .env*
-# Group project: committed on purpose so every teammate has working
-# Turso/LLM credentials without separately requesting their own keys.
-!.env.local
-# Safe placeholder template (no real values) for anyone who doesn't have the
-# real .env.local shared with them yet.
+# .env.local holds the Turso token and model API keys: it must NEVER be committed.
+# Share it privately (Discord/Drive). .env.example is the safe, value-free template.
 !.env.example
 
 # vercel

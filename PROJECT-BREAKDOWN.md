@@ -24,29 +24,35 @@ A script runs the same steps every time and changes only the output text. This a
 **chooses its next action from a set of genuinely different actions**, so different
 inputs produce different-shaped runs.
 
-| Input | Path it takes | Steps |
-|---|---|---|
-| Strong match, no rules broken | scan → evaluate → constraints → **ask a human** | 4 |
-| Too many requirements unmet | scan → evaluate → constraints → **reject: low fit** | 4 |
-| Needs 5+ yrs / clearance / on-site | scan → evaluate → constraints → **reject: hard rule** | 4 |
-| Posting contains a hidden instruction | scan → **flag injection** → evaluate → constraints → ask a human | 5 |
-| Posting never states remote/on-site | scan → evaluate → constraints → **ask the user a question** | 4 |
+Real runs (DeepSeek controller; `advise_human` ends every run that stops for a person):
 
-Two of those terminate without ever involving a human. One adds a step that exists on
-no other path. One stops *mid-evaluation* to ask a question. **The shape of the run
-differs, not just the numbers in it** — which is the actual test for agentic design.
+| Input | Executed path | Steps |
+|---|---|---|
+| Strong match, no rules broken | scan_for_injection → check_hard_constraints → evaluate_fit → request_human_approval → advise_human | 5 |
+| Too many requirements unmet | scan_for_injection → check_hard_constraints → evaluate_fit → reject_low_fit → advise_human | 5 |
+| Needs 5+ yrs / clearance / on-site | scan_for_injection → check_hard_constraints → reject_hard_constraint (the controller skipped the fit evaluation: the outcome was already final) | 3 |
+| Posting contains a hidden instruction | scan_for_injection → flag_injection_and_continue → check_hard_constraints → evaluate_fit → request_human_approval → advise_human | 6 |
+| Posting never states remote/on-site | scan_for_injection → check_hard_constraints → evaluate_fit → ask_user_clarification → advise_human | 5 |
+
+One run ends in a rejection with no fit score at all. One adds a step that exists on no
+other path. One stops *mid-evaluation* to ask a question. **The shape of the run differs,
+not just the numbers in it** — which is the actual test for agentic design. Each step is
+tagged as chosen by the **AI controller**, a **guardrail** (only one action permitted) or
+the **default policy**, with the agent's own reasoning shown.
 
 ---
 
 ## 3. The architecture in one line
 
-> **The LLM is the brain. Our code is the harness. The brain only ever observes; the
-> harness always decides.**
+> **The LLM is the brain. Our code is the harness. The brain chooses the next action, but
+> only from the list the harness permits; the harness enforces every rule.**
 
-The model is asked narrow questions ("what does this posting require?", "is there
-anything in here aimed at a screening system?"). It can never approve, reject, draft
-without permission, or skip a step. Every decision — reject, pause, ask, draft — is
-plain deterministic TypeScript.
+The model reads ("what does this posting require?", "is anything here aimed at a screening
+system?") and, at each step, **picks the next action** from the actions the harness currently
+permits (`permittedActions()` in agent.ts). Where one action is permitted a guardrail decides;
+where several are, the model chooses and its reason is logged. It can never skip the injection
+scan, drop a hard constraint, approve past a violation, or draft without a human, because those
+actions are simply not on its list. It never sees the posting text.
 
 This is also why the brain is swappable: `LLM_PROVIDER=deepseek | anthropic | custom`.
 With **no model at all**, the app still runs and still passes the four required tests on
@@ -54,17 +60,26 @@ a keyword fallback.
 
 ---
 
-## 4. The nine-step loop
+## 4. The loop (same numbering as `G6-AGENT.md` Layer 3)
 
-1. **Scan for injection** — is the posting trying to talk to the AI?
+Steps 1–5 may run in the order the AI controller picks (the scan is always first).
+
+1. **Scan for injection** — is the posting trying to talk to the AI? (keyword barrier + AI Reader)
 2. *(only if found)* **Flag and continue** — log it, refuse it, keep going.
-3. **Evaluate fit** — compare résumé to requirements, produce a score.
-4. **Check hard constraints** — years, clearance, work location.
+3. **Evaluate fit** — the AI Matcher compares résumé to requirements; every match needs a résumé quote.
+4. **Check hard constraints** — years, clearance, work location. Code only.
 5. *(only if unclear)* **Ask the user** — the `ASK_USER` action.
-6. **Decide** — reject low fit / reject hard rule / request human approval.
+6. **Decide** — reject low fit / reject hard rule / request human approval. The controller chooses
+   inside the permitted list; near the bar (the judgment zone) it weighs the evidence.
+   **6b. Advise** — the AI Advisor tells the person what it thinks: a recommendation, gaps ranked
+   by importance, drafting presets built from their own résumé. Never shown the posting text.
 7. **Human decides** — Approve, Edit-with-instructions, or Reject.
-8. **Draft** — cover letter + tailored résumé, grounded in résumé.md.
-9. **Verify the draft** — check every claim; flag anything untraceable.
+8. **Draft** — the AI Drafter writes the cover letter + tailored résumé, only after step 7.
+9. **Verify the draft** — code checks every claim; flags anything untraceable.
+10. **Re-score the rewrite** — same yardstick, before → after, unearned gains flagged.
+
+The AI plays five roles (Reader, Matcher, Controller, Advisor, Drafter), each following its own
+layer of `src/data/agent-guidelines.md`, which the agent reads on every run.
 
 Every step is written to a trace: `state before → observation → available actions →
 chosen action → result → state after`.
@@ -223,7 +238,10 @@ Core files: `src/lib/agent.ts` (the harness), `src/lib/draftVerifier.ts` (the ch
 | `scripts/verify-tests.ts` | Draft checking, incl. false-alarm fixtures | 18/18 |
 | `scripts/local-e2e.mjs` | Whole app over HTTP | 48/48 |
 | `scripts/stress-draft.mjs` | Résumés are actually submittable | all pass |
-| `scripts/stress-suite.ts` | Coverage, arithmetic, monotonicity, discrimination, stability, edge cases, post-draft | 64/64 |
+| `scripts/stress-suite.ts` | Coverage, arithmetic, monotonicity, discrimination, stability, edge cases, post-draft | 64/64 (with the advisor and controller live) |
+| Test Lab tab (19 tests, incl. K001–K004 class-page scenarios) | Every test through the real endpoint, with the agent's brain shown | 19/19 |
+| `scripts/hostile-model-test.mjs` | A lying Reader, Matcher, Controller and Advisor cannot change a decision or slip in a fabricated preset | pass |
+| `scripts/guidelines-proof.ts` | The rulebook file really drives the agent's choices; a file that tries to disable guardrails changes nothing | pass |
 | `scripts/profile-matrix.ts` | Accuracy across three careers, requirement by requirement | diagonal |
 
 There is also a **Harness tab** (`/harness`) showing every layer in plain English with

@@ -88,7 +88,12 @@ def render(trace, start=1):
     for t in trace:
         if t["step"] < start:
             continue
-        out.append(f"[Step {t['step']}] selected_action = {t['action']}")
+        who = {"model": "AI controller chose", "harness": "guardrail: only action permitted", "policy": "default policy"}.get(t.get("chosenBy") or "", "")
+        out.append(f"[Step {t['step']}] selected_action = {t['action']}" + (f"   ({who})" if who else ""))
+        if len(t.get("available") or []) > 1:
+            out.append(wrap("  permitted:   ", " | ".join(t["available"])))
+        if t.get("modelReasoning"):
+            out.append(wrap("  why:         ", t["modelReasoning"]))
         out.append(wrap("  observation: ", t["observation"]))
         out.append(wrap("  result:      ", t["result"]))
         out.append(f"  stage after: {t['stageAfter']}")
@@ -122,7 +127,8 @@ P("<b>Start here in the repository:</b> <font face='Courier'>DOCS-INDEX.md</font
 P("<b>AI tools used to build this project:</b>")
 B("Claude Code (Anthropic; Claude Sonnet 5 and Claude Opus 5) &mdash; design, implementation, debugging and testing.")
 B(f"DeepSeek (<font face='Courier'>deepseek-chat</font>) &mdash; used <i>by the deployed agent itself</i> as a "
-  "reader at three points (reading the posting, matching the r&eacute;sum&eacute;, drafting after approval). "
+  "at four points: reading the posting, matching the r&eacute;sum&eacute;, drafting after approval, and "
+  "<b>choosing the agent&rsquo;s next action</b> from the list the harness permits. "
   "The brain is swappable to Claude, any OpenAI-compatible endpoint, or a local model on Ollama; with no model "
   "at all the agent still runs and still produces all four required sequences.")
 story.append(Spacer(1, 8))
@@ -132,7 +138,7 @@ table([
     ["Test", "Scenario", "Result", "Executed action sequence"],
     ["J001", cell("Obvious fit"), cell(f"Paused for human approval (fit {pct(RUNS['J001']['fitScore'])})"), cell(seq("J001"))],
     ["J002", cell("Partial fit"), cell(f"Auto-rejected, low fit ({pct(RUNS['J002']['fitScore'])}, bar 60%)"), cell(seq("J002"))],
-    ["J003", cell("Hard-constraint conflict"), cell(f"Auto-rejected on the rule despite {pct(RUNS['J003']['fitScore'])} skill fit"), cell(seq("J003"))],
+    ["J003", cell("Hard-constraint conflict"), cell("Auto-rejected on the rule; the controller skipped the fit evaluation because the outcome was already final"), cell(seq("J003"))],
     ["J004", cell("Prompt injection"), cell("Injection refused, evaluated normally, paused for approval"), cell(seq("J004"))],
 ], [0.45, 1.05, 1.9, 3.1])
 story.append(Spacer(1, 6))
@@ -155,8 +161,10 @@ B("<b>Never fabricate.</b> A skill counts as matched only with a verbatim r&eacu
   "neither the r&eacute;sum&eacute; nor the human&rsquo;s note. Flagged lines are shown to the human, never "
   "silently removed. Employers, job titles, degrees and dates are carried over verbatim.")
 B("<b>Job text is untrusted data.</b> The posting <i>is</i> read by the model &mdash; that is what the "
-  "AI reader is for &mdash; but only as data. The model returns observations only and has no way to "
-  "approve, reject, skip a step or set a stage; every branch is deterministic code. Injection is detected "
+  "AI reader is for &mdash; but only as data. The model can only report observations or pick from a list "
+  "of actions the harness permits; it cannot approve, reject, skip a guardrail or set a stage, and the "
+  "permitted list is computed by deterministic code. When it chooses an action it is shown a summary of "
+  "counts and numbers, never the posting text. Injection is detected "
   "by a keyword floor that always runs <i>and</i> the AI reader; every snippet the model reports must "
   "appear verbatim in the posting.")
 B("<b>Hard constraints override skill fit.</b> Years, clearance, relocation and work location are checked "
@@ -168,8 +176,10 @@ B("<b>Real human-in-the-loop pause.</b> <font face='Courier'>runAgent()</font> c
 
 # =========================================================== 2
 P("2. Architecture", h1)
-P("<b>The model is the brain; our code is the harness. The brain only observes; the harness always "
-  "decides.</b>", body)
+P("<b>The model is the brain; our code is the harness. The brain chooses the next action, but only from the "
+  "list the harness permits; the harness enforces every rule.</b> Before each step the harness computes the "
+  "permitted actions from the current state. Where exactly one is permitted a guardrail decides; where "
+  "several are, the AI controller picks one and its reason is logged; with no model the built-in policy picks.", body)
 P("2.1 Mapping to the class&rsquo;s reference architecture", h2)
 table([
     ["Layer", "Class reference", "What we built"],
@@ -329,16 +339,33 @@ P("Injection defence, escalating: J004 and J008 (explicit, HTML comment) are cau
 P("8. Reflection: what makes this an agent, not a workflow", h1)
 P("A workflow runs the same steps for every input and varies only the values. Here the <b>executed "
   "sequence itself</b> changes with what the agent observes:")
-B("<b>J003</b> ends after 4 steps at reject_hard_constraint and never reaches a human, despite a strong skill match.")
-B("<b>J002</b> also stops, at the same decision point, for an independently checked and differently logged reason.")
+B("<b>J003</b> ends after only 3 steps and never reaches a human: the controller chose to check the hard "
+  "constraints first, saw a final violation, and rejected without spending a model call on fit evaluation. "
+  "No other test takes that shorter path.")
+B("<b>J002</b> stops at low fit for a different, independently logged reason, after the fit evaluation the controller chose to run.")
 B("<b>J004</b> takes a step, flag_injection_and_continue, that exists only when the input contains an injection.")
 B("<b>J007</b> stops mid-evaluation to ask, and the same paused run resumes to different outcomes depending on the answer.")
-P("Sequences range from 4 to 10 steps across the test set, and the four required tests produce 4 distinct "
+P("Sequences range from 3 to 9 steps across the test set, and the four required tests produce 4 distinct "
   "sequences, verified programmatically.")
+P("Who chose each step (from the real traces)", h2)
+P("Every trace step records whether the <b>AI controller</b> chose it from two or more permitted actions, "
+  "whether a <b>guardrail</b> decided because only one action was permitted, or whether the "
+  "<b>default policy</b> did. In these runs the controller made the choices below; each reason is the "
+  "model&rsquo;s own words, logged at run time:")
+_rows = [["Run", "Controller's choice", "Reason it gave"]]
+for _rid in ("J001", "J003", "J004"):
+    for _t in RUNS[_rid]["trace"]:
+        if _t.get("chosenBy") == "model":
+            _rows.append([_rid, cell(_t["action"] + "   (options: " + " | ".join(_t["available"]) + ")"), cell(_t.get("modelReasoning") or "")])
+table(_rows, [0.5, 2.5, 3.5])
+P("The guardrails bound that choice. A hostile controller that always tries to jump to approval or to call an "
+  "action that does not exist (<font face='Courier'>scripts/hostile-model-test.mjs</font>) cannot skip the "
+  "hard-constraint check or run anything outside the vocabulary, and the harness logs each time it overrules it.")
 P("Where the guardrails actually did something", h2)
 P("The honest version of the injection result: the posting <i>is</i> shown to a model, so a model can be "
-  "fooled into <i>saying</i> something. What makes the agent safe is that the model has no way to "
-  "<i>act</i> &mdash; it returns observations, and deterministic code makes every decision. The local-model "
+  "fooled into <i>saying</i> something. What makes the agent safe is that the model can only pick from actions "
+  "the harness permits, so it has no way to <i>act</i> outside the guardrails: deterministic code computes what is "
+  "permitted and enforces every hard rule. The local-model "
   "test shows this directly: a small model missed three subtle injections, and the agent still did not obey "
   "them or draft without a person. Testing also caught real defects in our own guardrails, which we fixed: "
   "an injection scanner that flagged innocent postings (&lsquo;we do not automatically reject anyone&rsquo;), "

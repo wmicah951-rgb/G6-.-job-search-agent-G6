@@ -9,6 +9,7 @@ Hand this to a teammate and they can find their way in without asking.
 
 | # | File | Who it's for | What it answers |
 |---|---|---|---|
+| 0 | **[src/data/agent-guidelines.md](src/data/agent-guidelines.md)** | **The agent itself, and anyone tuning it.** | **The rulebook the agent reads on every run.** Its goal, the controller's instructions, judgment guidance, the width of the judgment zone, and the "Never" list. Edit it and the next run behaves differently. Proven by `scripts/guidelines-proof.ts`. |
 | 1 | **[PROJECT-BREAKDOWN.md](PROJECT-BREAKDOWN.md)** | Everyone. **Start here.** | The whole system in 15 sections, one per slide. What it does, why it counts as an agent, every guardrail, how scoring works, the evidence. |
 | 2 | **[G6-AGENT.md](G6-AGENT.md)** | Presenting in class | The same system in plain language, layer by layer. No code. This is the one to have open while talking. |
 | 3 | **[TESTING-GUIDE.md](TESTING-GUIDE.md)** | Anyone verifying it works | Click-through script: what to click, what you should see, and what should **not** happen. |

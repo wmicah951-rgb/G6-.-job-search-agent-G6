@@ -161,3 +161,23 @@ state_before → observation → available_actions → selected_action → resul
 not just the one it picked. That's what proves this is a genuine choice among
 alternatives rather than a hard-coded next line of code. See
 [08-testing-evidence.md](08-testing-evidence.md) for real generated examples.
+
+
+## Update: the agent now selects its own next action (controller loop)
+
+`runAgent()` is a select -> act -> observe loop, not a fixed pipeline. Each turn:
+
+1. `permittedActions(state, ctx)` computes, from state alone, which actions are allowed now.
+2. `selectAction()` picks one. One permitted action = a guardrail decides (`chosenBy: "harness"`).
+   Two or more = the AI controller chooses from a structured summary of state that contains
+   counts and numbers but never the posting text (`chosenBy: "model"`, reason recorded). No model,
+   a failed call, or a proposal outside the permitted list = the default policy chooses
+   (`chosenBy: "policy"`, refusals recorded in `overruled`).
+3. The chosen executor runs and logs a full trace step.
+
+What varies at run time: the order of `evaluate_fit` / `check_hard_constraints`; whether to skip
+`evaluate_fit` once a hard violation is known; and, inside the judgment zone (within
+`JUDGMENT_MARGIN` = 10 points of the candidate's minimum fit), `request_human_approval` versus
+`reject_low_fit`. What can never vary: the injection scan is first, a violation always ends in
+`reject_hard_constraint`, clear passes and fails are not judgment calls, and only
+`applyHumanDecision()` can draft. `AGENT_CONTROL=policy` turns the controller off.

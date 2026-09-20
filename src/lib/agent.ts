@@ -33,7 +33,13 @@ import {
   isLlmConfigured,
   draftApplicationMaterials,
   assessPostingWithLlm,
+  chooseActionWithLlm,
+  adviseHumanWithLlm,
+  completeJsonWithLlm,
+  isSmallModel,
 } from "./llmEvaluator";
+import { ADVISE_SYSTEM_PROMPT, type AdviceMode, type LlmFitResult } from "./llm/types";
+import { loadGuidelines, DEFAULT_JUDGMENT_MARGIN, withRole, type Guidelines } from "./guidelines";
 import { verifyDraft, type DraftVerification } from "./draftVerifier";
 import { DEFAULT_SETTINGS, type HarnessSettings } from "./harnessSettings";
 
@@ -67,6 +73,12 @@ export interface AgentState {
   // Minimum fit (0-1) below which the job is auto-rejected. Read from the
   // candidate's preferences.md ("Minimum fit: 60%"), default 0.6.
   minFit?: number;
+  // Set at the start of each run from agent-guidelines.md: the width of the judgment zone,
+  // and which version of the file the controller read.
+  judgmentMargin?: number;
+  guidelines?: string;
+  // The advisor's recommendation to the person (see the advisor section below).
+  advice?: Advice | null;
   fitScore: number | null;
   matchedSkills: string[];
   missingSkills: string[];
@@ -139,7 +151,31 @@ export interface AgentState {
   } | null;
 }
 
+// Who picked the action at this step. "model" = the controller chose among two or more
+// actions the harness permitted; "harness" = only one action was permitted, so a
+// guardrail (not a choice) decided; "policy" = the built-in default policy chose because
+// no model is configured, the model failed, or it proposed something not permitted.
+export type ChosenBy = "model" | "harness" | "policy";
+export interface StepMeta {
+  chosenBy: ChosenBy;
+  modelReasoning?: string;
+  // Set when the model proposed something the harness refused.
+  overruled?: string;
+  // Which version of agent-guidelines.md the controller was reading when it chose.
+  guidelines?: string;
+  // "ai" = an AI produced this step's output; "code" = a deterministic rule did.
+  brain?: "ai" | "code";
+  // The agent's own explanation for the step, in words (the AI's reasoning, or what it read).
+  thinking?: string;
+}
+
 export interface TraceStep {
+  guidelines?: string;
+  brain?: "ai" | "code";
+  thinking?: string;
+  chosenBy?: ChosenBy;
+  modelReasoning?: string;
+  overruled?: string;
   step: number;
   stateBefore: Partial<AgentState>;
   observation: string;
@@ -533,6 +569,75 @@ export interface FitEvaluation {
   note: string;
 }
 
+// SMALL-MODEL MATCHER. A weak model cannot be trusted to copy a résumé quote word for word (the
+// normal matcher drops any match whose quote is not a literal résumé substring, so a weak
+// model scores 0%). Instead the harness numbers the résumé lines and the model only points at
+// line numbers. The "quote" is then the résumé's own line, exact by construction, and it still
+// passes the same substring check as everything else.
+async function smallModelFit(resumeText: string, jobText: string, settings: HarnessSettings): Promise<LlmFitResult> {
+  const lines = resumeText
+    .split("\n")
+    .map((l) => l.trim().replace(/^[-*]\s*/, ""))
+    .filter((l) => l.length >= 12 && !l.startsWith("#"))
+    .slice(0, 60);
+  const numbered = lines.map((l, i) => `${i + 1}. ${l}`).join("\n");
+  const guide = loadGuidelines();
+  const system = withRole(
+    "You compare a candidate's résumé to a job posting. List only real screening requirements (skills, tools, degrees, certifications, years of experience). Do NOT list job duties, soft skills, the company blurb or benefits. Never claim the résumé shows something it does not.",
+    guide.roles.matcher
+  ).slice(0, 3000);
+  const user =
+    `JOB POSTING:\n${jobText.slice(0, settings.llmMaxInputChars)}\n\nRESUME LINES:\n${numbered}\n\n` +
+    `For each requirement give: "requirement" (short), "priority" ("required", or "preferred" if it is a nice-to-have), ` +
+    `"lines" (the résumé line NUMBERS that prove it, or [] if none), "strength" ("full", or "partial" if only internship/coursework/basics).\n` +
+    `Reply as JSON: {"requirements":[{"requirement":"...","priority":"required","lines":[1],"strength":"full"}],"summary":"<one sentence on the overall fit>"}`;
+  const raw = (await completeJsonWithLlm(system, user, 900, settings.llmTimeoutMs)) as {
+    requirements?: { requirement?: string; priority?: string; lines?: unknown; strength?: string }[];
+    summary?: string;
+  };
+  const matched: LlmFitResult["matchedRequirements"] = [];
+  const missingRequirements: string[] = [];
+  const missingPreferredRequirements: string[] = [];
+  for (const r of Array.isArray(raw.requirements) ? raw.requirements : []) {
+    const name = String(r.requirement ?? "").trim().slice(0, 120);
+    if (!name) continue;
+    const priority = r.priority === "preferred" ? "preferred" : "required";
+    const pointed = (Array.isArray(r.lines) ? r.lines : []).map((n) => parseInt(String(n), 10)).find((n) => n >= 1 && n <= lines.length);
+    // Verify-or-repair: a weak model often points at the wrong line. The line must share a
+    // distinctive word with the requirement; if it does not, the harness looks for the résumé
+    // line that does, and if there is none the requirement counts as missing.
+    const words = (t: string) =>
+      t.toLowerCase().split(/[^a-z0-9+#/]+/).filter((w) => w.length >= 3 && !REQ_STOPWORDS.has(w) && !["and", "the", "for", "with", "that", "from"].includes(w));
+    const want = words(name);
+    const overlap = (line: string) => {
+      const have = new Set(words(line));
+      return want.filter((w) => have.has(w)).length;
+    };
+    let idx: number | undefined;
+    if (pointed && overlap(lines[pointed - 1]) > 0) idx = pointed;
+    else if (want.length > 0) {
+      let best = 0;
+      lines.forEach((l, i) => {
+        const o = overlap(l);
+        if (o > best) {
+          best = o;
+          idx = i + 1;
+        }
+      });
+    }
+    if (idx) {
+      matched.push({ requirement: name, evidenceQuote: lines[idx - 1], priority, strength: r.strength === "partial" ? "partial" : "full" });
+    } else if (priority === "preferred") missingPreferredRequirements.push(name);
+    else missingRequirements.push(name);
+  }
+  return {
+    matchedRequirements: matched,
+    missingRequirements,
+    missingPreferredRequirements,
+    reasoning: String(raw.summary ?? "").slice(0, 400) || "Small-model matcher: pointed at résumé lines for each requirement.",
+  };
+}
+
 // The one step in the whole agent that may call an LLM (see llmEvaluator.ts).
 // Always falls back to the deterministic keyword matcher — on no API key, an
 // API error, a timeout, or a response with zero verifiable matches — so the
@@ -550,16 +655,25 @@ async function performFitEvaluation(
 ): Promise<FitEvaluation> {
   if (isLlmConfigured()) {
     try {
-      const llmResult = await evaluateFitWithLlm(resumeText, jobText, {
-        systemPrompt: settings.prompts.fit,
-        timeoutMs: settings.llmTimeoutMs,
-        maxInputChars: settings.llmMaxInputChars,
-      });
+      const llmResult = isSmallModel()
+        ? await smallModelFit(resumeText, jobText, settings)
+        : await evaluateFitWithLlm(resumeText, jobText, {
+            systemPrompt: settings.prompts.fit,
+            timeoutMs: settings.llmTimeoutMs,
+            maxInputChars: settings.llmMaxInputChars,
+          });
       const lowerResume = resumeText.toLowerCase();
       const matchedEvidence: Record<string, string> = {};
       const matched: string[] = [];
       const matchStrength: Record<string, "full" | "partial"> = {};
       let droppedCount = 0;
+      // Denominator contribution of a dropped (proposed-but-unverifiable) match, weighted the
+      // SAME way a genuinely missing requirement is (required=1, preferred=0.5). Before this,
+      // every dropped match added a flat 1 regardless of priority, so a proposed-but-unverified
+      // PREFERRED match deflated the score more than if the model had just honestly called it
+      // missing (missing preferred only costs 0.5) — a model that tried and failed verification
+      // was penalized harder than one that gave up outright. Verified by scripts/verify-tests.ts.
+      let droppedWeight = 0;
       let matchedWeight = 0;
       let partialCount = 0;
 
@@ -582,6 +696,7 @@ async function performFitEvaluation(
           if (strength === "partial") partialCount += 1;
         } else {
           droppedCount += 1;
+          droppedWeight += m.priority === "preferred" ? 0.5 : 1;
         }
       }
 
@@ -607,7 +722,7 @@ async function performFitEvaluation(
       }
       const missing = [...missingRequired, ...missingPreferred];
       const total =
-        matchedWeight + droppedCount + missingRequired.length + 0.5 * missingPreferred.length;
+        matchedWeight + droppedWeight + missingRequired.length + 0.5 * missingPreferred.length;
       const score = total === 0 ? 0 : Math.round((matchedWeight / total) * 100) / 100;
 
       // CONFIDENCE GUARD. If barely any requirements could be read out of the posting,
@@ -789,57 +904,564 @@ type LogFn = (
   selectedAction: string,
   result: string,
   before: AgentState,
-  after: AgentState
+  after: AgentState,
+  meta?: StepMeta
 ) => void;
 
-// The core branch: three materially different paths, chosen from state alone.
-// Shared by runAgent() (the normal path) and applyClarificationAnswer() (the
-// resume-after-ASK_USER path), so both go through the exact same tested
-// decision logic instead of two copies that could drift apart.
-function decideAfterConstraints(state: AgentState, log: LogFn): AgentState {
-  if (state.hardConstraintViolations.length > 0) {
-    const before = { ...state };
+// Red flags: the things a reader should notice before trusting this evaluation. Derived
+// ONLY from state the agent already observed (never from model prose), so it cannot be
+// steered by the posting: injection attempts, broken hard constraints, an unreadable
+// work arrangement, and a score the agent itself does not stand behind.
+function computeRedFlags(state: AgentState): string[] {
+  const flags: string[] = [];
+  for (const sn of state.injectionSnippets) {
+    flags.push(`Prompt injection in posting (refused): "${sn.length > 90 ? sn.slice(0, 90) + "..." : sn}"`);
+  }
+  for (const v of state.hardConstraintViolations) flags.push(`Hard constraint: ${v}`);
+  if (state.workArrangement === "unknown") {
+    flags.push("Posting never states whether the role is remote, hybrid or on-site");
+  }
+  if (state.lowConfidence) flags.push("Fit score is low-confidence: too few requirements could be read from the posting");
+  const requiredGaps = state.missingSkills.filter((m) => !(state.missingPreferredSkills ?? []).includes(m));
+  if (requiredGaps.length > 0) flags.push(`Required qualification(s) not evidenced in resume: ${requiredGaps.join("; ")}`);
+  return flags;
+}
+
+// Width of the "judgment zone" around the candidate's minimum fit. Outside it the outcome
+// is not a judgment call (a clear pass goes to the human, a clear fail is rejected) so the
+// harness permits only that action. Inside it BOTH request_human_approval and
+// reject_low_fit are permitted and the controller chooses from the evidence.
+export const JUDGMENT_MARGIN = DEFAULT_JUDGMENT_MARGIN;
+
+// The decision actions. The state alone determines which of them are PERMITTED; which of
+// the permitted ones runs is the controller's choice when there is more than one.
+function applyDecision(state: AgentState, action: string, permitted: string[], log: LogFn, meta?: StepMeta): AgentState {
+  const minFit = state.minFit ?? LOW_FIT_THRESHOLD;
+  const score = state.fitScore ?? 0;
+  const before = { ...state };
+
+  if (action === "reject_hard_constraint") {
     state = { ...state, stage: "rejected_hard_constraint" };
     log(
-      `State shows hard constraint violation(s): ${before.hardConstraintViolations.join("; ")}`,
-      ["reject_hard_constraint", "reject_low_fit", "request_human_approval"],
+      `State shows hard constraint violation(s): ${before.hardConstraintViolations.join("; ")}` +
+        (before.fitScore === null ? " (fit was not evaluated: the outcome was already determined)" : ""),
+      permitted,
       "reject_hard_constraint",
       "Job rejected automatically on a HARD constraint (years/clearance/location), regardless of skill fit. No draft will be produced. Human approval step skipped (nothing to approve).",
       before,
-      state
+      state,
+      meta
     );
     return state;
   }
 
-  const minFit = state.minFit ?? LOW_FIT_THRESHOLD;
-  if ((state.fitScore ?? 0) < minFit) {
-    const before = { ...state };
+  if (action === "reject_low_fit") {
     state = { ...state, stage: "rejected_low_fit" };
     log(
-      `Fit score ${state.fitScore} is below the low-fit threshold (${minFit}).`,
-      ["reject_hard_constraint", "reject_low_fit", "request_human_approval"],
+      score < minFit
+        ? `Fit score ${score} is below the low-fit threshold (${minFit}).`
+        : `Fit score ${score} clears the bar (${minFit}) but sits in the judgment zone; the controller judged the gaps disqualifying.`,
+      permitted,
       "reject_low_fit",
       "Job down-ranked and rejected automatically for low skill fit (constraints were fine). No draft produced.",
       before,
-      state
+      state,
+      meta
     );
     return state;
   }
 
-  const before = { ...state };
   state = { ...state, stage: "awaiting_approval" };
   log(
-    `Constraints passed. fit_score=${state.fitScore} >= threshold ${minFit}.`,
-    ["reject_hard_constraint", "reject_low_fit", "request_human_approval"],
+    score >= minFit
+      ? `Constraints passed. fit_score=${score} >= threshold ${minFit}.`
+      : `Constraints passed. fit_score=${score} is below the bar (${minFit}) but inside the judgment zone; the controller let the human decide instead of auto-rejecting.`,
+    permitted,
     "request_human_approval",
     "Evaluation surfaced to human for Approve / Edit / Reject. Agent paused — no draft produced yet.",
     before,
-    state
+    state,
+    meta
   );
   return state;
 }
 
+// Which decision actions the state permits (guardrails expressed as code, not prose).
+function permittedDecisions(state: AgentState): string[] {
+  if (state.hardConstraintViolations.length > 0) return ["reject_hard_constraint"];
+  const minFit = state.minFit ?? LOW_FIT_THRESHOLD;
+  const gap = (state.fitScore ?? 0) - minFit;
+  const margin = state.judgmentMargin ?? JUDGMENT_MARGIN;
+  // Strictly outside the zone the outcome is not a judgment call. (With margin 0 the
+  // exact-bar case defaults to the policy: at or above the bar goes to the human.)
+  if (margin === 0) return gap >= 0 ? ["request_human_approval"] : ["reject_low_fit"];
+  if (gap >= margin) return ["request_human_approval"];
+  if (gap <= -margin) return ["reject_low_fit"];
+  return ["request_human_approval", "reject_low_fit"];
+}
+
+// The built-in policy: what the agent does when no model is choosing (no model
+// configured, a failed call, or a proposal the harness refused). It reproduces the
+// original fixed pipeline, so a run with no AI behaves exactly as the pre-controller agent.
+function policyChoice(permitted: string[], state: AgentState): string {
+  const order = [
+    "scan_for_injection",
+    "flag_injection_and_continue",
+    "evaluate_fit",
+    "check_hard_constraints",
+    "ask_user_clarification",
+    "reject_hard_constraint",
+  ];
+  for (const a of order) if (permitted.includes(a)) return a;
+  const minFit = state.minFit ?? LOW_FIT_THRESHOLD;
+  return (state.fitScore ?? 0) >= minFit ? "request_human_approval" : "reject_low_fit";
+}
+
+// Kept for applyClarificationAnswer(): resuming after ASK_USER goes through the SAME
+// decision logic as a fresh run, never a copy of it.
+function decideAfterConstraints(state: AgentState, log: LogFn): AgentState {
+  state = { ...state, redFlags: computeRedFlags(state) };
+  const permitted = permittedDecisions(state);
+  return applyDecision(state, policyChoice(permitted, state), permitted, log, { chosenBy: "harness" });
+}
+
+// ---------- The advisor: the agent's recommendation to the person ----------
+//
+// Whenever the agent stops for a human (approval gate, a low-fit rejection they may
+// overrule, or an ASK_USER question) an AI advisor tells them what it thinks: a
+// recommendation, the gaps ranked by how much they matter, and drafting presets tailored to
+// THIS résumé and THIS job. The UI shows exactly this, so the person sees the agent's
+// thinking and not canned buttons.
+//
+// The advisor never sees the posting text. Everything it returns is verified before it is
+// shown: quotes must be literal résumé text, ranked gaps must be gaps the evaluation really
+// found, and the recommendation must be one of the options that exist in this mode.
+// With no model the same panel is filled by a deterministic default (source: "policy").
+export type AdviceRecommendation =
+  | "approve"
+  | "edit"
+  | "reject"
+  | "override"
+  | "answer_compatible"
+  | "answer_violation"
+  | "none";
+
+export interface Advice {
+  source: "model" | "policy";
+  mode: AdviceMode;
+  headline: string;
+  recommendation: AdviceRecommendation;
+  recommendationWhy: string;
+  strengths: { requirement: string; evidenceQuote: string }[];
+  rankedGaps: {
+    gap: string;
+    importance: "critical" | "helpful" | "minor" | "unranked";
+    why: string;
+    bridgeQuestion: string;
+  }[];
+  draftPresets: { label: string; instruction: string; evidenceQuote: string }[];
+  // Set when part of the model's answer was refused (e.g. a quote not found in the résumé).
+  overruled?: string;
+}
+
+const ALLOWED_RECOMMENDATIONS: Record<AdviceMode, AdviceRecommendation[]> = {
+  approval: ["approve", "edit", "reject"],
+  rejected_low_fit: ["reject", "override"],
+  clarification: ["answer_compatible", "answer_violation"],
+};
+
+function adviceModeFor(state: AgentState): AdviceMode | null {
+  if (state.stage === "awaiting_approval") return "approval";
+  if (state.stage === "rejected_low_fit") return "rejected_low_fit";
+  if (state.stage === "awaiting_clarification") return "clarification";
+  return null;
+}
+
+const squash = (t: string) => t.replace(/\s+/g, " ").trim().toLowerCase();
+
+function defaultAdvice(state: AgentState, mode: AdviceMode): Advice {
+  const missingPreferred = state.missingPreferredSkills ?? [];
+  const requiredMissing = state.missingSkills.filter((m) => !missingPreferred.includes(m));
+  const pct = state.fitScore === null ? "n/a" : `${Math.round(state.fitScore * 100)}%`;
+  const strengths = state.matchedSkills
+    .filter((m) => state.matchedEvidence[m])
+    .slice(0, 3)
+    .map((m) => ({ requirement: m, evidenceQuote: state.matchedEvidence[m] }));
+  const rankedGaps = [...requiredMissing, ...missingPreferred].map((g) => ({
+    gap: g,
+    importance: "unranked" as const,
+    why: missingPreferred.includes(g) ? "Listed as a nice-to-have." : "Listed as required.",
+    bridgeQuestion: `Do you have real experience with "${g}"? If so add it below; if not it stays an honest gap.`,
+  }));
+  const draftPresets = state.matchedSkills
+    .filter((m) => state.matchedEvidence[m])
+    .slice(0, 4)
+    .map((m) => ({
+      label: `Emphasize ${m.length > 34 ? m.slice(0, 32) + "…" : m}`,
+      instruction: `- Emphasize ${m}, drawing on: "${state.matchedEvidence[m]}"`,
+      evidenceQuote: state.matchedEvidence[m],
+    }));
+  let recommendation: AdviceRecommendation = "none";
+  let headline = `Default policy (no AI advisor): fit ${pct}.`;
+  if (mode === "approval") {
+    recommendation = requiredMissing.length > 1 ? "edit" : "approve";
+    headline += requiredMissing.length
+      ? ` ${requiredMissing.length} required requirement(s) are not evidenced; consider bridging them before drafting.`
+      : " No required requirement is missing.";
+  } else if (mode === "rejected_low_fit") {
+    recommendation = "reject";
+    headline += " The score is under your bar. You can still apply anyway.";
+  } else {
+    headline = "Default policy (no AI advisor): the posting does not say whether the role is remote, hybrid or on-site.";
+  }
+  return {
+    source: "policy",
+    mode,
+    headline,
+    recommendation,
+    recommendationWhy: "Chosen by the built-in default policy, not by an AI.",
+    strengths,
+    rankedGaps,
+    draftPresets,
+  };
+}
+
+// SMALL-MODEL advisor. A weak model is not asked to write presets or rank free text. The
+// harness builds the candidate presets from the résumé evidence and the list of real gaps, and
+// the model only chooses among them: a recommendation, an order for the gaps, which presets to
+// offer, and a headline. Everything it can pick is already grounded, so nothing it says can be a
+// fabrication; a malformed answer falls back to the default panel.
+async function produceAdviceSmall(state: AgentState, mode: AdviceMode, fallback: Advice, guide: Guidelines): Promise<Advice> {
+  const opts = ALLOWED_RECOMMENDATIONS[mode];
+  const gaps = fallback.rankedGaps.map((g) => g.gap);
+  const presets = state.matchedSkills.filter((m) => state.matchedEvidence[m]).slice(0, 6);
+  const pct = state.fitScore === null ? "unknown" : `${Math.round(state.fitScore * 100)}%`;
+  const bar = `${Math.round((state.minFit ?? 0.6) * 100)}%`;
+  const user =
+    `Fit score ${pct}; the candidate's minimum bar is ${bar}.\n` +
+    `Recommendation options: ${opts.map((o, i) => `${i + 1}=${o}`).join(", ")}\n` +
+    `Gaps (missing requirements): ${gaps.length ? gaps.map((g, i) => `${i + 1}=${g}`).join("; ") : "none"}\n` +
+    `Strengths that could be emphasised: ${presets.length ? presets.map((p, i) => `${i + 1}=${p}`).join("; ") : "none"}\n\n` +
+    `Reply as JSON: {"recommendation": <number>, "headline": "<one sentence>", "why": "<one sentence>", ` +
+    `"gapOrder": [<gap numbers, most important first>], "emphasise": [<strength numbers to lead with, best first>]}`;
+  try {
+    const raw = (await completeJsonWithLlm(
+      withRole("You are an advisor helping a job seeker decide what to do next. Be direct and short. Only use the numbers you were given.", guide.roles.advisor).slice(0, 3000),
+      user, 300, 240000)) as Record<string, unknown>;
+    const num = (v: unknown) => (typeof v === "number" ? v : parseInt(String(v), 10));
+    const rec = opts[num(raw.recommendation) - 1];
+    const order = (Array.isArray(raw.gapOrder) ? raw.gapOrder : []).map(num).filter((n) => n >= 1 && n <= gaps.length);
+    const rankedGaps: Advice["rankedGaps"] = [];
+    order.forEach((n, i) => {
+      const g = fallback.rankedGaps[n - 1];
+      if (g && !rankedGaps.some((x) => x.gap === g.gap)) {
+        rankedGaps.push({ ...g, importance: i === 0 ? "critical" : i < 2 ? "helpful" : "minor" });
+      }
+    });
+    for (const g of fallback.rankedGaps) if (!rankedGaps.some((x) => x.gap === g.gap)) rankedGaps.push(g);
+    const pick = (Array.isArray(raw.emphasise) ? raw.emphasise : []).map(num).filter((n) => n >= 1 && n <= presets.length);
+    const chosen = [...new Set(pick)].map((n) => presets[n - 1]);
+    const draftPresets = chosen.length
+      ? chosen.slice(0, 4).map((m) => ({
+          label: `Emphasize ${m.length > 34 ? m.slice(0, 32) + "…" : m}`,
+          instruction: `- Emphasize ${m}, drawing on: "${state.matchedEvidence[m]}"`,
+          evidenceQuote: state.matchedEvidence[m],
+        }))
+      : fallback.draftPresets;
+    return {
+      ...fallback,
+      source: "model",
+      headline: String(raw.headline ?? "").slice(0, 300) || fallback.headline,
+      recommendation: rec ?? fallback.recommendation,
+      recommendationWhy: String(raw.why ?? "").slice(0, 300),
+      rankedGaps,
+      draftPresets,
+      ...(rec ? {} : { overruled: "the small model's recommendation number was not valid; default used" }),
+    };
+  } catch (err) {
+    return { ...fallback, overruled: `AI advisor unavailable (${String(err).slice(0, 80)}); default used` };
+  }
+}
+
+async function produceAdvice(
+  state: AgentState,
+  mode: AdviceMode,
+  resumeText: string | null,
+  jobTitle: string,
+  settings: HarnessSettings,
+  guide: Guidelines
+): Promise<Advice> {
+  const fallback = defaultAdvice(state, mode);
+  if (!isLlmConfigured() || process.env.AGENT_CONTROL === "policy" || !resumeText) return fallback;
+
+  const missingPreferred = state.missingPreferredSkills ?? [];
+  const situation = JSON.stringify(
+    {
+      mode,
+      allowedRecommendations: ALLOWED_RECOMMENDATIONS[mode],
+      jobTitle,
+      fitScorePercent: state.fitScore === null ? null : Math.round(state.fitScore * 100),
+      minimumFitPercent: Math.round((state.minFit ?? 0.6) * 100),
+      fitVersusBar:
+        state.fitScore === null
+          ? "not evaluated"
+          : state.fitScore >= (state.minFit ?? 0.6)
+          ? "at or above the bar"
+          : "below the bar",
+      workArrangement: state.workArrangement,
+      injectionWasFlagged: state.injectionDetected,
+      question: mode === "clarification" ? state.clarificationQuestion : undefined,
+      matchedRequirements: state.matchedSkills.map((m) => ({
+        requirement: m,
+        evidenceQuote: state.matchedEvidence[m] ?? "",
+        strength: state.matchStrength?.[m] ?? "full",
+      })),
+      missingRequirements: state.missingSkills.map((m) => ({
+        requirement: m,
+        priority: missingPreferred.includes(m) ? "nice-to-have" : "required",
+      })),
+      candidateResume: resumeText.slice(0, settings.llmMaxInputChars),
+    },
+    null,
+    2
+  );
+
+  if (isSmallModel()) return produceAdviceSmall(state, mode, fallback, guide);
+
+  try {
+    const a = await adviseHumanWithLlm(situation, {
+      systemPrompt: withRole(ADVISE_SYSTEM_PROMPT, guide.roles.advisor),
+      timeoutMs: Math.max(settings.llmTimeoutMs, 30000),
+    });
+    const notes: string[] = [];
+    const resumeSquashed = squash(resumeText);
+    const quoteOk = (q: unknown) => typeof q === "string" && q.trim().length > 3 && resumeSquashed.includes(squash(q));
+
+    const strengths = (Array.isArray(a.strengths) ? a.strengths : [])
+      .filter((x) => quoteOk(x?.evidenceQuote))
+      .slice(0, 3)
+      .map((x) => ({ requirement: String(x.requirement ?? "").slice(0, 120), evidenceQuote: String(x.evidenceQuote) }));
+
+    const droppedPresets = (Array.isArray(a.draftPresets) ? a.draftPresets : []).filter((x) => !quoteOk(x?.evidenceQuote)).length;
+    let draftPresets = (Array.isArray(a.draftPresets) ? a.draftPresets : [])
+      .filter((x) => quoteOk(x?.evidenceQuote) && x.instruction && x.label)
+      .slice(0, 4)
+      .map((x) => ({
+        label: String(x.label).slice(0, 40),
+        instruction: String(x.instruction).slice(0, 300),
+        evidenceQuote: String(x.evidenceQuote),
+      }));
+    if (droppedPresets) notes.push(`${droppedPresets} preset(s) dropped: their résumé quote was not found in the résumé`);
+    if (draftPresets.length === 0) draftPresets = fallback.draftPresets;
+
+    // Ranked gaps must be gaps the evaluation actually found. Anything the model ranks
+    // that is not on that list is discarded; unranked real gaps are appended.
+    const realGaps = state.missingSkills;
+    const ranked: Advice["rankedGaps"] = [];
+    for (const g of Array.isArray(a.rankedGaps) ? a.rankedGaps : []) {
+      const name = String(g?.gap ?? "");
+      const real = realGaps.find((r) => normRequirement(r) === normRequirement(name) || squash(r) === squash(name));
+      if (!real || ranked.some((x) => x.gap === real)) continue;
+      const imp = g.importance === "critical" || g.importance === "helpful" || g.importance === "minor" ? g.importance : "unranked";
+      ranked.push({
+        gap: real,
+        importance: imp,
+        why: String(g.why ?? "").slice(0, 200),
+        bridgeQuestion: String(g.bridgeQuestion ?? "").slice(0, 200) || `Do you have real experience with "${real}"?`,
+      });
+    }
+    for (const g of fallback.rankedGaps) if (!ranked.some((x) => x.gap === g.gap)) ranked.push(g);
+
+    let recommendation = a.recommendation as AdviceRecommendation;
+    if (!ALLOWED_RECOMMENDATIONS[mode].includes(recommendation)) {
+      notes.push(`recommendation "${String(a.recommendation).slice(0, 30)}" is not an option here; replaced by the default`);
+      recommendation = fallback.recommendation;
+    }
+    return {
+      source: "model",
+      mode,
+      headline: String(a.headline ?? "").slice(0, 400) || fallback.headline,
+      recommendation,
+      recommendationWhy: String(a.recommendationWhy ?? "").slice(0, 400),
+      strengths: strengths.length ? strengths : fallback.strengths,
+      rankedGaps: ranked,
+      draftPresets,
+      ...(notes.length ? { overruled: notes.join("; ") } : {}),
+    };
+  } catch (err) {
+    return { ...fallback, overruled: `AI advisor unavailable (${String(err).slice(0, 80)}); default used` };
+  }
+}
+
+// Appends one "advise_human" step to a run that has stopped for a person. Idempotent per
+// stop: it only runs when the run is at a stop the advisor covers.
+async function adviseAndLog(
+  result: EvaluationResult,
+  resumeText: string | null,
+  jobText: string,
+  settings: HarnessSettings
+): Promise<EvaluationResult> {
+  const mode = adviceModeFor(result.state);
+  if (!mode) return result;
+  const guide = loadGuidelines();
+  const titleLine = jobText.match(/^#?\s*(.+)$/m);
+  const advice = await produceAdvice(result.state, mode, resumeText, titleLine ? titleLine[1].trim() : "this role", settings, guide);
+  const before = { ...result.state };
+  const state: AgentState = { ...result.state, advice };
+  const fromModel = advice.source === "model";
+  const trace = [...result.trace];
+  trace.push({
+    step: trace.length + 1,
+    stateBefore: before,
+    observation:
+      `The agent is stopping for a person (${result.state.stage}). The advisor reads the evaluation facts and the résumé (never the posting text) and tells the person what to do next.`,
+    availableActions: ["advise_human"],
+    selectedAction: "advise_human",
+    result:
+      `${advice.headline} Recommends: ${advice.recommendation}.` +
+      ` ${advice.draftPresets.length} tailored preset(s), ${advice.rankedGaps.length} gap(s) ranked.` +
+      (advice.overruled ? ` Harness note: ${advice.overruled}.` : ""),
+    stateAfter: { ...state },
+    chosenBy: fromModel ? "model" : "policy",
+    brain: fromModel ? "ai" : "code",
+    thinking: `${advice.headline}${advice.recommendationWhy ? "\n" + advice.recommendationWhy : ""}`,
+    guidelines: guide.label,
+  });
+  return { state, trace };
+}
+
+interface LoopCtx {
+  done: Set<string>;
+  locationQuestion: string | null;
+}
+
+// What the agent may do RIGHT NOW. This is the guardrail layer: the controller can only
+// pick from this list, so it can never skip the injection scan, drop a hard constraint,
+// reject a clearly good fit, approve a clearly bad one, or draft anything.
+function permittedActions(state: AgentState, ctx: LoopCtx): string[] {
+  const { done } = ctx;
+  if (!done.has("scan_for_injection")) return ["scan_for_injection"];
+  if (state.injectionDetected && !done.has("flag_injection_and_continue")) return ["flag_injection_and_continue"];
+  const evaluated = done.has("evaluate_fit");
+  const checked = done.has("check_hard_constraints");
+  if (!evaluated || !checked) {
+    // A hard violation is final, so once it is known the controller may stop early and
+    // skip the (model-costing) fit evaluation, or run it to give the human a score.
+    if (checked && !evaluated && state.hardConstraintViolations.length > 0) {
+      return ["evaluate_fit", "reject_hard_constraint"];
+    }
+    return ["evaluate_fit", "check_hard_constraints"].filter((a) => !done.has(a));
+  }
+  if (state.hardConstraintViolations.length > 0) return ["reject_hard_constraint"];
+  if (ctx.locationQuestion && !done.has("ask_user_clarification")) return ["ask_user_clarification"];
+  return permittedDecisions(state);
+}
+
+function isTerminal(state: AgentState): boolean {
+  return (
+    state.stage === "rejected_hard_constraint" ||
+    state.stage === "rejected_low_fit" ||
+    state.stage === "awaiting_approval" ||
+    state.stage === "awaiting_clarification"
+  );
+}
+
+// The controller sees a structured summary and NEVER the posting text: nothing in the
+// posting can address it. Everything here is a count, flag or number computed by code.
+function situationFor(state: AgentState, permitted: string[], ctx: LoopCtx): string {
+  const missingPreferred = state.missingPreferredSkills ?? [];
+  const missingRequired = state.missingSkills.filter((m) => !missingPreferred.includes(m));
+  const partial = Object.values(state.matchStrength ?? {}).filter((v) => v === "partial").length;
+  const minFit = state.minFit ?? LOW_FIT_THRESHOLD;
+  return JSON.stringify(
+    {
+      actionsAlreadyDone: [...ctx.done],
+      permittedActions: permitted,
+      observed: {
+        injectionDetected: state.injectionDetected,
+        workArrangement: state.workArrangement,
+        hardConstraintsChecked: ctx.done.has("check_hard_constraints"),
+        hardConstraintViolationsFound: state.hardConstraintViolations.length,
+        fitEvaluated: state.fitScore !== null,
+        fitScore: state.fitScore,
+        minimumFit: minFit,
+        distanceFromBar: state.fitScore === null ? null : Math.round((state.fitScore - minFit) * 100) / 100,
+        requirementsMatched: state.matchedSkills.length,
+        requirementsMissingRequired: missingRequired.length,
+        requirementsMissingNiceToHave: missingPreferred.length,
+        matchesOnlyPartial: partial,
+        scoreIsLowConfidence: !!state.lowConfidence,
+      },
+    },
+    null,
+    2
+  );
+}
+
+async function selectAction(
+  permitted: string[],
+  state: AgentState,
+  ctx: LoopCtx,
+  settings: HarnessSettings,
+  guide: Guidelines
+): Promise<{ action: string; meta: StepMeta }> {
+  if (permitted.length === 1) return { action: permitted[0], meta: { chosenBy: "harness", brain: "code" } };
+  const fallback = policyChoice(permitted, state);
+  const controlOn = isLlmConfigured() && process.env.AGENT_CONTROL !== "policy";
+  if (!controlOn) return { action: fallback, meta: { chosenBy: "policy", brain: "code" } };
+  try {
+    const small = isSmallModel();
+    const choice = await chooseActionWithLlm(situationFor(state, permitted, ctx), {
+      systemPrompt: guide.controllerPrompt,
+      timeoutMs: small ? Math.max(settings.llmTimeoutMs, 120000) : settings.llmTimeoutMs,
+      plainMenu: small ? permitted : undefined,
+    });
+    const proposed = String(choice.action ?? "").trim();
+    const reasoning = String(choice.reasoning ?? "").slice(0, 300);
+    if (permitted.includes(proposed)) {
+      return { action: proposed, meta: { chosenBy: "model", modelReasoning: reasoning, guidelines: guide.label, brain: "ai", thinking: reasoning } };
+    }
+    return {
+      action: fallback,
+      meta: { chosenBy: "policy", overruled: `model proposed "${proposed.slice(0, 60)}", which is not permitted here`, guidelines: guide.label },
+    };
+  } catch {
+    return { action: fallback, meta: { chosenBy: "policy", brain: "code" } };
+  }
+}
+
+// Adds each role's section of agent-guidelines.md to that role's own prompt. The core prompt
+// (including the rules about never inventing facts) always comes first and is never removed.
+// Small-model mode: give a slow local model far more time and a shorter document to read.
+function smallModelSettings(settings: HarnessSettings): HarnessSettings {
+  return {
+    ...settings,
+    llmTimeoutMs: Math.max(settings.llmTimeoutMs, 240000),
+    llmMaxInputChars: Math.min(settings.llmMaxInputChars, 7000),
+  };
+}
+
+function withGuidelines(settings: HarnessSettings, guide: Guidelines): HarnessSettings {
+  return {
+    ...settings,
+    prompts: {
+      assess: withRole(settings.prompts.assess, guide.roles.reader),
+      fit: withRole(settings.prompts.fit, guide.roles.matcher),
+      draft: withRole(settings.prompts.draft, guide.roles.drafter),
+    },
+  };
+}
+
 // ---------- The agent loop ----------
+//
+// SELECT -> ACT -> OBSERVE, repeated until the agent reaches a terminal or paused state.
+// Each turn: the harness computes which actions are permitted from the current state
+// (permittedActions), the controller picks one (selectAction), the harness executes it
+// and records a full trace step. The order of steps, whether an expensive evaluation
+// runs, and what happens near the fit bar are therefore decided at run time from the
+// observations so far, not fixed in code. What can NOT vary is enforced by the permitted
+// list: the injection scan comes first, hard constraints are final, clear passes and
+// fails are not judgment calls, and no path leads to a draft without a human.
 export async function runAgent(
   jobId: string,
   jobText: string,
@@ -884,14 +1506,7 @@ export async function runAgent(
   // hard-constraint checks below, so the two steps agree on the same number.
   const candidateYears = extractCandidateYears(resumeText);
 
-  function log(
-    observation: string,
-    availableActions: string[],
-    selectedAction: string,
-    result: string,
-    before: AgentState,
-    after: AgentState
-  ) {
+  const log: LogFn = (observation, availableActions, selectedAction, result, before, after, meta) => {
     step += 1;
     trace.push({
       step,
@@ -901,15 +1516,24 @@ export async function runAgent(
       selectedAction,
       result,
       stateAfter: { ...after },
+      ...(meta ?? {}),
     });
-  }
+  };
 
-  // The brain reads the posting ONCE (injection cues, work arrangement,
-  // clearance). It only observes — the gates below decide.
-  const assessment = await assessPosting(jobText, settings);
+  // The rulebook is re-read on every run, so an edit to agent-guidelines.md takes effect next run.
+  const guide = loadGuidelines();
+  settings = withGuidelines(settings, guide);
+  if (isSmallModel()) settings = smallModelSettings(settings);
+  state = { ...state, judgmentMargin: guide.judgmentMargin, guidelines: guide.label };
+  const ctx: LoopCtx = { done: new Set<string>(), locationQuestion: null };
+  let assessment: PostingAssessment | null = null;
+  const MAX_STEPS = 12;
 
-  // --- Decision point 1: scan for injection (treat job text as DATA, never instructions) ---
-  {
+  // ---- action executors: each does exactly one thing and logs one trace step ----
+  async function doScan(permitted: string[], meta: StepMeta) {
+    // The brain reads the posting ONCE (injection cues, work arrangement, clearance).
+    // It only observes; the gates decide.
+    assessment = await assessPosting(jobText, settings);
     const before = { ...state };
     const regexHit = scanForInjection(jobText);
     const llmSnippets = assessment?.injectionSnippets ?? [];
@@ -932,45 +1556,43 @@ export async function runAgent(
     log(
       `Raw job posting text received (${jobText.length} chars). Treated as untrusted data only.` +
         (assessment ? " Read by the AI model and the regex floor." : " Read by the regex floor (no AI model available)."),
-      ["scan_for_injection", "evaluate_fit", "check_hard_constraints", "reject_hard_constraint", "reject_low_fit", "request_human_approval", "draft_application"],
+      permitted,
       "scan_for_injection",
       detected
         ? `Embedded instruction-like text detected (${sources.join(" + ")}) — logging and continuing normal evaluation, NOT obeying it.`
         : "No embedded instructions detected.",
       before,
-      state
+      state,
+      {
+        ...meta,
+        brain: assessment ? "ai" : "code",
+        thinking: assessment
+          ? `The AI reader saw: work arrangement "${assessment.arrangement}"` +
+            (assessment.arrangementQuote ? ` (quote: "${assessment.arrangementQuote}")` : "") +
+            `; clearance ${assessment.clearanceRequired ? "required" : "not required"}; ` +
+            `${llmSnippets.length} instruction-like passage(s) aimed at an AI. The keyword barrier then ran independently and found ${regexHit.snippets.length}.`
+          : `No AI reader available. The keyword barrier alone scanned the text and found ${regexHit.snippets.length} instruction-like passage(s).`,
+      }
     );
   }
 
-  // --- Decision point 1b: only taken when injection was detected — this action does not
-  // exist on the "clean posting" path, so an injected posting takes a materially longer,
-  // different action sequence than a clean one even before fit/constraints are checked. ---
-  if (state.injectionDetected) {
+  function doFlag(permitted: string[], meta: StepMeta) {
     const before = { ...state };
     log(
       `Injected instructions found: ${state.injectionSnippets.join(" | ")}`,
-      ["flag_injection_and_continue"],
+      permitted,
       "flag_injection_and_continue",
       "Flag recorded in state. Evaluation proceeds on the ACTUAL resume/job data only — the embedded commands to auto-approve, skip human review, or print resume.md verbatim were all refused.",
       before,
-      state
+      state,
+      meta
     );
   }
 
-  // --- Decision point 2: evaluate skill fit against resume ---
-  // performFitEvaluation() tries the LLM (if configured) for semantic matching,
-  // falling back to deterministic keyword matching on no API key, an API error,
-  // or a timeout — see its own comments for the trust-but-verify grounding rule.
-  {
+  async function doEvaluate(permitted: string[], meta: StepMeta) {
     const before = { ...state };
     const fit = await performFitEvaluation(resumeText, jobText, settings);
-    const fitRationale = explainFit(
-      fit.matchedEvidence,
-      jobText,
-      preferencesText,
-      fit.matched,
-      candidateYears
-    );
+    const fitRationale = explainFit(fit.matchedEvidence, jobText, preferencesText, fit.matched, candidateYears);
     state = {
       ...state,
       stage: "evaluated",
@@ -989,22 +1611,24 @@ export async function runAgent(
     log(
       `${fit.note} Requirements checked against resume.md.` +
         (fit.reasoning ? ` Model's reasoning: "${fit.reasoning}"` : ""),
-      ["check_hard_constraints", "reject", "request_human_approval"],
+      permitted,
       "evaluate_fit",
       `fit_score=${fit.score}, matched=[${fit.matched.join(", ")}], missing=[${fit.missing.join(", ")}]`,
       before,
-      state
+      state,
+      {
+        ...meta,
+        brain: fit.method === "llm" ? "ai" : "code",
+        thinking: fit.reasoning ?? "Keyword matcher (no AI): counted the skills named in both the posting and the résumé.",
+      }
     );
   }
 
-  // --- Decision point 3: check hard constraints ---
-  {
+  function doCheckConstraints(permitted: string[], meta: StepMeta) {
     const before = { ...state };
     // The AI model's reading of the arrangement wins; regex cues are the fallback.
     const arrangement: WorkArrangement =
-      assessment && assessment.arrangement !== "unknown"
-        ? assessment.arrangement
-        : regexArrangement(jobText);
+      assessment && assessment.arrangement !== "unknown" ? assessment.arrangement : regexArrangement(jobText);
     const violations = checkHardConstraints(
       jobText,
       candidateYears,
@@ -1012,65 +1636,72 @@ export async function runAgent(
       arrangement,
       assessment?.clearanceRequired ?? false
     );
-    state = {
-      ...state,
-      stage: "constraints_checked",
-      hardConstraintViolations: violations,
-      workArrangement: arrangement,
-    };
+    state = { ...state, stage: "constraints_checked", hardConstraintViolations: violations, workArrangement: arrangement };
     log(
       `Candidate years of experience: ~${candidateYears}. Preferences hard constraints checked against posting. Work arrangement read as "${arrangement}"` +
         (assessment?.arrangementQuote ? ` (evidence: "${assessment.arrangementQuote}").` : "."),
-      ["reject", "request_human_approval"],
+      permitted,
       "check_hard_constraints",
-      violations.length
-        ? `VIOLATION(S): ${violations.join("; ")}`
-        : "No hard constraint violations.",
+      violations.length ? `VIOLATION(S): ${violations.join("; ")}` : "No hard constraint violations.",
       before,
-      state
+      state,
+      meta
+    );
+    ctx.locationQuestion =
+      violations.length === 0 && settings.askUserEnabled
+        ? detectLocationAmbiguity(state.workArrangement, preferencesText)
+        : null;
+  }
+
+  function doAsk(permitted: string[], meta: StepMeta) {
+    // ASK_USER: only permitted when nothing has decided the job's fate and the posting is
+    // genuinely silent on something a hard constraint depends on. Guessing would mean
+    // silently deciding for the candidate instead of asking them.
+    const clarificationQuestion = ctx.locationQuestion!;
+    const before = { ...state };
+    state = { ...state, stage: "awaiting_clarification", clarificationQuestion };
+    state = { ...state, redFlags: computeRedFlags(state) };
+    log(
+      "Hard constraint depends on information the posting never states.",
+      permitted,
+      "ask_user_clarification",
+      `Agent paused to ask: "${clarificationQuestion}"`,
+      before,
+      state,
+      meta
     );
   }
 
-  // --- Decision point 3b: ASK_USER — only reached when nothing has already
-  // decided this job's fate (a violation already found means asking wouldn't
-  // change the outcome) AND the posting is genuinely silent on something a
-  // hard constraint depends on. This does not exist on any path where the
-  // posting actually states its work arrangement — see the four required
-  // tests, all of which do — so it never changes their behavior; it only
-  // fires for postings where guessing would mean silently deciding for the
-  // candidate instead of asking them.
-  if (state.hardConstraintViolations.length === 0) {
-    const clarificationQuestion = settings.askUserEnabled
-      ? detectLocationAmbiguity(state.workArrangement, preferencesText)
-      : null;
-    if (clarificationQuestion) {
-      const before = { ...state };
-      state = { ...state, stage: "awaiting_clarification", clarificationQuestion };
-      log(
-        "Hard constraint depends on information the posting never states.",
-        ["ask_user_clarification"],
-        "ask_user_clarification",
-        `Agent paused to ask: "${clarificationQuestion}"`,
-        before,
-        state
-      );
-      return { state, trace };
+  // ---- the loop ----
+  while (step < MAX_STEPS && !isTerminal(state)) {
+    const permitted = permittedActions(state, ctx);
+    if (permitted.length === 0) break;
+    const { action, meta } = await selectAction(permitted, state, ctx, settings, guide);
+    ctx.done.add(action);
+    if (action === "scan_for_injection") await doScan(permitted, meta);
+    else if (action === "flag_injection_and_continue") doFlag(permitted, meta);
+    else if (action === "evaluate_fit") await doEvaluate(permitted, meta);
+    else if (action === "check_hard_constraints") doCheckConstraints(permitted, meta);
+    else if (action === "ask_user_clarification") doAsk(permitted, meta);
+    else {
+      state = { ...state, redFlags: computeRedFlags(state) };
+      state = applyDecision(state, action, permitted, log, meta);
     }
   }
-
-  // --- Decision point 4: agent SELECTS next action based on state so far ---
-  state = decideAfterConstraints(state, log);
-  return { state, trace };
+  // The agent has stopped. If it stopped for a person, its advisor now tells them what it thinks.
+  return adviseAndLog({ state, trace }, resumeText, jobText, settings);
 }
 
 // ---------- Called after a human resolves an ASK_USER clarification ----------
 // Resumes exactly where the agent paused, using the human's answer to settle
 // the one ambiguous hard constraint, then runs through the SAME
 // decideAfterConstraints() branch logic runAgent() itself uses — not a copy.
-export function applyClarificationAnswer(
+export async function applyClarificationAnswer(
   prior: EvaluationResult,
-  answer: "compatible" | "violation"
-): EvaluationResult {
+  answer: "compatible" | "violation",
+  // Needed only so the advisor can speak again if the run lands back at the approval gate.
+  ctx: { resumeText: string | null; jobText: string; settings?: HarnessSettings } = { resumeText: null, jobText: "" }
+): Promise<EvaluationResult> {
   const trace = [...prior.trace];
   let step = trace.length;
   let state = { ...prior.state };
@@ -1122,7 +1753,7 @@ export function applyClarificationAnswer(
   );
 
   state = decideAfterConstraints(state, log);
-  return { state, trace };
+  return adviseAndLog({ state, trace }, ctx.resumeText, ctx.jobText, ctx.settings ?? DEFAULT_SETTINGS);
 }
 
 // ---------- Human overrules the agent's own low-fit auto-rejection ----------
@@ -1137,10 +1768,11 @@ export function applyClarificationAnswer(
 // applicant at 45% while the score still correctly says "most requirements unmet". The
 // human is the one allowed to make that call, and the trace records that they did — the
 // agent never silently lowers its own bar.
-export function applyLowFitOverride(
+export async function applyLowFitOverride(
   prior: EvaluationResult,
-  reason: string | null
-): EvaluationResult {
+  reason: string | null,
+  ctx: { resumeText: string | null; jobText: string; settings?: HarnessSettings } = { resumeText: null, jobText: "" }
+): Promise<EvaluationResult> {
   const trace = [...prior.trace];
   let step = trace.length;
   let state = { ...prior.state };
@@ -1164,7 +1796,9 @@ export function applyLowFitOverride(
     stateAfter: { ...state },
   });
 
-  return { state, trace };
+  // The job is back at the approval gate, so the advisor speaks again (this time to advise
+  // on drafting, with presets tailored to the job).
+  return adviseAndLog({ state, trace }, ctx.resumeText, ctx.jobText, ctx.settings ?? DEFAULT_SETTINGS);
 }
 
 // ---------- Called after a human makes an Approve/Edit/Reject decision ----------
@@ -1182,6 +1816,8 @@ export async function applyHumanDecision(
   const trace = [...prior.trace];
   let step = trace.length;
   let state = { ...prior.state };
+  settings = withGuidelines(settings, loadGuidelines());
+  if (isSmallModel()) settings = smallModelSettings(settings);
 
   function log(
     observation: string,
@@ -1455,7 +2091,7 @@ async function draftApplication(
   if (resumeText) {
     const llmDraft = await draftApplicationMaterials(
       matchedEvidence, missingSkills, jobText, resumeText, editNote,
-      { systemPrompt: settings.prompts.draft, maxInputChars: settings.llmMaxInputChars }
+      { systemPrompt: settings.prompts.draft, maxInputChars: settings.llmMaxInputChars, timeoutMs: isSmallModel() ? 600000 : undefined }
     );
     if (llmDraft) {
       return {

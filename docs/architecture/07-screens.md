@@ -9,6 +9,13 @@ human rejection), fit score (color-coded to the same tiers the agent itself
 decides on — green ≥ 70%, amber ≥ 60%, red below it),
 and an "injection flagged" badge when relevant. Backed by `GET /api/jobs`.
 
+**Ranked by default** ("Ranked: best fit first", toggle to "Newest first"):
+active jobs sorted by fit score, low-fit rejections next, hard-constraint
+rejections last regardless of skill fit — a job the agent rejected on a rule
+is down-ranked even at a 100% skill match, and (since the controller may have
+skipped the fit evaluation for it) may show no score at all. `#1`, `#2`... rank
+badges are shown next to each title while sorted this way.
+
 ## `/jobs/new` — Add a posting (`src/app/jobs/new/page.tsx`)
 
 Two modes:
@@ -35,18 +42,54 @@ The main evaluation view. Shows, in order:
 - Prompt-injection notice, if any (purple panel) — what was found and that it
   was refused
 - **ASK_USER panel** (blue), only shown while `stage === "awaiting_clarification"`
-  — the specific question the agent needs answered, with "Treat as compatible"
-  / "Treat as a violation" buttons. Distinct from the approval gate below: this
-  one appears *during* evaluation, before the agent has reached a verdict at all
-- The Approve / Edit & Approve / Reject buttons (only shown while
-  `stage === "awaiting_approval"`)
-- The draft, once one exists
+  — the specific question the agent needs answered, **with the AI advisor's
+  recommended answer and reasoning**, and "Treat as compatible" / "Treat as a
+  violation" buttons (the recommended one tagged "agent recommends"). Distinct
+  from the approval gate below: this one appears *during* evaluation, before
+  the agent has reached a verdict at all
+- **"Apply anyway" panel** (only shown at `stage === "rejected_low_fit"`) — the
+  AI advisor's recommendation on whether to override the agent's own
+  rejection, the gaps re-ranked by the advisor, and a box to explain why you
+  want it anyway (passed to the draft as a bridging note); does not change the
+  score or hide the gaps, and records that the *person* overrode the agent
+- **The Human Approval Gate** (only shown while `stage === "awaiting_approval"`):
+  **"The agent's recommendation"** — the AI advisor's headline, recommended
+  button (tagged), and up to three résumé-backed strengths — then
+  **"AI-recommended additions"**, drafting-instruction presets built from this
+  résumé and this job (each preset's tooltip shows the résumé line behind it;
+  none are fixed text), then the editable instructions box and the Approve /
+  Edit & Approve / Reject buttons
+- The draft, once one exists, plus the draft-verification panel (which claims
+  traced, which didn't) and the re-score panel (before → after, unearned gains
+  called out)
 - A toggle to show the full structured decision trace — the literal evidence
-  artifact for the assignment's testing requirement
+  artifact for the assignment's testing requirement. Every step shows a
+  🧠 **AI thinking** / ⚙ **code rule** badge, who chose it (AI chose / guardrail
+  / default policy), the permitted options when there was a choice, and the
+  agent's own reasoning in its own words
 - The raw posting text, collapsed by default
 
-Backed by `GET /api/jobs/[id]`, `POST /api/agent/clarify`, and
-`POST /api/agent/approve`.
+Backed by `GET /api/jobs/[id]`, `POST /api/agent/clarify`,
+`POST /api/agent/approve`, and `POST /api/agent/override`.
+
+## `/testlab` — Test Lab (`src/app/testlab/page.tsx`)
+
+19 built-in test cases (the four the assignment requires, four rebuilt from
+the class Week 2 "Evaluate" page descriptions — K001-K004 — plus branching,
+injection-escalation and false-positive-control cases), grouped and run
+against the **real agent** via `POST /api/testlab`. Each result shows expected
+vs. actual, the agent's brain step by step (same AI-thinking/code-rule/who-
+chose-it detail as the job detail trace), and the advisor's recommendation.
+Nothing here is saved to the job board. "Run all" runs them sequentially so a
+live pass/fail tally is meaningful.
+
+## `/harness` — Harness (`src/app/harness/page.tsx`)
+
+Every layer of the agent in plain English, the settings it actually uses
+(thresholds, timeouts, judgment-zone-adjacent knobs), and the editable *prose*
+portion of each AI role's prompt — per profile, with Reset. Only free prose is
+editable; the JSON schema a role must reply in is fixed, so a bad edit can
+degrade wording but cannot break parsing.
 
 ## `/upload` — Resume & Preferences / Profiles (`src/app/upload/page.tsx`)
 

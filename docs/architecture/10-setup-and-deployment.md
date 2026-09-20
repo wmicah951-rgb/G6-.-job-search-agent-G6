@@ -3,12 +3,14 @@
 ## The LLM is optional, isolated, and cannot bypass any guardrail
 
 Skill/requirement matching (`performFitEvaluation()` in
-[`src/lib/agent.ts`](../../src/lib/agent.ts)) can optionally call an LLM (Claude
-Haiku by default — see [`src/lib/llmEvaluator.ts`](../../src/lib/llmEvaluator.ts))
-for more semantically flexible matching than fixed-dictionary keyword search
-alone. This is the **only** place in the codebase that ever calls an AI model,
-and it is deliberately scoped to one narrow job: identify which posting
-requirements the resume demonstrates.
+[`src/lib/agent.ts`](../../src/lib/agent.ts)) can optionally call an LLM (DeepSeek by default; Claude or any OpenAI-compatible or local
+model by one setting; see [`src/lib/llmEvaluator.ts`](../../src/lib/llmEvaluator.ts))
+for more semantically flexible matching than fixed-dictionary keyword search alone.
+**Update:** the model now plays five roles, not one: **Reader** (`assessPosting`), **Matcher**
+(`performFitEvaluation`), **Controller** (`selectAction`), **Advisor** (`produceAdvice`) and
+**Drafter** (`draftApplication`), each with its own section in `src/data/agent-guidelines.md`,
+read on every run. Only the Matcher's job is described in the paragraphs below; the guardrails
+are the same for all five.
 
 Everything else stays deterministic, plain TypeScript, exactly as before:
 

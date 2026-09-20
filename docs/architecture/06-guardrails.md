@@ -3,6 +3,13 @@
 The assignment's four hard requirements, and exactly where each is enforced in
 code.
 
+> **Update (20 Sep 2026):** the agent now has an AI **controller** that picks
+> the next action, and an AI **advisor** that recommends what a person should
+> do. Both are bounded the same way every other AI role in this file is: they
+> can only pick from a list, or point at something, that deterministic code
+> has already validated. Section 3 below describes the controller; the
+> advisor's guardrails are new and covered at the end of this file.
+
 ## 1. Never fabricate
 
 The agent produces two kinds of material, and they are guarded differently
@@ -99,13 +106,21 @@ clearance. It returns *observations only*:
 
 ## 3. Respect hard constraints regardless of skill fit
 
-`checkHardConstraints()` runs as its own decision point, independent of
-`evaluateFit()`. The branch logic in `runAgent()` checks
-`hardConstraintViolations.length > 0` **before** it checks the fit score — a
-100% skill match with a hard-constraint violation (see J003 in the test
-evidence: perfect skill match, but requires 5+ years and an active clearance)
-is still auto-rejected, with a trace explicitly noting "regardless of skill
-fit."
+`checkHardConstraints()` is its own action, independent of `evaluate_fit`, and
+the AI controller may run it in either order relative to `evaluate_fit` (or
+skip `evaluate_fit` entirely once a violation is already known — see
+`permittedActions()` in `agent.ts`). What can never vary: `permittedDecisions()`
+returns **only** `["reject_hard_constraint"]` whenever
+`hardConstraintViolations.length > 0`, regardless of what the fit score is or
+whether it was even computed. A 100%-skill-match posting with a hard-constraint
+violation (see J003 in the test evidence: needs 5+ years and an active
+clearance) is still auto-rejected — sometimes without a fit score existing at
+all, because the controller judged the evaluation unnecessary once the outcome
+was final — with a trace explicitly noting "regardless of skill fit."
+
+This is the guardrail pattern used everywhere the controller has a choice: the
+harness computes the *set of actions allowed*, never lets the AI see or affect
+that computation, and the AI can only select from what is already permitted.
 
 ## 4. Pause for a human before producing any final material
 
@@ -125,3 +140,31 @@ Sending, submitting, or contacting anyone is out of scope by construction —
 there is no code anywhere in this app that sends an HTTP request to a job board,
 an email service, or any third party on the candidate's behalf. The only output
 is text rendered back to the human in their own browser.
+
+## 5. The advisor cannot say what it cannot prove
+
+`produceAdvice()` (agent.ts) runs once per run, only when the agent has just
+stopped for a person, and is never shown the posting text — only structured
+facts (fit score, matched/missing requirements, the résumé) and its own layer
+of `agent-guidelines.md`. Everything it returns is checked before it is shown:
+
+- Every `evidenceQuote` on a strength or a drafting preset must be a literal
+  substring of the résumé, case- and whitespace-insensitively. A preset that
+  fails this check is dropped, not repaired or reworded.
+- Every ranked gap must match one of the gaps `evaluate_fit` actually found
+  (`normRequirement()` comparison); a gap the advisor invents is discarded.
+- The `recommendation` must be one of the options that exist for the current
+  stop (e.g. `answer_compatible`/`answer_violation` at an ASK_USER stop,
+  `approve`/`edit`/`reject` at the approval gate); anything else is replaced by
+  a deterministic default and the substitution is recorded in the trace
+  (`overruled`).
+
+Proven adversarially in `scripts/hostile-model-test.mjs`: a model that returns
+a fabricated employer, a gap that was never found, and a recommendation
+("send_email_to_recruiter") that does not exist has every one of those three
+things stripped before the person ever sees them, and the trace still shows an
+advice panel — the UI never breaks on a hostile or malformed response.
+
+With no model configured (or `AGENT_CONTROL=policy`), a deterministic default
+policy fills the same panel from the same verified facts, so the approval
+screen is never blank.

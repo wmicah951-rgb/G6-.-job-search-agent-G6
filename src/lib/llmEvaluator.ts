@@ -18,7 +18,7 @@
 
 import { anthropicProvider } from "./llm/anthropicProvider";
 import { customProvider, deepseekProvider } from "./llm/deepseekProvider";
-import type { LlmCallOptions, LlmFitResult, LlmPostingAssessment, LlmProvider } from "./llm/types";
+import type { LlmActionChoice, LlmAdvice, LlmCallOptions, LlmFitResult, LlmPostingAssessment, LlmProvider } from "./llm/types";
 
 export type { LlmFitResult, LlmMatch } from "./llm/types";
 export type { LlmDraftResult, LlmGapNote } from "./llm/types";
@@ -47,6 +47,30 @@ function selectProvider(): LlmProvider | null {
   return null;
 }
 
+// SMALL-MODEL MODE. A local model (Ollama, LM Studio, llama.cpp) is slower and much less
+// reliable at structured output than a hosted one, so the agent asks it easier questions:
+// pick a number from a menu, rank a short list, choose from presets the harness built from the
+// résumé. Turned on automatically for a local base URL; force it with LLM_SMALL=1 or off with
+// LLM_SMALL=0. The guardrails are identical either way.
+export function isSmallModel(): boolean {
+  const flag = process.env.LLM_SMALL;
+  if (flag === "1") return true;
+  if (flag === "0") return false;
+  const provider = process.env.LLM_PROVIDER?.toLowerCase();
+  return provider === "custom" && /localhost|127\.0\.0\.1|11434|\[::1\]/.test(process.env.LLM_BASE_URL ?? "");
+}
+
+export async function completeJsonWithLlm(
+  system: string,
+  user: string,
+  maxTokens: number,
+  timeoutMs: number
+): Promise<unknown> {
+  const provider = selectProvider();
+  if (!provider?.completeJson) throw new Error("This provider does not support small-model JSON mode.");
+  return provider.completeJson(system, user, maxTokens, timeoutMs);
+}
+
 export function isLlmConfigured(): boolean {
   const provider = selectProvider();
   return !!provider && provider.isConfigured();
@@ -67,6 +91,26 @@ export async function assessPostingWithLlm(
   const provider = selectProvider();
   if (!provider) throw new Error("No LLM provider configured.");
   return provider.assessPosting(jobText, opts);
+}
+
+// The controller step: pick the next action from a harness-supplied permitted list.
+// Throws when no provider is configured or the call fails; the agent then falls back to
+// its built-in policy, so a model outage can never stall or steer a run.
+export async function chooseActionWithLlm(
+  situation: string,
+  opts?: LlmCallOptions
+): Promise<LlmActionChoice> {
+  const provider = selectProvider();
+  if (!provider) throw new Error("No LLM provider configured.");
+  return provider.chooseAction(situation, opts);
+}
+
+// The advisor: the agent's recommendation to the human. Throws on no provider / failure so
+// the caller can fall back to a deterministic recommendation.
+export async function adviseHumanWithLlm(situation: string, opts?: LlmCallOptions): Promise<LlmAdvice> {
+  const provider = selectProvider();
+  if (!provider) throw new Error("No LLM provider configured.");
+  return provider.adviseHuman(situation, opts);
 }
 
 export async function evaluateFitWithLlm(

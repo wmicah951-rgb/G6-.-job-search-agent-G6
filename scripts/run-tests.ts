@@ -17,7 +17,9 @@ async function printTrace(jobId: string, label: string) {
   const result = await runAgent(jobId, jobText, resumeText, preferencesText);
 
   for (const t of result.trace) {
-    console.log(`\n[Step ${t.step}] selected_action = ${t.selectedAction}`);
+    const who = t.chosenBy === "model" ? "AI controller chose" : t.chosenBy === "harness" ? "guardrail: only action permitted" : "default policy";
+    console.log(`\n[Step ${t.step}] selected_action = ${t.selectedAction}   (${who})`);
+    if (t.modelReasoning) console.log(`  why                  : ${t.modelReasoning}`);
     console.log(`  state_before.stage   : ${t.stateBefore.stage}`);
     console.log(`  observation          : ${t.observation}`);
     console.log(`  available_actions    : [${t.availableActions.join(", ")}]`);
@@ -34,7 +36,7 @@ async function printTrace(jobId: string, label: string) {
   // is the round trip the ambiguity check exists to enable.
   if (current.state.stage === "awaiting_clarification") {
     console.log(`\n  --- ASK_USER: simulating answer = "compatible" ---`);
-    current = applyClarificationAnswer(current, "compatible");
+    current = await applyClarificationAnswer(current, "compatible", { resumeText, jobText });
     const newSteps = current.trace.slice(result.trace.length);
     for (const t of newSteps) {
       console.log(`\n[Step ${t.step}] selected_action = ${t.selectedAction}`);
