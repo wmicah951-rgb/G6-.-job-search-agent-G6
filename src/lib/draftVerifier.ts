@@ -130,6 +130,33 @@ function clauseContaining(text: string, word: string): string {
   return hit && hit.trim().length > 0 ? hit : text;
 }
 
+/**
+ * Scope words a drafting model likes to add that change what the candidate is claiming
+ * without introducing a new noun. Each maps to the word-family prefix looked for in the
+ * resume/note, so "coordinator" in the resume licenses "coordinated" in the draft.
+ */
+const SCOPE_WORDS: [RegExp, string][] = [
+  [/\b(led|leading|leadership)\b/i, "lead"],
+  [/\b(manag(?:ed|ing|ement)?|managed)\b/i, "manag"],
+  [/\b(oversaw|oversee(?:ing)?|overseen)\b/i, "overs"],
+  [/\b(supervis(?:ed|ing|ion)?)\b/i, "supervis"],
+  [/\b(mentor(?:ed|ing)?)\b/i, "mentor"],
+  [/\b(spearhead(?:ed|ing)?)\b/i, "spearhead"],
+  [/\b(coordinat(?:ed|ing|ion|e))\b/i, "coordinat"],
+  [/\b(collaborat(?:ed|ing|ion|e|ive))\b/i, "collaborat"],
+  [/\b(partner(?:ed|ing))\b/i, "partner"],
+  [/\b(cross[- ]functional)\b/i, "cross"],
+  [/\b(stakeholders?)\b/i, "stakeholder"],
+];
+function scopeClaims(text: string): [string, string][] {
+  const out: [string, string][] = [];
+  for (const [re, prefix] of SCOPE_WORDS) {
+    const m = text.match(re);
+    if (m) out.push([m[1].toLowerCase(), prefix]);
+  }
+  return out;
+}
+
 function isApplicationFraming(text: string): boolean {
   return /\b(writing to apply|apply(ing)? for|application for|interest(ed)? in|regarding|in response to|excited to apply|submit(ting)? my|seeking a|seeking the|targeting a|pursuing a)\b/i.test(
     text
@@ -555,6 +582,25 @@ export function verifyDraft(
       // Same word, different form ("automation" vs "Automated") is rewording.
       if (morphologicallyPresent(e, corpusStems, corpusTokens)) continue;
       unsupportedFacts.push(`"${e}"`);
+    }
+
+    // --- scope inflation: the one soft claim that is still checkable ---
+    // Numbers, tools and names are not the only way to overstate. "Cleaned and merged POS
+    // data" quietly becomes "coordinated with the teams who owned each system" - no new
+    // noun, just new SCOPE (leadership, management, coordination, stakeholder work). A
+    // hiring manager asks about exactly these in an interview. If the draft claims one of
+    // these and neither the resume nor the human's note uses that word family, flag it.
+    // Only for claims about the candidate: every resume line, or a first-person letter
+    // sentence ("I'd love to collaborate with your team" is a wish, not a claim).
+    if (!isLetter || isExperienceClaim(unit.text)) {
+      for (const [word, stemPrefix] of scopeClaims(unit.text)) {
+        hardFactCount += 1;
+        const present =
+          [...corpusTokens].some((t) => t.startsWith(stemPrefix)) ||
+          resumeCorpus.includes(stemPrefix) ||
+          (noteCorpus && noteCorpus.includes(stemPrefix));
+        if (!present) unsupportedFacts.push(`claims "${word}" (not in your resume or note)`);
+      }
     }
 
     // A sentence that names a skill in order to say the candidate does NOT have it is

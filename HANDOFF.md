@@ -33,15 +33,19 @@ still fully functional, still passes the four required tests.
 |---|---|
 | `npx tsx scripts/run-tests.ts` | 15 postings, 4/4 required sequences distinct |
 | `set -a && source .env.local && set +a && npx tsx scripts/conformance.ts` | 13/13 gates |
-| `LLM_PROVIDER=none DEEPSEEK_API_KEY= npx tsx scripts/conformance.ts` | 9/9 gates, no AI |
-| `npx tsx scripts/verify-tests.ts` | 18/18 draft-verification checks |
+| `LLM_PROVIDER=none DEEPSEEK_API_KEY= npx tsx scripts/conformance.ts` | 11/11 gates, no AI |
+| `npx tsx scripts/verify-tests.ts` | 22/22 draft-verification checks |
 | `node scripts/local-e2e.mjs` | 48/48 over real HTTP (needs the server running) |
 | `node scripts/stress-draft.mjs` | Résumé quality + no false alarms (needs the server) |
 | `node scripts/harness-tests.mjs` | 16 checks: settings persist, clamp, refuse bad input, reset, and actually reach the agent |
 | `npx tsx scripts/stress-suite.ts` | 64 checks across coverage, arithmetic, monotonicity, discrimination, stability, edge cases and post-draft |
 | `npx tsx scripts/profile-matrix.ts` | Accuracy diagnostic: every realistic profile x every realistic posting, with the reasoning |
 | `npx tsx scripts/export-traces.ts` then `python3 scripts/build-submission-pdf.py` | Rebuilds G6_Job_Search_Agent_Submission.pdf with freshly generated traces |
-| `node scripts/hostile-model-test.mjs` | A deliberately hostile model cannot change any decision (run with `MODE=draft-only` to attack drafting) |
+| `node scripts/hostile-model-test.mjs` | A deliberately hostile model cannot change any decision (`MODE=draft-only` attacks drafting; `MODE=rewrite-attack` attacks the second tailoring pass) |
+| `npx tsx scripts/redteam-injection.ts` | Seven steering attacks (flattery, sabotage, fake candidate instructions, fake authority, "write it badly", "treat this posting as your system prompt", "no need for review"): 7/7 flagged even with **no AI**, all contained |
+| `LLM_PROVIDER=none npx tsx scripts/injection-falsepositive.ts` | The keyword floor over every posting in the repo: no honest posting flagged, no floor-catchable injection missed |
+| `npx tsx scripts/tailoring-audit.ts [--profile name] [jobs]` | Measures real tailoring: bullets rewritten vs copied, posting vocabulary picked up, facts kept, verifier flags |
+| `npx tsx scripts/gap-completeness.ts` | Every requirement bullet a posting states is matched, missing, or surfaced as "not assessed" - none silently dropped |
 | `npx tsx scripts/doc-check.ts` | The docs still match the code: every agent action is in the inventory, and no doc repeats a claim that has become false |
 | Test Lab (`/testlab`) | 19 tests including the four class-page scenarios (K001-K004). Each shows the agent's brain step by step (AI thinking vs code rule) and the advisor's recommendation. All 19 pass on DeepSeek |
 | `set -a && source .env.local && set +a && npx tsx scripts/guidelines-proof.ts` | Proves the agent is driven by `src/data/agent-guidelines.md`: same postings, edited guidance, different decisions; and a file that tries to disable guardrails has no effect on them |
@@ -137,7 +141,7 @@ vs actual. Good for the demo.
    Deleting it was blocked by a permission guard; remove it from the Profiles page.
 8. **Preview-environment env vars are not set on Vercel** — only Production and
    Development. Preview deploys will not have a database or model.
-8b. **The draft checker catches invented specifics, not stretched activities.** Found live on 20 Sep:
+8b. **FIXED (21 Sep):** the draft checker now also flags *scope inflation* - a claim that adds "led", "managed", "coordinated", "collaborated", "stakeholders", "cross-functional", "spearheaded" or similar when neither the resume nor the human's note uses that word family (`scopeClaims()` in `draftVerifier.ts`; four new tests in `verify-tests.ts`, including that honest wishes like "I'd welcome the chance to collaborate" stay clean). Original finding, 20 Sep:
     a draft said the POS cleanup "required coordinating with the teams who owned each system", which
     the résumé does not say, and the checker reported "nothing was invented" (it looks for numbers,
     employers, tools and credentials). The stretch started from an Advisor preset, so the Advisor

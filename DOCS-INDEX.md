@@ -45,10 +45,14 @@ Every command, what it proves, and roughly how long it takes.
 |---|---|---|
 | `npx tsx scripts/run-tests.ts` | 15 postings with full decision traces; the four required sequences are distinct | ~2 min |
 | `npx tsx scripts/conformance.ts` | 13/13 gates on the configured model | ~2 min |
-| `LLM_PROVIDER=none DEEPSEEK_API_KEY= npx tsx scripts/conformance.ts` | 9/9 gates with **no AI at all** — the app never depends on the model | ~5 s |
+| `LLM_PROVIDER=none DEEPSEEK_API_KEY= npx tsx scripts/conformance.ts` | 11/11 gates with **no AI at all** — the app never depends on the model | ~5 s |
 | **`npx tsx scripts/stress-suite.ts`** | **64 checks across 7 dimensions — see below** | ~6 min |
 | `npx tsx scripts/verify-tests.ts` | 18 draft-verification checks, including zero false alarms on honest rewording | ~5 s |
-| `node scripts/hostile-model-test.mjs` | Points the agent at a fake model that lies about everything and proves it cannot change a single decision | ~30 s |
+| `node scripts/hostile-model-test.mjs` | Points the agent at a fake model that lies about everything and proves it cannot change a single decision (also `MODE=draft-only`, `MODE=rewrite-attack`) | ~30 s |
+| `npx tsx scripts/redteam-injection.ts` | Seven steering/sabotage injection attacks: 7/7 flagged with or without AI, all contained | ~2 min |
+| `LLM_PROVIDER=none npx tsx scripts/injection-falsepositive.ts` | Keyword floor over all 22 postings: zero false positives | ~10 s |
+| `npx tsx scripts/tailoring-audit.ts` | Is the tailored resume really tailored? Rewrite rate, vocabulary, facts kept, flags | ~2 min |
+| `npx tsx scripts/gap-completeness.ts` | No stated requirement silently dropped from the gap list | ~2 min |
 | `npx tsx scripts/doc-check.ts` | The docs still match the code: every agent action is in the inventory, and no doc repeats a claim that has become false | ~2 s |
 | `npx tsx scripts/knob-tests.ts` | 16 checks that every Quick-match knob round-trips and edits exactly one line | ~5 s |
 | `npx tsx scripts/profile-matrix.ts` | Accuracy diagnostic: every résumé against every posting, requirement by requirement | ~4 min |

@@ -413,6 +413,16 @@ limit the score inflates and you walk into an interview defending a stretch.
 
 ## Layer 13 — Verifying what the AI wrote (the receipts)
 
+**Update (21 Sep).** Two things changed here. First, the tailored resume is now genuinely
+tailored: the Drafter gets a harness-computed list of words that are in both the posting and
+your resume, and a second pass rewrites any bullet that came back nearly word-for-word - kept
+only if it has exactly the same numbers. Measured: from 1 of 7 bullets rewritten to 3-6 of 7
+(and 9-11 of 12-13 on the detailed resumes), with every employer, title and date intact.
+Second, the checker now catches **stretched scope**, not just invented nouns: a claim that adds
+"led", "managed", "coordinated", "collaborated", "stakeholders" or "cross-functional" when your
+resume and note never say so is flagged. And in Layer 3 step 3, any requirement the Matcher
+skips is now shown as "could not assess - check it yourself" instead of silently vanishing.
+
 The cover letter and tailored résumé are written by the model, which is asked to
 rephrase. So we cannot demand word-for-word quotes there the way we do for skill
 matching. Instead, after every draft the agent runs a `verify_draft` step:

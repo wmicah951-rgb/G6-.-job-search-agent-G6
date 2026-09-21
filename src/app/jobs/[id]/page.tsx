@@ -58,6 +58,7 @@ type Evaluation = {
   minFit: number | null;
   lowConfidence: boolean;
   requirementCount: number | null;
+  unassessedRequirements: string[];
   rescore: {
     before: number;
     after: number;
@@ -833,6 +834,25 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
             </ul>
           ) : (
             <p className="text-sm text-neutral-500 mb-3">{ev.fitScore === null ? "Not evaluated: the skills check was skipped, so nothing is known about skill gaps for this job." : "No missing skills identified — full coverage."}</p>
+          )}
+
+          {/* Requirements the matcher skipped entirely — surfaced, never folded into the
+              score, because the candidate may actually have them. */}
+          {(ev.unassessedRequirements?.length ?? 0) > 0 && (
+            <div className="mt-3 border border-amber-300 bg-amber-50 rounded-xl p-3">
+              <p className="text-xs font-bold text-amber-950 mb-1">
+                ⚠ {ev.unassessedRequirements.length} requirement(s) the agent could not assess — check these yourself
+              </p>
+              <ul className="text-xs text-amber-900 list-disc pl-4 space-y-0.5">
+                {ev.unassessedRequirements.map((u, i) => (
+                  <li key={i}>{u}</li>
+                ))}
+              </ul>
+              <p className="text-[11px] text-amber-800 mt-1.5">
+                These are stated in the posting but were not returned by the skills matcher, so they
+                count neither as matched nor as missing and did not affect the score.
+              </p>
+            </div>
           )}
 
           {/* Quick custom skill bridge input */}

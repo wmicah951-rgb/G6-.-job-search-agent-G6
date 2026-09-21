@@ -36,9 +36,10 @@ import {
   chooseActionWithLlm,
   adviseHumanWithLlm,
   completeJsonWithLlm,
+  rewriteBulletsWithLlm,
   isSmallModel,
 } from "./llmEvaluator";
-import { ADVISE_SYSTEM_PROMPT, type AdviceMode, type LlmFitResult } from "./llm/types";
+import { ADVISE_SYSTEM_PROMPT, postingVocabulary, type AdviceMode, type LlmFitResult } from "./llm/types";
 import { loadGuidelines, DEFAULT_JUDGMENT_MARGIN, withRole, type Guidelines } from "./guidelines";
 import { verifyDraft, type DraftVerification } from "./draftVerifier";
 import { DEFAULT_SETTINGS, type HarnessSettings } from "./harnessSettings";
@@ -94,6 +95,14 @@ export interface AgentState {
   // rather than looking like a perfect match.
   lowConfidence?: boolean;
   requirementCount?: number;
+  // Requirement bullets the posting states that the model's extraction did not account for
+  // in EITHER matchedSkills or missingSkills. Found by a deterministic re-read of the
+  // posting (findUnassessedRequirements), because requirement extraction is a sampled model
+  // call and occasionally skips a line — usually an optional "bonus points" one. These are
+  // shown to the human as "check these yourself" rather than folded into the score: the
+  // candidate may well have the skill, so counting it as a gap would wrongly cut the score,
+  // but staying silent would hide something they need to know about.
+  unassessedRequirements?: string[];
   // Verified verbatim resume.md quote backing each entry in matchedSkills. Populated
   // by performFitEvaluation() regardless of whether it used the LLM or the
   // deterministic matcher, so drafting/rationale never need to re-derive evidence —
@@ -315,6 +324,32 @@ const INJECTION_PATTERNS: RegExp[] = [
   // a defence. The subtler phrasings (J009-J011) still need the AI reader.
   /\b(?:if|should|in case|when)\s+you(?:'re|\s+are|\s+happen\s+to\s+be|\s+be)\s+(?:an?\s+)?(?:ai|a\.i\.|artificial intelligence|language model|llm|chatbot|bot|assistant|automated|machine|screening system|screener|algorithm)\b/i,
   /\b(?:attention|note|message|instructions?)\s+(?:to|for)\s+(?:the\s+)?(?:ai|language model|llm|bot|automated|screening|applicant tracking|ats)\b/i,
+
+  // ---- STEERING THE VERDICT (added after red-teaming: scripts/redteam-injection.ts) ----
+  // These aim at the *evaluation* rather than obviously "hacking" the agent, and were
+  // previously caught only by the AI reader — meaning they went unflagged with no model
+  // configured. Each is anchored on screening language ABOUT the candidate ("this
+  // candidate", "the applicant", "me") or on addressing the agent itself, so ordinary job
+  // duties written in the second person ("You will own our dashboards") never match.
+  // A verdict pushed DOWN is an attack too: sabotage is as much an injection as flattery.
+  /(?:score|rate|rank|grade|mark|classify)\s+(?:this\s+|the\s+)?(?:candidate|applicant|resume|résumé|application)\s+as\s+[^.\n]{0,40}/i,
+  /recommend\s+(?:rejection|rejecting|against\s+(?:this|the)\s+(?:candidate|applicant))/i,
+  /(?:advise|tell|warn)\s+(?:the\s+)?(?:applicant|candidate)\s+not\s+to\s+apply/i,
+  // Fake instructions posing as the candidate's own ("mark me as fully qualified").
+  /(?:mark|list|report|record|treat|consider)\s+me\s+as\s+[^.\n]{0,40}/i,
+  /skip\s+(?:the\s+)?(?:gap|skills?|requirements?|qualification)\s*\w*\s*(?:analysis|check|assessment|review|step)/i,
+  // Fake prior authority the agent is told to simply record and move on from.
+  /record\s+(?:a|an)\s+(?:favourable|favorable|positive|passing|top|perfect|strong)\s+\w+/i,
+  /proceed\s+(?:directly\s+)?to\s+(?:drafting|the\s+draft|generating|producing)/i,
+  // Sabotage: telling the agent to write the candidate's own materials badly.
+  /(?:write|draft|generate|produce)\s+(?:them|it|the\s+(?:materials?|letter|application|resume|résumé))\s+(?:poorly|badly|weakly|negatively)/i,
+  /understate\s+(?:the\s+)?(?:applicant|candidate|their)/i,
+  // Handing the agent's own instructions over to the posting.
+  /as\s+(?:your\s+)?(?:system\s+prompt|new\s+instructions|operating\s+instructions)/i,
+  /follow\s+(?:them|these|this|it)\s+(?:over|instead\s+of|rather\s+than)\s+(?:your\s+)?(?:own\s+)?(?:rules|instructions|guidelines|system)/i,
+  // Soft-language attempts to dissolve the human approval gate.
+  /no\s+need\s+for\s+(?:a\s+)?(?:person|human|anyone|reviewer|someone)\s+to\s+(?:review|look|check|approve|see)/i,
+  /finali[sz]e\s+(?:the\s+)?application\s+automatically/i,
 ];
 
 /**
@@ -564,6 +599,8 @@ export interface FitEvaluation {
   // percentage to mean anything (truncated text, boilerplate, a failed scrape).
   lowConfidence?: boolean;
   requirementCount?: number;
+  /** Stated requirement bullets the extraction skipped entirely (see AgentState). */
+  unassessedRequirements?: string[];
   method: "llm" | "deterministic";
   reasoning: string | null;
   note: string;
@@ -636,6 +673,71 @@ async function smallModelFit(resumeText: string, jobText: string, settings: Harn
     missingPreferredRequirements,
     reasoning: String(raw.summary ?? "").slice(0, 400) || "Small-model matcher: pointed at résumé lines for each requirement.",
   };
+}
+
+// ---------- Completeness backstop for requirement extraction ----------
+//
+// Requirement extraction is a sampled model call, so it occasionally skips a stated bullet
+// (measured: 1-2 of ~10 on a long posting, varying run to run — scripts/gap-completeness.ts).
+// A skipped requirement is the quietest possible failure: the score still looks reasonable
+// while the gap list is silently short, so the candidate never learns what to add. These
+// helpers re-read the posting deterministically and report anything the model left out.
+
+/** Headings whose bullets are DUTIES, not screening requirements — the matcher ignores these. */
+const DUTY_HEADING =
+  /^#{0,3}\s*(what you'?l*l?\s*(be\s*)?(do|doing)|responsibilities|the role|role overview|about the role|day[- ]to[- ]day)/i;
+/** Headings that introduce real requirement bullets, optional sections included. */
+const REQ_HEADING =
+  /^#{0,3}\s*(requirements?|qualifications|what you'?l*l?\s*need|you (?:will )?(?:need|bring)|must have|preferred|nice to have|bonus points|a plus)/i;
+/** Soft skills the matcher is instructed to exclude, so they are not "missing" either. */
+const SOFT_REQUIREMENT =
+  /\b(communication|communicat|interpersonal|collaborat|team player|attention to detail|self[- ]starter|organi[sz]ed|problem[- ]solving|presenting|presentation skills|work ethic|curiosity|proactive)\b/i;
+
+// Glue words that make unrelated requirements look alike ("Python OR R FOR analysis AND
+// automation" vs "Data analysis AND BI reporting"); ignored when judging coverage.
+const COMPLETENESS_FILLER = new Set([
+  "and", "for", "the", "with", "from", "into", "our", "you", "your", "such", "similar", "related",
+  "data", "analysis", "reporting", "tool", "tools", "using", "use", "plus", "team", "role", "work",
+]);
+
+function statedRequirementBullets(jobText: string): string[] {
+  const out: string[] = [];
+  let inReq = false;
+  for (const raw of jobText.split("\n")) {
+    const l = raw.trim();
+    if (DUTY_HEADING.test(l)) {
+      inReq = false;
+      continue;
+    }
+    if (REQ_HEADING.test(l)) {
+      inReq = true;
+      continue;
+    }
+    if (inReq && l && !l.startsWith("-") && !l.startsWith("*") && /^[A-Z#]/.test(l) && l.length < 60) inReq = false;
+    if (inReq && (l.startsWith("- ") || l.startsWith("* "))) {
+      const t = l.replace(/^[-*]\s*/, "").trim();
+      if (t.length >= 4 && !SOFT_REQUIREMENT.test(t)) out.push(t);
+    }
+  }
+  return out;
+}
+
+/** Stated bullets not represented in anything the model reported. */
+function findUnassessedRequirements(jobText: string, reported: string[]): string[] {
+  const toks = (t: string) =>
+    new Set(
+      t
+        .toLowerCase()
+        .split(/[^a-z0-9+#/]+/)
+        .filter((w) => w.length >= 3 && !REQ_STOPWORDS.has(w) && !COMPLETENESS_FILLER.has(w))
+    );
+  const reportedSets = reported.map(toks);
+  return statedRequirementBullets(jobText).filter((bullet) => {
+    const want = [...toks(bullet)];
+    if (!want.length) return false;
+    const need = Math.max(1, Math.ceil(want.length * 0.34));
+    return !reportedSets.some((got) => want.filter((w) => got.has(w)).length >= need);
+  });
 }
 
 // The one step in the whole agent that may call an LLM (see llmEvaluator.ts).
@@ -748,6 +850,9 @@ async function performFitEvaluation(
       const lowConfidence =
         requirementCount < 3 || ungrounded.length > Math.max(1, requirementCount * 0.4);
 
+      // Deterministic backstop: did the extraction skip any stated requirement bullet?
+      const unassessedRequirements = findUnassessedRequirements(jobText, [...matched, ...missing]);
+
       const notes: string[] = ["LLM semantic matching."];
       if (lowConfidence) {
         notes.push(
@@ -766,6 +871,11 @@ async function performFitEvaluation(
           `${droppedCount} proposed match(es) dropped for lacking a verbatim resume.md quote.`
         );
       }
+      if (unassessedRequirements.length > 0) {
+        notes.push(
+          `${unassessedRequirements.length} stated requirement(s) were NOT assessed by the matcher and are surfaced separately for the human: ${unassessedRequirements.join("; ")}.`
+        );
+      }
 
       return {
         score,
@@ -776,6 +886,7 @@ async function performFitEvaluation(
         matchStrength,
         lowConfidence,
         requirementCount,
+        unassessedRequirements,
         method: "llm",
         reasoning: llmResult.reasoning,
         note: notes.join(" "),
@@ -922,6 +1033,9 @@ function computeRedFlags(state: AgentState): string[] {
     flags.push("Posting never states whether the role is remote, hybrid or on-site");
   }
   if (state.lowConfidence) flags.push("Fit score is low-confidence: too few requirements could be read from the posting");
+  for (const u of state.unassessedRequirements ?? []) {
+    flags.push(`Requirement not assessed (check it yourself): ${u.length > 90 ? u.slice(0, 90) + "..." : u}`);
+  }
   const requiredGaps = state.missingSkills.filter((m) => !(state.missingPreferredSkills ?? []).includes(m));
   if (requiredGaps.length > 0) flags.push(`Required qualification(s) not evidenced in resume: ${requiredGaps.join("; ")}`);
   return flags;
@@ -1604,6 +1718,7 @@ export async function runAgent(
       matchStrength: fit.matchStrength ?? {},
       lowConfidence: fit.lowConfidence ?? false,
       requirementCount: fit.requirementCount ?? fit.matched.length + fit.missing.length,
+      unassessedRequirements: fit.unassessedRequirements ?? [],
       fitMethod: fit.method,
       fitReasoning: fit.reasoning,
       fitRationale,
@@ -1878,7 +1993,7 @@ export async function applyHumanDecision(
 
   // Draft, grounded ONLY in facts extracted from resume.md — never fabricated.
   const draftBefore = { ...state };
-  const { draft, coverLetter, tailoredResume, gapNotes } = await draftApplication(
+  const { draft, coverLetter, tailoredResume, gapNotes, bulletsRetailored } = await draftApplication(
     state.matchedEvidence, state.missingSkills, jobText, state.matchedSkills, state.approvalNote, resumeText, settings
   );
   state = { ...state, stage: "drafted", draft, coverLetter, tailoredResume, gapNotes };
@@ -1888,7 +2003,10 @@ export async function applyHumanDecision(
     "draft_application",
     "Draft produced from resume.md and the human's note." +
       (coverLetter
-        ? " Full cover letter and tailored resume included — both now go to verification."
+        ? " Full cover letter and tailored resume included — both now go to verification." +
+          (bulletsRetailored
+            ? ` Second tailoring pass rewrote ${bulletsRetailored} bullet(s) the drafter had copied verbatim (same numbers kept; verified below).`
+            : "")
         : " Deterministic bullets only: each is a literal resume.md quote, so it needs no further verification."),
     draftBefore,
     state
@@ -2063,6 +2181,7 @@ async function draftApplication(
   coverLetter: string | null;
   tailoredResume: string | null;
   gapNotes: { skill: string; status: string; note: string }[];
+  bulletsRetailored?: number;
 }> {
   // Always produce the deterministic bullet-point draft as a baseline
   const bullets: string[] = [];
@@ -2094,14 +2213,95 @@ async function draftApplication(
       { systemPrompt: settings.prompts.draft, maxInputChars: settings.llmMaxInputChars, timeoutMs: isSmallModel() ? 600000 : undefined }
     );
     if (llmDraft) {
+      const retailored = await retailorVerbatimBullets(llmDraft.tailoredResume, resumeText, jobText, roleTitle, settings);
       return {
         draft,
         coverLetter: llmDraft.coverLetter,
-        tailoredResume: llmDraft.tailoredResume,
+        tailoredResume: retailored.resume,
         gapNotes: llmDraft.addressedGaps ?? [],
+        bulletsRetailored: retailored.rewritten,
       };
     }
   }
 
   return { draft, coverLetter: null, tailoredResume: null, gapNotes: [] };
+}
+
+// ---------- Second tailoring pass ----------
+//
+// The drafter is told to reword achievement bullets toward the posting, and often copies them
+// through verbatim anyway (measured on real runs: 1 of 7, 1 of 12). This pass finds the bullets
+// that came back word-for-word and asks for a one-for-one rewrite of just those. The model does
+// the language; the harness decides what survives: a rewrite is kept ONLY if it carries exactly
+// the same set of numbers as the original bullet (no figure added, none dropped), and the whole
+// tailored resume still goes through verify_draft afterwards, which flags any new tool,
+// employer, credential or inflated scope ("led", "coordinated") it introduced.
+const bulletKey = (t: string) =>
+  t.toLowerCase().replace(/\([^)]*yrs?\)/g, "").replace(/[^a-z0-9]+/g, " ").trim();
+const numbersIn = (t: string) => (t.match(/\d+(?:\.\d+)?/g) ?? []).sort().join(",");
+const NEAR_VERBATIM = 0.15;
+/** 0 = same words, 1 = no words in common (multiset Dice distance over words of 3+ letters). */
+function wordDistance(a: string, b: string): number {
+  const A = a.split(" ").filter((w) => w.length >= 3);
+  const B = b.split(" ").filter((w) => w.length >= 3);
+  if (!A.length && !B.length) return 0;
+  const count = new Map<string, number>();
+  for (const w of A) count.set(w, (count.get(w) ?? 0) + 1);
+  let shared = 0;
+  for (const w of B) {
+    const n = count.get(w) ?? 0;
+    if (n > 0) {
+      shared += 1;
+      count.set(w, n - 1);
+    }
+  }
+  return 1 - (2 * shared) / (A.length + B.length);
+}
+
+async function retailorVerbatimBullets(
+  tailored: string,
+  resumeText: string,
+  jobText: string,
+  roleTitle: string,
+  settings: HarnessSettings
+): Promise<{ resume: string; rewritten: number }> {
+  const originals = resumeText
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l) => l.startsWith("- ") && l.length > 25)
+    .map((l) => bulletKey(l.slice(2)));
+  // "Nearly verbatim", not just identical: measured drafts dodge an exact-match check with a
+  // one-word tweak ("paid channels" -> "paid marketing channels"), which is not tailoring.
+  // A bullet sharing 85%+ of its words with an original line counts as copied.
+  const lines = tailored.split("\n");
+  const idxs: number[] = [];
+  lines.forEach((l, i) => {
+    const t = l.trim();
+    if (!t.startsWith("- ") || t.length <= 25) return;
+    const key = bulletKey(t.slice(2));
+    if (originals.some((o) => wordDistance(o, key) < NEAR_VERBATIM)) idxs.push(i);
+  });
+  if (idxs.length < 2) return { resume: tailored, rewritten: 0 };
+  const bullets = idxs.map((i) => lines[i].trim().slice(2));
+  try {
+    const res = await rewriteBulletsWithLlm(bullets, roleTitle, postingVocabulary(jobText, resumeText), {
+      timeoutMs: Math.max(settings.llmTimeoutMs, 30000),
+    });
+    const out = Array.isArray(res.bullets) ? res.bullets : [];
+    if (out.length !== bullets.length) return { resume: tailored, rewritten: 0 };
+    let rewritten = 0;
+    idxs.forEach((lineIdx, k) => {
+      const proposed = String(out[k] ?? "").replace(/^[-*]\s*/, "").trim();
+      if (!proposed || proposed.length > 300) return;
+      if (numbersIn(proposed) !== numbersIn(bullets[k])) return; // a figure changed: refuse
+      // Only accept it if it actually moved further from the original than what we had.
+      if (wordDistance(bulletKey(proposed), bulletKey(bullets[k])) < NEAR_VERBATIM) return;
+      const indent = lines[lineIdx].match(/^\s*/)?.[0] ?? "";
+      lines[lineIdx] = `${indent}- ${proposed}`;
+      rewritten += 1;
+    });
+    return { resume: lines.join("\n"), rewritten };
+  } catch {
+    return { resume: tailored, rewritten: 0 };
+  }
 }

@@ -1,5 +1,11 @@
 import Anthropic from "@anthropic-ai/sdk";
 import {
+  REWRITE_JSON_SCHEMA,
+  REWRITE_SYSTEM_PROMPT,
+  REWRITE_TOOL_DESCRIPTION,
+  REWRITE_TOOL_NAME,
+  rewriteUserPrompt,
+  type LlmBulletRewrite,
   ADVISE_JSON_SCHEMA,
   ADVISE_SYSTEM_PROMPT,
   ADVISE_TOOL_DESCRIPTION,
@@ -83,6 +89,30 @@ export const anthropicProvider: LlmProvider = {
       );
       if (!toolUse) throw new Error("Anthropic response did not include the expected assessment tool call.");
       return toolUse.input as LlmPostingAssessment;
+    } finally {
+      clearTimeout(timeout);
+    }
+  },
+
+  async rewriteBullets(bullets, jobTitle, mirror, opts) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), opts?.timeoutMs ?? 30000);
+    try {
+      const response = await getClient().messages.create(
+        {
+          model: MODEL,
+          max_tokens: 1500,
+          temperature: 0.6,
+          system: opts?.systemPrompt ?? REWRITE_SYSTEM_PROMPT,
+          tools: [{ name: REWRITE_TOOL_NAME, description: REWRITE_TOOL_DESCRIPTION, input_schema: REWRITE_JSON_SCHEMA }],
+          tool_choice: { type: "tool", name: REWRITE_TOOL_NAME },
+          messages: [{ role: "user", content: rewriteUserPrompt(bullets, jobTitle, mirror) }],
+        },
+        { signal: controller.signal }
+      );
+      const toolUse = response.content.find((b): b is Anthropic.ToolUseBlock => b.type === "tool_use");
+      if (!toolUse) throw new Error("Anthropic response did not include the expected rewrite tool call.");
+      return toolUse.input as LlmBulletRewrite;
     } finally {
       clearTimeout(timeout);
     }

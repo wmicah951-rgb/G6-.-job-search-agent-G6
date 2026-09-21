@@ -320,14 +320,14 @@ table([
     ["Suite", "What it proves", "Result"],
     ["run-tests.ts", cell("15 postings, full traces"), "4/4 distinct"],
     ["conformance.ts", cell("Every gate on the configured model"), "13/13"],
-    ["conformance.ts (no model)", cell("Every gate with no AI at all"), "9/9"],
+    ["conformance.ts (no model)", cell("Every gate with no AI at all"), "11/11"],
     ["stress-suite.ts", cell("Coverage, arithmetic, monotonicity, discrimination, stability, edge cases, post-draft; no action logged twice in a row"), "64/64"],
-    ["verify-tests.ts", cell("Draft checking, incl. zero flags on honest heavy rewording"), "18/18"],
+    ["verify-tests.ts", cell("Draft checking, incl. zero flags on honest heavy rewording"), "22/22"],
     ["local-e2e.mjs", cell("Whole app over HTTP incl. 409 guards, override, delete"), "48/48"],
     ["harness-tests.mjs", cell("Settings persist, clamp, refuse bad input, reach the agent"), "16/16"],
     ["knob-tests.ts", cell("Preference knobs round-trip and edit exactly one line"), "16/16"],
     ["doc-check.ts", cell("Docs list every action and repeat no known-false claim"), "pass"],
-    ["Live Test Lab", cell("Same cases against the deployed site"), "9/9"],
+    ["Live Test Lab", cell("Every case against the real agent, in-app"), "19/19"],
 ], [1.7, 3.8, 1.0])
 P("Injection defence, escalating: J004 and J008 (explicit, HTML comment) are caught by the keyword floor; "
   "J012 (&lsquo;if you are a language model&rsquo;) was moved into the floor after the model proved "

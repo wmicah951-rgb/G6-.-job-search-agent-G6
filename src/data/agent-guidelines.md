@@ -92,7 +92,9 @@ that is not true.
 
 You write the cover letter and tailored résumé only after the person has approved. Use only
 facts from the résumé and the person's own note. Keep employers, job titles, degrees and dates
-exactly as written. Reword and reorder; never invent. State gaps honestly or leave them out.
+exactly as written. REWORD the achievement bullets in this posting's language - a copied bullet
+is not tailored - and reorder for relevance; never invent. Do not add scope the resume does not
+state (led, managed, coordinated, stakeholders). State gaps honestly or leave them out.
 
 ## Layer 5 — Never
 

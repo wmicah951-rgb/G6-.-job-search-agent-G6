@@ -269,6 +269,48 @@ Jordan Ellis`;
   );
 }
 
+// ---------------------------------------------------------------------------------- H
+// Scope inflation: overstating WITHOUT a new noun. Found live on 20 Sep: "cleaned and merged
+// POS data from 3 regional systems" came back as "work that required coordinating with the
+// teams who owned each system", and the old checker called it "nothing invented".
+{
+  const letter =
+    "Dear Hiring Manager,\n\nAs a Business Intelligence Intern at Halden Retail Co., I cleaned and merged POS data from 3 regional systems into one reporting table, work that required coordinating with the teams who owned each system.\n\nSincerely,\nJordan Ellis";
+  const v = verifyDraft(letter, resume, null, { kind: "letter", jobText: "Business Analyst" });
+  check(
+    "H. A stretched claim ('coordinating with the teams') is flagged",
+    v.claims.some((c) => c.verdict === "unsupported" && c.unsupportedFacts.some((f) => f.includes("coordinat"))),
+    v.claims.filter((c) => c.verdict === "unsupported").map((c) => c.unsupportedFacts.join("/")).join(" ")
+  );
+
+  const bullet = "- Led a team of analysts building weekly Power BI dashboards across 40 warehouses";
+  const vb = verifyDraft(bullet, resume, null, { kind: "resume" });
+  check(
+    "H. A resume bullet that adds 'Led a team' is flagged",
+    vb.claims.some((c) => c.verdict === "unsupported" && c.unsupportedFacts.some((f) => f.includes("led"))),
+    vb.claims.map((c) => c.verdict).join(",")
+  );
+
+  const withNote = verifyDraft(letter, resume, "I coordinated with the regional system owners during the merge.", {
+    kind: "letter",
+    jobText: "Business Analyst",
+  });
+  check(
+    "H. ...but NOT when the human's own note says they coordinated",
+    !withNote.claims.some((c) => c.unsupportedFacts.some((f) => f.includes("coordinat"))),
+    withNote.claims.map((c) => c.verdict).join(",")
+  );
+
+  const wish =
+    "Dear Hiring Manager,\n\nI would welcome the chance to collaborate with your stakeholders on the reporting roadmap.\n\nSincerely,\nJordan Ellis";
+  const vw = verifyDraft(wish, resume, null, { kind: "letter", jobText: "Business Analyst" });
+  check(
+    "H. A forward-looking wish ('I would welcome the chance to collaborate') is NOT flagged",
+    !vw.claims.some((c) => c.verdict === "unsupported"),
+    vw.claims.filter((c) => c.verdict === "unsupported").map((c) => c.unsupportedFacts.join("/")).join(" ")
+  );
+}
+
 console.log(
   failures === 0 ? "\nALL VERIFIER TESTS PASSED" : `\n${failures} VERIFIER TEST(S) FAILED`
 );

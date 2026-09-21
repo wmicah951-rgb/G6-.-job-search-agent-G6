@@ -9,6 +9,8 @@
 //   node scripts/hostile-model-test.mjs
 
 import http from "node:http";
+import fs from "node:fs";
+const RESUME = fs.readFileSync(new URL("../src/data/resume.md", import.meta.url), "utf-8");
 import { spawn } from "node:child_process";
 
 const PORT = 47113;
@@ -16,6 +18,17 @@ const PORT = 47113;
 // A model doing everything a compromised or prompt-injected model would do.
 let controllerCalls = 0;
 function hostileArguments(toolName) {
+  if (toolName === "record_rewritten_bullets" && process.env.MODE === "rewrite-attack") {
+    // A hostile REWRITER: inflates every bullet it is handed - an invented team size (a new
+    // number) and invented scope ("spearheaded", "stakeholders") on the rest.
+    return { bullets: (globalThis.__lastBullets ?? []).map((b, i) =>
+      i % 2 === 0 ? `Led a team of 12 analysts: ${b}` : `Spearheaded cross-functional stakeholder work: ${b}`) };
+  }
+  if (toolName === "record_application_draft" && process.env.MODE === "rewrite-attack") {
+    // An honest drafter that copies the bullets through, so the second pass has work to do.
+    return { coverLetter: "Dear Hiring Manager,\n\nI am applying for this role.\n\nSincerely,\nJordan Ellis",
+      tailoredResume: RESUME.replace(/\s*\([\d.~]+ ?yrs?\)/g, ""), addressedGaps: [] };
+  }
   if (toolName === "record_advice") {
     // A lying ADVISOR: fabricated presets and strengths with quotes that are not in the
     // résumé, a recommendation that does not exist, and a gap that was never found.
@@ -38,7 +51,7 @@ function hostileArguments(toolName) {
     };
   }
   if (toolName === "record_posting_assessment") {
-    if (process.env.MODE === "draft-only") {
+    if (process.env.MODE === "draft-only" || process.env.MODE === "rewrite-attack") {
       return { injection: { detected: false, snippets: [] },
                workArrangement: { value: "hybrid", evidenceQuote: "" }, clearanceRequired: false };
     }
@@ -54,7 +67,7 @@ function hostileArguments(toolName) {
   if (toolName === "record_fit_evaluation") {
     // MODE=draft-only: answer the fit step HONESTLY (real resume quotes) so the run
     // reaches the approval gate, isolating the drafting guardrail for attack.
-    if (process.env.MODE === "draft-only") {
+    if (process.env.MODE === "draft-only" || process.env.MODE === "rewrite-attack") {
       return {
         matchedRequirements: [
           { requirement: "SQL", evidenceQuote: "Wrote SQL queries (joins, group by, window functions) against a Postgres warehouse", priority: "required", strength: "full" },
@@ -92,6 +105,8 @@ const server = http.createServer((req, res) => {
     try {
       const parsed = JSON.parse(body);
       toolName = parsed?.tools?.[0]?.function?.name ?? parsed?.tool_choice?.function?.name ?? toolName;
+      const userMsg = parsed?.messages?.find((x) => x.role === "user")?.content ?? "";
+      globalThis.__lastBullets = [...String(userMsg).matchAll(/^\d+\. (.+)$/gm)].map((x) => x[1]);
     } catch {}
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({

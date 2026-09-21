@@ -67,6 +67,7 @@ export async function GET(
           minFit: state?.minFit ?? null,
           rescore: state?.rescore ?? null,
           lowConfidence: state?.lowConfidence ?? false,
+          unassessedRequirements: state?.unassessedRequirements ?? [],
           requirementCount: state?.requirementCount ?? null,
           profileName: evaluation.profile_name,
           trace: JSON.parse(evaluation.trace_json as string),

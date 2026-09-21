@@ -141,6 +141,36 @@ there is no code anywhere in this app that sends an HTTP request to a job board,
 an email service, or any third party on the candidate's behalf. The only output
 is text rendered back to the human in their own browser.
 
+## 4b. The tailored resume must be tailored - and still honest
+
+Two passes, measured with `scripts/tailoring-audit.ts`. The drafter is told to rewrite bullets
+in the posting's language and is handed a harness-computed list of vocabulary that appears in
+BOTH the posting and the resume (so mirroring a term can never introduce a skill the candidate
+lacks). Measured, that alone left most bullets verbatim (1 of 7, 1 of 12), so a **second pass**
+(`retailorVerbatimBullets()` in agent.ts) finds bullets that came back nearly verbatim (85%+
+word overlap) and asks for a one-for-one rewrite of just those. A rewrite is kept **only if it
+contains exactly the same numbers** as the original; the whole resume then goes through
+`verify_draft`. Result on the same postings: 3-6 of 7 and 9-11 of 12-13 bullets rewritten, all
+employers/titles/dates intact, 0 unjustified flags. A hostile rewriter (`MODE=rewrite-attack`)
+that adds "Led a team of 12" and "spearheaded stakeholder work" to every bullet is contained:
+the new number is refused and the inflated scope is flagged.
+
+**Scope inflation is now checked.** `draftVerifier.ts` flags any claim that adds leadership,
+management, coordination, collaboration or stakeholder scope (`led`, `managed`, `coordinated`,
+`cross-functional`, `stakeholders`, ...) when the resume and the human's note never use that
+word family. It applies to every resume line and to first-person letter claims only, so a
+forward-looking "I'd welcome the chance to collaborate" is not flagged.
+
+## 4c. No requirement silently dropped
+
+Requirement extraction is a sampled model call and occasionally skips a stated bullet (usually
+an optional "bonus points" one). `findUnassessedRequirements()` re-reads the posting's
+requirement sections deterministically (duties and soft skills excluded, exactly as the Matcher
+is told) and surfaces anything the model skipped as **"requirements the agent could not assess -
+check these yourself"**, in the Missing Skills panel, in red flags and in the trace. They are
+deliberately NOT counted as missing: the candidate may have the skill, and counting it would
+unfairly cut the score. Verified by `scripts/gap-completeness.ts` across six posting/resume pairs.
+
 ## 5. The advisor cannot say what it cannot prove
 
 `produceAdvice()` (agent.ts) runs once per run, only when the agent has just

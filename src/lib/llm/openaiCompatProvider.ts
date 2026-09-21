@@ -1,5 +1,11 @@
 import OpenAI from "openai";
 import {
+  REWRITE_JSON_SCHEMA,
+  REWRITE_SYSTEM_PROMPT,
+  REWRITE_TOOL_DESCRIPTION,
+  REWRITE_TOOL_NAME,
+  rewriteUserPrompt,
+  type LlmBulletRewrite,
   ADVISE_JSON_SCHEMA,
   ADVISE_SYSTEM_PROMPT,
   ADVISE_TOOL_DESCRIPTION,
@@ -68,7 +74,8 @@ export function makeOpenAiCompatProvider(cfg: CompatConfig): LlmProvider {
     toolDescription: string,
     schema: object,
     maxTokens: number,
-    timeoutMs: number
+    timeoutMs: number,
+    temperature = 0
   ): Promise<T> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -79,7 +86,7 @@ export function makeOpenAiCompatProvider(cfg: CompatConfig): LlmProvider {
           {
             model: cfg.model(),
             max_tokens: maxTokens,
-            temperature: 0,
+            temperature,
             messages: [
               { role: "system", content: system },
               { role: "user", content: user },
@@ -106,7 +113,7 @@ export function makeOpenAiCompatProvider(cfg: CompatConfig): LlmProvider {
         {
           model: cfg.model(),
           max_tokens: maxTokens,
-          temperature: 0,
+          temperature,
           messages: [
             {
               role: "system",
@@ -157,6 +164,21 @@ export function makeOpenAiCompatProvider(cfg: CompatConfig): LlmProvider {
         FIT_JSON_SCHEMA,
         1200,
         opts?.timeoutMs ?? TIMEOUT_MS
+      );
+    },
+
+    rewriteBullets(bullets, jobTitle, mirror, opts) {
+      return callStructured<LlmBulletRewrite>(
+        opts?.systemPrompt ?? REWRITE_SYSTEM_PROMPT,
+        rewriteUserPrompt(bullets, jobTitle, mirror),
+        REWRITE_TOOL_NAME,
+        REWRITE_TOOL_DESCRIPTION,
+        REWRITE_JSON_SCHEMA,
+        1500,
+        opts?.timeoutMs ?? 30000,
+        // A little sampling here only: at temperature 0 this model returns near-copies. Facts
+        // stay protected by the harness's numbers check and the draft verifier, not by 0.
+        0.6
       );
     },
 

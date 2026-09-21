@@ -18,7 +18,7 @@
 
 import { anthropicProvider } from "./llm/anthropicProvider";
 import { customProvider, deepseekProvider } from "./llm/deepseekProvider";
-import type { LlmActionChoice, LlmAdvice, LlmCallOptions, LlmFitResult, LlmPostingAssessment, LlmProvider } from "./llm/types";
+import type { LlmActionChoice, LlmAdvice, LlmBulletRewrite, LlmCallOptions, LlmFitResult, LlmPostingAssessment, LlmProvider } from "./llm/types";
 
 export type { LlmFitResult, LlmMatch } from "./llm/types";
 export type { LlmDraftResult, LlmGapNote } from "./llm/types";
@@ -111,6 +111,19 @@ export async function adviseHumanWithLlm(situation: string, opts?: LlmCallOption
   const provider = selectProvider();
   if (!provider) throw new Error("No LLM provider configured.");
   return provider.adviseHuman(situation, opts);
+}
+
+// Second tailoring pass: rewrite bullets the drafter copied through verbatim. Throws on no
+// provider / failure; the caller keeps the original draft in that case.
+export async function rewriteBulletsWithLlm(
+  bullets: string[],
+  jobTitle: string,
+  mirror: string[],
+  opts?: LlmCallOptions
+): Promise<LlmBulletRewrite> {
+  const provider = selectProvider();
+  if (!provider) throw new Error("No LLM provider configured.");
+  return provider.rewriteBullets(bullets, jobTitle, mirror, opts);
 }
 
 export async function evaluateFitWithLlm(

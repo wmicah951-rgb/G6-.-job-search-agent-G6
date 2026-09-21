@@ -18,7 +18,7 @@
 > iff injected, no draft without a human. The **Test Lab** runs all 19 tests (including the class-page
 > scenarios K001-K004) and shows each agent's brain step by step: who chose it (AI / guardrail /
 > default policy), AI thinking versus code rule, and the Advisor's recommendation. Also passing:
-> conformance 13/13 (9/9 with no AI), stress suite 64/64, end-to-end over HTTP, hostile-model
+> conformance 13/13 (11/11 with no AI), stress suite 64/64, end-to-end over HTTP, hostile-model
 > containment (including a lying Advisor), and `guidelines-proof.ts`.
 
 
@@ -192,6 +192,12 @@ the agentic-design requirement is checking for.
   configured) and asserts sequence, injection flag and read arrangement. Results:
   no model (regex floor) - 6/6 pass; DeepSeek - 7/7 pass (4 consecutive runs at
   temperature 0); generic `custom` OpenAI-compatible endpoint - 7/7 pass.
+- Update (20 Sep): J009 and J010 are no longer AI-only — red-teaming showed their shapes
+  ("no need for anyone to review", "record a favourable outcome") belong in the keyword floor,
+  and both now trip it with the model off. J011 (the poem) remains the genuinely AI-only case.
+  `scripts/redteam-injection.ts` adds seven further steering attacks (including sabotage — an
+  attack that tries to make the agent recommend AGAINST the candidate); the floor alone catches
+  7/7, and `scripts/injection-falsepositive.ts` confirms no honest posting is flagged.
 - Honest note: before temperature 0 and a sharper prompt, DeepSeek missed J009 in one
   of three runs — model detection is probabilistic, which is exactly why the regex
   floor and the human approval gate stay in place.

@@ -143,6 +143,7 @@ export async function POST(req: NextRequest) {
           missingSkills: r.state.missingSkills,
           matchStrength: r.state.matchStrength ?? {},
           fitReasoning: r.state.fitReasoning,
+          unassessedRequirements: r.state.unassessedRequirements ?? [],
           advice: r.state.advice ?? null,
           guidelines: r.state.guidelines ?? null,
           // The agent's brain, step by step: who chose it, and what it was thinking.
