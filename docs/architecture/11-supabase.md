@@ -36,10 +36,18 @@ or a SQLite-only function.
    SUPABASE_DB_URL=postgresql://postgres.<project-ref>:<password>@aws-0-<region>.pooler.supabase.com:6543/postgres
    ```
 
-3. Nothing else is needed: the schema is created on the first request
+3. TLS is verified against Supabase's own CA, committed at `certs/supabase-prod-ca.crt`
+   (their direct host is not signed by a CA in the system store, so plain verification fails
+   with "self-signed certificate in certificate chain"). The file ships with the deploy via
+   `outputFileTracingIncludes` in `next.config.ts`. Override the path with
+   `SUPABASE_CA_CERT_PATH` if you keep it elsewhere. Verification is never switched off: a
+   connection that cannot be verified fails, which is the point.
+
+4. Nothing else is needed: the schema is created on the first request
    (`ensureSchema()` in [`src/lib/db.ts`](../../src/lib/db.ts)), exactly as it was on Turso.
    `docs/supabase-schema.sql` holds the same statements if you would rather create the tables
-   yourself in the SQL editor first.
+   yourself in the SQL editor first. `npx tsx scripts/db-check.ts` connects, creates the schema
+   and prints a row count per table — the quickest way to confirm a connection string works.
 
 The `SUPABASE_URL` / publishable / secret keys are for Supabase's REST and auth APIs. This app
 does not use them — it speaks SQL directly — so the connection string is the only value it

@@ -15,6 +15,8 @@
 // It is deliberately NOT a general SQLite-to-Postgres layer: it covers this app's SQL, and a
 // query using something outside that set should fail loudly rather than be half-translated.
 
+import fs from "fs";
+import path from "path";
 import { Pool } from "pg";
 
 export interface SqlClient {
@@ -54,6 +56,24 @@ export function toPostgres(sql: string): string {
   return out;
 }
 
+/**
+ * Supabase's direct database host presents a certificate signed by Supabase's own CA, not by a
+ * CA in the system store, so plain verification fails with "self-signed certificate in
+ * certificate chain". The answer is to trust THAT CA — the certificate is committed at
+ * certs/supabase-prod-ca.crt — and keep verification on. Turning verification off would have
+ * been one line and would have meant nobody could tell an intercepted connection from a real
+ * one. If the file is missing we fall back to the system store rather than to no checking at
+ * all: a connection that cannot be verified should fail loudly.
+ */
+function tlsOptions(): { ca?: string } | boolean {
+  const caPath = process.env.SUPABASE_CA_CERT_PATH || path.join(process.cwd(), "certs", "supabase-prod-ca.crt");
+  try {
+    return { ca: fs.readFileSync(caPath, "utf-8") };
+  } catch {
+    return true;
+  }
+}
+
 let pool: Pool | null = null;
 
 export function postgresClient(): SqlClient {
@@ -62,11 +82,7 @@ export function postgresClient(): SqlClient {
     if (!connectionString) throw new Error("No Postgres connection string configured.");
     pool = new Pool({
       connectionString,
-      // TLS with the certificate actually verified against the system CA store. Supabase's
-      // hosts present publicly-signed certificates, so this just works; if it ever fails, the
-      // connection error is the right outcome — quietly accepting an unverified certificate
-      // would mean the database traffic could be intercepted without anyone noticing.
-      ssl: true,
+      ssl: tlsOptions(),
       max: 3,
       idleTimeoutMillis: 10_000,
       connectionTimeoutMillis: 10_000,

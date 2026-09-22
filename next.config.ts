@@ -14,6 +14,9 @@ const nextConfig: NextConfig = {
       // The official class starter kit: the seed profile, the Test Lab's KIT-J001..J006 cases
       // and the ranked-output run all read these at run time (src/lib/classKit.ts).
       "./src/data/classkit/**/*",
+      // Supabase's CA certificate, read at run time so the database connection is verified
+      // rather than trusted blindly (src/lib/pgClient.ts).
+      "./certs/*.crt",
     ],
   },
 };
