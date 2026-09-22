@@ -1,15 +1,13 @@
 # Ranked job output — official class kit
 
-Candidate: Jordan Lee (src/data/classkit/resume.md). Brain: deepseek:deepseek-chat. Run: 2026-09-22T20:06:36.571Z
+Candidate: Jordan Lee (src/data/classkit/resume.md). Brain: deepseek:deepseek-chat. Run: 2026-09-22T21:15:36.195Z
 
 | Rank | Job | Title | Fit | Outcome | Missing (gaps the agent kept) |
 | ---- | --- | ----- | --- | ------- | ----------------------------- |
 | 1 | J001 | Junior Data Analyst | 100% | awaiting_approval | none |
-| 2 | J003 | Senior Data Analyst, Retail Insights | 100% | rejected_hard_constraint | none |
-| 3 | J005 | AI Operations Analyst Intern | 100% | awaiting_approval | none |
-| 4 | J002 | Business Analyst, Product Insights | 67% | awaiting_approval | A/B Testing |
-| 5 | J004 | Cloud Data Analyst | 60% | awaiting_approval | ETL; Cloud (AWS) |
-| 6 | J006 | Marketing Content Creator | 0% | rejected_hard_constraint | none |
+| 2 | J005 | AI Operations Analyst Intern | 85% | awaiting_approval | AI operations experience (evaluating AI tools in internal operations) |
+| 3 | J002 | Business Analyst, Product Insights | 76% | awaiting_approval | Business analysis / product insights experience (entry-level product analytics function); A/B testing |
+| 4 | J004 | Cloud Data Analyst | 50% | rejected_low_fit | AWS certification; data pipelines; Cloud data analysis experience |
 
 ## Down-ranked / rejected on hard constraints
 

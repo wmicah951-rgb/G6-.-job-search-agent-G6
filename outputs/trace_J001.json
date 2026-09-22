@@ -13,23 +13,29 @@
     "fitScore": 1,
     "matchedSkills": [
       "SQL",
-      "Python",
       "Excel",
-      "Tableau"
+      "Tableau",
+      "Python basics",
+      "business communication",
+      "retail analytics",
+      "dashboarding"
     ],
     "missingSkills": [],
     "matchedEvidence": {
-      "SQL": "*Technical:** Excel (PivotTables, XLOOKUP), SQL, Tableau, Python (pandas), PowerPoint, Git/GitHub basics",
-      "Python": "Relevant coursework: Data Management, Business Analytics, Python for Business, Systems Analysis",
-      "Excel": "*Technical:** Excel (PivotTables, XLOOKUP), SQL, Tableau, Python (pandas), PowerPoint, Git/GitHub basics",
-      "Tableau": "*Technical:** Excel (PivotTables, XLOOKUP), SQL, Tableau, Python (pandas), PowerPoint, Git/GitHub basics"
+      "SQL": "Used SQL to answer recurring questions on store performance and customer purchase patterns with guidance from a senior analyst.",
+      "Excel": "Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team.",
+      "Tableau": "Built a Tableau dashboard tracking product sell-through, stockouts, and regional performance; presented findings to the merchandising manager.",
+      "Python basics": "Python (pandas)",
+      "business communication": "presented findings to the merchandising manager",
+      "retail analytics": "Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations",
+      "dashboarding": "Developed a Tableau dashboard and presented three operational recommendations; separated findings supported by data from assumptions requiring further validation."
     },
-    "fitMethod": "deterministic",
-    "fitReasoning": null,
+    "fitMethod": "llm",
+    "fitReasoning": "The candidate is a CIS student with internship and coursework experience directly in data analysis, matching every required item (SQL, Excel, Tableau, Python basics, business communication) and both preferred items (retail analytics, dashboarding) with verbatim evidence. The role is explicitly entry-level with no prior professional experience required, so the internship and course projects are sufficient for a full match.",
     "fitRationale": [
-      "SQL — resume.md: \"*Technical:** Excel (PivotTables, XLOOKUP), SQL, Tableau, Python (pandas), PowerPoint, Git/GitHub basics\"",
-      "Python — resume.md: \"Relevant coursework: Data Management, Business Analytics, Python for Business, Systems Analysis\"",
-      "Excel — resume.md: \"*Technical:** Excel (PivotTables, XLOOKUP), SQL, Tableau, Python (pandas), PowerPoint, Git/GitHub basics\"",
+      "SQL — resume.md: \"Used SQL to answer recurring questions on store performance and customer purchase patterns with guidance from a senior analyst.\"",
+      "Excel — resume.md: \"Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team.\"",
+      "Tableau — resume.md: \"Built a Tableau dashboard tracking product sell-through, stockouts, and regional performance; presented findings to the merchandising manager.\"",
       "Documented experience: ~1.7 years (resume.md, \"Total professional experience\")."
     ],
     "hardConstraintViolations": [],
@@ -45,62 +51,99 @@
     "judgmentMargin": 0.1,
     "guidelines": "agent-guidelines.md@215582cc",
     "missingPreferredSkills": [],
-    "matchStrength": {},
+    "matchStrength": {
+      "SQL": "full",
+      "Excel": "full",
+      "Tableau": "full",
+      "Python basics": "full",
+      "business communication": "full",
+      "retail analytics": "full",
+      "dashboarding": "full"
+    },
     "lowConfidence": false,
-    "requirementCount": 4,
+    "requirementCount": 7,
     "unassessedRequirements": [],
     "fitUnscoreable": false,
+    "requirementLedger": [
+      {
+        "requirement": "SQL",
+        "priority": "required"
+      },
+      {
+        "requirement": "Excel",
+        "priority": "required"
+      },
+      {
+        "requirement": "Tableau",
+        "priority": "required"
+      },
+      {
+        "requirement": "Python basics",
+        "priority": "required"
+      },
+      {
+        "requirement": "business communication",
+        "priority": "required"
+      },
+      {
+        "requirement": "retail analytics",
+        "priority": "preferred"
+      },
+      {
+        "requirement": "dashboarding",
+        "priority": "preferred"
+      }
+    ],
     "memory": {
       "reusedLedger": false,
       "reusedVerdicts": false,
-      "ledgerSize": 4,
-      "previousScore": null,
-      "note": "Memory: no AI model, so the deterministic keyword matcher (already stable) was used."
+      "ledgerSize": 7,
+      "previousScore": 1,
+      "note": "Memory: first time this posting was read. Stored its 7-requirement list so later runs use the same yardstick."
     },
     "advice": {
-      "source": "policy",
+      "source": "model",
       "mode": "approval",
-      "headline": "Default policy (no AI advisor): fit 100%. No required requirement is missing.",
+      "headline": "Strong match: 100% fit against a 60% bar, with every listed requirement backed by real résumé lines. Approve and draft.",
       "recommendation": "approve",
-      "recommendationWhy": "Chosen by the built-in default policy, not by an AI.",
+      "recommendationWhy": "Fit is 100% versus a 60% minimum — at or above the bar — and no requirements are missing. The résumé shows SQL, Excel, Tableau, Python (pandas), retail analytics and presenting findings, all in the same retail context as this role. Nothing needs fixing before drafting.",
       "strengths": [
         {
           "requirement": "SQL",
-          "evidenceQuote": "*Technical:** Excel (PivotTables, XLOOKUP), SQL, Tableau, Python (pandas), PowerPoint, Git/GitHub basics"
-        },
-        {
-          "requirement": "Python",
-          "evidenceQuote": "Relevant coursework: Data Management, Business Analytics, Python for Business, Systems Analysis"
+          "evidenceQuote": "Used SQL to answer recurring questions on store performance and customer purchase patterns with guidance from a senior analyst."
         },
         {
           "requirement": "Excel",
-          "evidenceQuote": "*Technical:** Excel (PivotTables, XLOOKUP), SQL, Tableau, Python (pandas), PowerPoint, Git/GitHub basics"
+          "evidenceQuote": "Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team."
+        },
+        {
+          "requirement": "Tableau / dashboarding",
+          "evidenceQuote": "Built a Tableau dashboard tracking product sell-through, stockouts, and regional performance; presented findings to the merchandising manager."
         }
       ],
       "rankedGaps": [],
       "draftPresets": [
         {
-          "label": "Emphasize SQL",
-          "instruction": "- Emphasize SQL, drawing on: \"*Technical:** Excel (PivotTables, XLOOKUP), SQL, Tableau, Python (pandas), PowerPoint, Git/GitHub basics\"",
-          "evidenceQuote": "*Technical:** Excel (PivotTables, XLOOKUP), SQL, Tableau, Python (pandas), PowerPoint, Git/GitHub basics"
+          "label": "Lead with SQL",
+          "instruction": "Open the summary by naming SQL as a tool used to answer recurring store-performance and customer-purchase questions, exactly as stated.",
+          "evidenceQuote": "Used SQL to answer recurring questions on store performance and customer purchase patterns with guidance from a senior analyst."
         },
         {
-          "label": "Emphasize Python",
-          "instruction": "- Emphasize Python, drawing on: \"Relevant coursework: Data Management, Business Analytics, Python for Business, Systems Analysis\"",
-          "evidenceQuote": "Relevant coursework: Data Management, Business Analytics, Python for Business, Systems Analysis"
+          "label": "Retail data at scale",
+          "instruction": "State that you cleaned and combined weekly sales and inventory files in Excel and Python across 18 retail locations and cut manual reporting steps.",
+          "evidenceQuote": "Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team."
         },
         {
-          "label": "Emphasize Excel",
-          "instruction": "- Emphasize Excel, drawing on: \"*Technical:** Excel (PivotTables, XLOOKUP), SQL, Tableau, Python (pandas), PowerPoint, Git/GitHub basics\"",
-          "evidenceQuote": "*Technical:** Excel (PivotTables, XLOOKUP), SQL, Tableau, Python (pandas), PowerPoint, Git/GitHub basics"
+          "label": "Dashboard + audience",
+          "instruction": "Mention the Tableau dashboard on sell-through, stockouts and regional performance, and that you presented the findings to the merchandising manager.",
+          "evidenceQuote": "Built a Tableau dashboard tracking product sell-through, stockouts, and regional performance; presented findings to the merchandising manager."
         },
         {
-          "label": "Emphasize Tableau",
-          "instruction": "- Emphasize Tableau, drawing on: \"*Technical:** Excel (PivotTables, XLOOKUP), SQL, Tableau, Python (pandas), PowerPoint, Git/GitHub basics\"",
-          "evidenceQuote": "*Technical:** Excel (PivotTables, XLOOKUP), SQL, Tableau, Python (pandas), PowerPoint, Git/GitHub basics"
+          "label": "Honest analysis framing",
+          "instruction": "Note that you separate data-supported findings from assumptions needing validation — useful for a junior analyst role.",
+          "evidenceQuote": "Developed a Tableau dashboard and presented three operational recommendations; separated findings supported by data from assumptions requiring further validation."
         }
-      ],
-      "overruled": "AI advisor unavailable (Error: 402 Insufficient Balance); default used"
+      ]
     }
   },
   "trace": [
@@ -135,7 +178,7 @@
         "judgmentMargin": 0.1,
         "guidelines": "agent-guidelines.md@215582cc"
       },
-      "observation": "Raw job posting text received (397 chars). Treated as untrusted data only. Read by the regex floor (no AI model available).",
+      "observation": "Raw job posting text received (397 chars). Treated as untrusted data only. Read by the AI model and the regex floor.",
       "availableActions": [
         "scan_for_injection"
       ],
@@ -171,8 +214,8 @@
         "guidelines": "agent-guidelines.md@215582cc"
       },
       "chosenBy": "harness",
-      "brain": "code",
-      "thinking": "No AI reader available. The keyword barrier alone scanned the text and found 0 instruction-like passage(s).",
+      "brain": "ai",
+      "thinking": "The AI reader saw: work arrangement \"unknown\"; clearance not required; 0 instruction-like passage(s) aimed at an AI. The keyword barrier then ran independently and found 0.",
       "classAction": "CONTINUE_INVESTIGATION"
     },
     {
@@ -206,136 +249,9 @@
         "judgmentMargin": 0.1,
         "guidelines": "agent-guidelines.md@215582cc"
       },
-      "observation": "Memory: no AI model, so the deterministic keyword matcher (already stable) was used. LLM call failed (Error: 402 Insufficient Balance) — fell back to deterministic keyword matching. Requirements checked against resume.md.",
-      "availableActions": [
-        "evaluate_fit",
-        "check_hard_constraints"
-      ],
-      "selectedAction": "evaluate_fit",
-      "result": "fit_score=1, matched=[SQL, Python, Excel, Tableau], missing=[]",
-      "stateAfter": {
-        "jobId": "J001",
-        "stage": "evaluated",
-        "injectionDetected": false,
-        "injectionSnippets": [],
-        "injectionSources": [],
-        "workArrangement": "unknown",
-        "draftVerification": null,
-        "coverLetterVerification": null,
-        "rescore": null,
-        "minFit": 0.6,
-        "fitScore": 1,
-        "matchedSkills": [
-          "SQL",
-          "Python",
-          "Excel",
-          "Tableau"
-        ],
-        "missingSkills": [],
-        "matchedEvidence": {
-          "SQL": "*Technical:** Excel (PivotTables, XLOOKUP), SQL, Tableau, Python (pandas), PowerPoint, Git/GitHub basics",
-          "Python": "Relevant coursework: Data Management, Business Analytics, Python for Business, Systems Analysis",
-          "Excel": "*Technical:** Excel (PivotTables, XLOOKUP), SQL, Tableau, Python (pandas), PowerPoint, Git/GitHub basics",
-          "Tableau": "*Technical:** Excel (PivotTables, XLOOKUP), SQL, Tableau, Python (pandas), PowerPoint, Git/GitHub basics"
-        },
-        "fitMethod": "deterministic",
-        "fitReasoning": null,
-        "fitRationale": [
-          "SQL — resume.md: \"*Technical:** Excel (PivotTables, XLOOKUP), SQL, Tableau, Python (pandas), PowerPoint, Git/GitHub basics\"",
-          "Python — resume.md: \"Relevant coursework: Data Management, Business Analytics, Python for Business, Systems Analysis\"",
-          "Excel — resume.md: \"*Technical:** Excel (PivotTables, XLOOKUP), SQL, Tableau, Python (pandas), PowerPoint, Git/GitHub basics\"",
-          "Documented experience: ~1.7 years (resume.md, \"Total professional experience\")."
-        ],
-        "hardConstraintViolations": [],
-        "redFlags": [],
-        "clarificationQuestion": null,
-        "approvalNote": null,
-        "draft": null,
-        "coverLetter": null,
-        "tailoredResume": null,
-        "gapNotes": [],
-        "judgmentMargin": 0.1,
-        "guidelines": "agent-guidelines.md@215582cc",
-        "missingPreferredSkills": [],
-        "matchStrength": {},
-        "lowConfidence": false,
-        "requirementCount": 4,
-        "unassessedRequirements": [],
-        "fitUnscoreable": false,
-        "memory": {
-          "reusedLedger": false,
-          "reusedVerdicts": false,
-          "ledgerSize": 4,
-          "previousScore": null,
-          "note": "Memory: no AI model, so the deterministic keyword matcher (already stable) was used."
-        }
-      },
-      "chosenBy": "policy",
-      "brain": "code",
-      "thinking": "Keyword matcher (no AI): counted the skills named in both the posting and the résumé.",
-      "classAction": "CONTINUE_INVESTIGATION"
-    },
-    {
-      "step": 3,
-      "stateBefore": {
-        "jobId": "J001",
-        "stage": "evaluated",
-        "injectionDetected": false,
-        "injectionSnippets": [],
-        "injectionSources": [],
-        "workArrangement": "unknown",
-        "draftVerification": null,
-        "coverLetterVerification": null,
-        "rescore": null,
-        "minFit": 0.6,
-        "fitScore": 1,
-        "matchedSkills": [
-          "SQL",
-          "Python",
-          "Excel",
-          "Tableau"
-        ],
-        "missingSkills": [],
-        "matchedEvidence": {
-          "SQL": "*Technical:** Excel (PivotTables, XLOOKUP), SQL, Tableau, Python (pandas), PowerPoint, Git/GitHub basics",
-          "Python": "Relevant coursework: Data Management, Business Analytics, Python for Business, Systems Analysis",
-          "Excel": "*Technical:** Excel (PivotTables, XLOOKUP), SQL, Tableau, Python (pandas), PowerPoint, Git/GitHub basics",
-          "Tableau": "*Technical:** Excel (PivotTables, XLOOKUP), SQL, Tableau, Python (pandas), PowerPoint, Git/GitHub basics"
-        },
-        "fitMethod": "deterministic",
-        "fitReasoning": null,
-        "fitRationale": [
-          "SQL — resume.md: \"*Technical:** Excel (PivotTables, XLOOKUP), SQL, Tableau, Python (pandas), PowerPoint, Git/GitHub basics\"",
-          "Python — resume.md: \"Relevant coursework: Data Management, Business Analytics, Python for Business, Systems Analysis\"",
-          "Excel — resume.md: \"*Technical:** Excel (PivotTables, XLOOKUP), SQL, Tableau, Python (pandas), PowerPoint, Git/GitHub basics\"",
-          "Documented experience: ~1.7 years (resume.md, \"Total professional experience\")."
-        ],
-        "hardConstraintViolations": [],
-        "redFlags": [],
-        "clarificationQuestion": null,
-        "approvalNote": null,
-        "draft": null,
-        "coverLetter": null,
-        "tailoredResume": null,
-        "gapNotes": [],
-        "judgmentMargin": 0.1,
-        "guidelines": "agent-guidelines.md@215582cc",
-        "missingPreferredSkills": [],
-        "matchStrength": {},
-        "lowConfidence": false,
-        "requirementCount": 4,
-        "unassessedRequirements": [],
-        "fitUnscoreable": false,
-        "memory": {
-          "reusedLedger": false,
-          "reusedVerdicts": false,
-          "ledgerSize": 4,
-          "previousScore": null,
-          "note": "Memory: no AI model, so the deterministic keyword matcher (already stable) was used."
-        }
-      },
       "observation": "Candidate years of experience: ~1.7. Preferences hard constraints checked against posting. Work arrangement read as \"unknown\".",
       "availableActions": [
+        "evaluate_fit",
         "check_hard_constraints"
       ],
       "selectedAction": "check_hard_constraints",
@@ -351,26 +267,105 @@
         "coverLetterVerification": null,
         "rescore": null,
         "minFit": 0.6,
+        "fitScore": null,
+        "matchedSkills": [],
+        "missingSkills": [],
+        "matchedEvidence": {},
+        "fitMethod": "deterministic",
+        "fitReasoning": null,
+        "fitRationale": [],
+        "hardConstraintViolations": [],
+        "redFlags": [],
+        "clarificationQuestion": null,
+        "approvalNote": null,
+        "draft": null,
+        "coverLetter": null,
+        "tailoredResume": null,
+        "gapNotes": [],
+        "judgmentMargin": 0.1,
+        "guidelines": "agent-guidelines.md@215582cc"
+      },
+      "chosenBy": "model",
+      "modelReasoning": "Injection scan is done and clean, but hard constraints have not been checked yet; verifying them first is the cheapest way to reach a final decision before spending a model call on fit evaluation.",
+      "guidelines": "agent-guidelines.md@215582cc",
+      "brain": "ai",
+      "thinking": "Injection scan is done and clean, but hard constraints have not been checked yet; verifying them first is the cheapest way to reach a final decision before spending a model call on fit evaluation.",
+      "classAction": "CONTINUE_INVESTIGATION"
+    },
+    {
+      "step": 3,
+      "stateBefore": {
+        "jobId": "J001",
+        "stage": "constraints_checked",
+        "injectionDetected": false,
+        "injectionSnippets": [],
+        "injectionSources": [],
+        "workArrangement": "unknown",
+        "draftVerification": null,
+        "coverLetterVerification": null,
+        "rescore": null,
+        "minFit": 0.6,
+        "fitScore": null,
+        "matchedSkills": [],
+        "missingSkills": [],
+        "matchedEvidence": {},
+        "fitMethod": "deterministic",
+        "fitReasoning": null,
+        "fitRationale": [],
+        "hardConstraintViolations": [],
+        "redFlags": [],
+        "clarificationQuestion": null,
+        "approvalNote": null,
+        "draft": null,
+        "coverLetter": null,
+        "tailoredResume": null,
+        "gapNotes": [],
+        "judgmentMargin": 0.1,
+        "guidelines": "agent-guidelines.md@215582cc"
+      },
+      "observation": "Memory: first time this posting was read. Stored its 7-requirement list so later runs use the same yardstick. LLM semantic matching. Requirements checked against resume.md. Previous score for this posting: 100%. Model's reasoning: \"The candidate is a CIS student with internship and coursework experience directly in data analysis, matching every required item (SQL, Excel, Tableau, Python basics, business communication) and both preferred items (retail analytics, dashboarding) with verbatim evidence. The role is explicitly entry-level with no prior professional experience required, so the internship and course projects are sufficient for a full match.\"",
+      "availableActions": [
+        "evaluate_fit"
+      ],
+      "selectedAction": "evaluate_fit",
+      "result": "fit_score=1, matched=[SQL, Excel, Tableau, Python basics, business communication, retail analytics, dashboarding], missing=[]",
+      "stateAfter": {
+        "jobId": "J001",
+        "stage": "evaluated",
+        "injectionDetected": false,
+        "injectionSnippets": [],
+        "injectionSources": [],
+        "workArrangement": "unknown",
+        "draftVerification": null,
+        "coverLetterVerification": null,
+        "rescore": null,
+        "minFit": 0.6,
         "fitScore": 1,
         "matchedSkills": [
           "SQL",
-          "Python",
           "Excel",
-          "Tableau"
+          "Tableau",
+          "Python basics",
+          "business communication",
+          "retail analytics",
+          "dashboarding"
         ],
         "missingSkills": [],
         "matchedEvidence": {
-          "SQL": "*Technical:** Excel (PivotTables, XLOOKUP), SQL, Tableau, Python (pandas), PowerPoint, Git/GitHub basics",
-          "Python": "Relevant coursework: Data Management, Business Analytics, Python for Business, Systems Analysis",
-          "Excel": "*Technical:** Excel (PivotTables, XLOOKUP), SQL, Tableau, Python (pandas), PowerPoint, Git/GitHub basics",
-          "Tableau": "*Technical:** Excel (PivotTables, XLOOKUP), SQL, Tableau, Python (pandas), PowerPoint, Git/GitHub basics"
+          "SQL": "Used SQL to answer recurring questions on store performance and customer purchase patterns with guidance from a senior analyst.",
+          "Excel": "Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team.",
+          "Tableau": "Built a Tableau dashboard tracking product sell-through, stockouts, and regional performance; presented findings to the merchandising manager.",
+          "Python basics": "Python (pandas)",
+          "business communication": "presented findings to the merchandising manager",
+          "retail analytics": "Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations",
+          "dashboarding": "Developed a Tableau dashboard and presented three operational recommendations; separated findings supported by data from assumptions requiring further validation."
         },
-        "fitMethod": "deterministic",
-        "fitReasoning": null,
+        "fitMethod": "llm",
+        "fitReasoning": "The candidate is a CIS student with internship and coursework experience directly in data analysis, matching every required item (SQL, Excel, Tableau, Python basics, business communication) and both preferred items (retail analytics, dashboarding) with verbatim evidence. The role is explicitly entry-level with no prior professional experience required, so the internship and course projects are sufficient for a full match.",
         "fitRationale": [
-          "SQL — resume.md: \"*Technical:** Excel (PivotTables, XLOOKUP), SQL, Tableau, Python (pandas), PowerPoint, Git/GitHub basics\"",
-          "Python — resume.md: \"Relevant coursework: Data Management, Business Analytics, Python for Business, Systems Analysis\"",
-          "Excel — resume.md: \"*Technical:** Excel (PivotTables, XLOOKUP), SQL, Tableau, Python (pandas), PowerPoint, Git/GitHub basics\"",
+          "SQL — resume.md: \"Used SQL to answer recurring questions on store performance and customer purchase patterns with guidance from a senior analyst.\"",
+          "Excel — resume.md: \"Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team.\"",
+          "Tableau — resume.md: \"Built a Tableau dashboard tracking product sell-through, stockouts, and regional performance; presented findings to the merchandising manager.\"",
           "Documented experience: ~1.7 years (resume.md, \"Total professional experience\")."
         ],
         "hardConstraintViolations": [],
@@ -384,28 +379,67 @@
         "judgmentMargin": 0.1,
         "guidelines": "agent-guidelines.md@215582cc",
         "missingPreferredSkills": [],
-        "matchStrength": {},
+        "matchStrength": {
+          "SQL": "full",
+          "Excel": "full",
+          "Tableau": "full",
+          "Python basics": "full",
+          "business communication": "full",
+          "retail analytics": "full",
+          "dashboarding": "full"
+        },
         "lowConfidence": false,
-        "requirementCount": 4,
+        "requirementCount": 7,
         "unassessedRequirements": [],
         "fitUnscoreable": false,
+        "requirementLedger": [
+          {
+            "requirement": "SQL",
+            "priority": "required"
+          },
+          {
+            "requirement": "Excel",
+            "priority": "required"
+          },
+          {
+            "requirement": "Tableau",
+            "priority": "required"
+          },
+          {
+            "requirement": "Python basics",
+            "priority": "required"
+          },
+          {
+            "requirement": "business communication",
+            "priority": "required"
+          },
+          {
+            "requirement": "retail analytics",
+            "priority": "preferred"
+          },
+          {
+            "requirement": "dashboarding",
+            "priority": "preferred"
+          }
+        ],
         "memory": {
           "reusedLedger": false,
           "reusedVerdicts": false,
-          "ledgerSize": 4,
-          "previousScore": null,
-          "note": "Memory: no AI model, so the deterministic keyword matcher (already stable) was used."
+          "ledgerSize": 7,
+          "previousScore": 1,
+          "note": "Memory: first time this posting was read. Stored its 7-requirement list so later runs use the same yardstick."
         }
       },
       "chosenBy": "harness",
-      "brain": "code",
+      "brain": "ai",
+      "thinking": "The candidate is a CIS student with internship and coursework experience directly in data analysis, matching every required item (SQL, Excel, Tableau, Python basics, business communication) and both preferred items (retail analytics, dashboarding) with verbatim evidence. The role is explicitly entry-level with no prior professional experience required, so the internship and course projects are sufficient for a full match.",
       "classAction": "CONTINUE_INVESTIGATION"
     },
     {
       "step": 4,
       "stateBefore": {
         "jobId": "J001",
-        "stage": "constraints_checked",
+        "stage": "evaluated",
         "injectionDetected": false,
         "injectionSnippets": [],
         "injectionSources": [],
@@ -417,23 +451,29 @@
         "fitScore": 1,
         "matchedSkills": [
           "SQL",
-          "Python",
           "Excel",
-          "Tableau"
+          "Tableau",
+          "Python basics",
+          "business communication",
+          "retail analytics",
+          "dashboarding"
         ],
         "missingSkills": [],
         "matchedEvidence": {
-          "SQL": "*Technical:** Excel (PivotTables, XLOOKUP), SQL, Tableau, Python (pandas), PowerPoint, Git/GitHub basics",
-          "Python": "Relevant coursework: Data Management, Business Analytics, Python for Business, Systems Analysis",
-          "Excel": "*Technical:** Excel (PivotTables, XLOOKUP), SQL, Tableau, Python (pandas), PowerPoint, Git/GitHub basics",
-          "Tableau": "*Technical:** Excel (PivotTables, XLOOKUP), SQL, Tableau, Python (pandas), PowerPoint, Git/GitHub basics"
+          "SQL": "Used SQL to answer recurring questions on store performance and customer purchase patterns with guidance from a senior analyst.",
+          "Excel": "Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team.",
+          "Tableau": "Built a Tableau dashboard tracking product sell-through, stockouts, and regional performance; presented findings to the merchandising manager.",
+          "Python basics": "Python (pandas)",
+          "business communication": "presented findings to the merchandising manager",
+          "retail analytics": "Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations",
+          "dashboarding": "Developed a Tableau dashboard and presented three operational recommendations; separated findings supported by data from assumptions requiring further validation."
         },
-        "fitMethod": "deterministic",
-        "fitReasoning": null,
+        "fitMethod": "llm",
+        "fitReasoning": "The candidate is a CIS student with internship and coursework experience directly in data analysis, matching every required item (SQL, Excel, Tableau, Python basics, business communication) and both preferred items (retail analytics, dashboarding) with verbatim evidence. The role is explicitly entry-level with no prior professional experience required, so the internship and course projects are sufficient for a full match.",
         "fitRationale": [
-          "SQL — resume.md: \"*Technical:** Excel (PivotTables, XLOOKUP), SQL, Tableau, Python (pandas), PowerPoint, Git/GitHub basics\"",
-          "Python — resume.md: \"Relevant coursework: Data Management, Business Analytics, Python for Business, Systems Analysis\"",
-          "Excel — resume.md: \"*Technical:** Excel (PivotTables, XLOOKUP), SQL, Tableau, Python (pandas), PowerPoint, Git/GitHub basics\"",
+          "SQL — resume.md: \"Used SQL to answer recurring questions on store performance and customer purchase patterns with guidance from a senior analyst.\"",
+          "Excel — resume.md: \"Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team.\"",
+          "Tableau — resume.md: \"Built a Tableau dashboard tracking product sell-through, stockouts, and regional performance; presented findings to the merchandising manager.\"",
           "Documented experience: ~1.7 years (resume.md, \"Total professional experience\")."
         ],
         "hardConstraintViolations": [],
@@ -449,17 +489,55 @@
         "judgmentMargin": 0.1,
         "guidelines": "agent-guidelines.md@215582cc",
         "missingPreferredSkills": [],
-        "matchStrength": {},
+        "matchStrength": {
+          "SQL": "full",
+          "Excel": "full",
+          "Tableau": "full",
+          "Python basics": "full",
+          "business communication": "full",
+          "retail analytics": "full",
+          "dashboarding": "full"
+        },
         "lowConfidence": false,
-        "requirementCount": 4,
+        "requirementCount": 7,
         "unassessedRequirements": [],
         "fitUnscoreable": false,
+        "requirementLedger": [
+          {
+            "requirement": "SQL",
+            "priority": "required"
+          },
+          {
+            "requirement": "Excel",
+            "priority": "required"
+          },
+          {
+            "requirement": "Tableau",
+            "priority": "required"
+          },
+          {
+            "requirement": "Python basics",
+            "priority": "required"
+          },
+          {
+            "requirement": "business communication",
+            "priority": "required"
+          },
+          {
+            "requirement": "retail analytics",
+            "priority": "preferred"
+          },
+          {
+            "requirement": "dashboarding",
+            "priority": "preferred"
+          }
+        ],
         "memory": {
           "reusedLedger": false,
           "reusedVerdicts": false,
-          "ledgerSize": 4,
-          "previousScore": null,
-          "note": "Memory: no AI model, so the deterministic keyword matcher (already stable) was used."
+          "ledgerSize": 7,
+          "previousScore": 1,
+          "note": "Memory: first time this posting was read. Stored its 7-requirement list so later runs use the same yardstick."
         }
       },
       "observation": "Constraints passed. fit_score=1 >= threshold 0.6.",
@@ -482,23 +560,29 @@
         "fitScore": 1,
         "matchedSkills": [
           "SQL",
-          "Python",
           "Excel",
-          "Tableau"
+          "Tableau",
+          "Python basics",
+          "business communication",
+          "retail analytics",
+          "dashboarding"
         ],
         "missingSkills": [],
         "matchedEvidence": {
-          "SQL": "*Technical:** Excel (PivotTables, XLOOKUP), SQL, Tableau, Python (pandas), PowerPoint, Git/GitHub basics",
-          "Python": "Relevant coursework: Data Management, Business Analytics, Python for Business, Systems Analysis",
-          "Excel": "*Technical:** Excel (PivotTables, XLOOKUP), SQL, Tableau, Python (pandas), PowerPoint, Git/GitHub basics",
-          "Tableau": "*Technical:** Excel (PivotTables, XLOOKUP), SQL, Tableau, Python (pandas), PowerPoint, Git/GitHub basics"
+          "SQL": "Used SQL to answer recurring questions on store performance and customer purchase patterns with guidance from a senior analyst.",
+          "Excel": "Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team.",
+          "Tableau": "Built a Tableau dashboard tracking product sell-through, stockouts, and regional performance; presented findings to the merchandising manager.",
+          "Python basics": "Python (pandas)",
+          "business communication": "presented findings to the merchandising manager",
+          "retail analytics": "Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations",
+          "dashboarding": "Developed a Tableau dashboard and presented three operational recommendations; separated findings supported by data from assumptions requiring further validation."
         },
-        "fitMethod": "deterministic",
-        "fitReasoning": null,
+        "fitMethod": "llm",
+        "fitReasoning": "The candidate is a CIS student with internship and coursework experience directly in data analysis, matching every required item (SQL, Excel, Tableau, Python basics, business communication) and both preferred items (retail analytics, dashboarding) with verbatim evidence. The role is explicitly entry-level with no prior professional experience required, so the internship and course projects are sufficient for a full match.",
         "fitRationale": [
-          "SQL — resume.md: \"*Technical:** Excel (PivotTables, XLOOKUP), SQL, Tableau, Python (pandas), PowerPoint, Git/GitHub basics\"",
-          "Python — resume.md: \"Relevant coursework: Data Management, Business Analytics, Python for Business, Systems Analysis\"",
-          "Excel — resume.md: \"*Technical:** Excel (PivotTables, XLOOKUP), SQL, Tableau, Python (pandas), PowerPoint, Git/GitHub basics\"",
+          "SQL — resume.md: \"Used SQL to answer recurring questions on store performance and customer purchase patterns with guidance from a senior analyst.\"",
+          "Excel — resume.md: \"Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team.\"",
+          "Tableau — resume.md: \"Built a Tableau dashboard tracking product sell-through, stockouts, and regional performance; presented findings to the merchandising manager.\"",
           "Documented experience: ~1.7 years (resume.md, \"Total professional experience\")."
         ],
         "hardConstraintViolations": [],
@@ -514,17 +598,55 @@
         "judgmentMargin": 0.1,
         "guidelines": "agent-guidelines.md@215582cc",
         "missingPreferredSkills": [],
-        "matchStrength": {},
+        "matchStrength": {
+          "SQL": "full",
+          "Excel": "full",
+          "Tableau": "full",
+          "Python basics": "full",
+          "business communication": "full",
+          "retail analytics": "full",
+          "dashboarding": "full"
+        },
         "lowConfidence": false,
-        "requirementCount": 4,
+        "requirementCount": 7,
         "unassessedRequirements": [],
         "fitUnscoreable": false,
+        "requirementLedger": [
+          {
+            "requirement": "SQL",
+            "priority": "required"
+          },
+          {
+            "requirement": "Excel",
+            "priority": "required"
+          },
+          {
+            "requirement": "Tableau",
+            "priority": "required"
+          },
+          {
+            "requirement": "Python basics",
+            "priority": "required"
+          },
+          {
+            "requirement": "business communication",
+            "priority": "required"
+          },
+          {
+            "requirement": "retail analytics",
+            "priority": "preferred"
+          },
+          {
+            "requirement": "dashboarding",
+            "priority": "preferred"
+          }
+        ],
         "memory": {
           "reusedLedger": false,
           "reusedVerdicts": false,
-          "ledgerSize": 4,
-          "previousScore": null,
-          "note": "Memory: no AI model, so the deterministic keyword matcher (already stable) was used."
+          "ledgerSize": 7,
+          "previousScore": 1,
+          "note": "Memory: first time this posting was read. Stored its 7-requirement list so later runs use the same yardstick."
         }
       },
       "chosenBy": "harness",
@@ -547,23 +669,29 @@
         "fitScore": 1,
         "matchedSkills": [
           "SQL",
-          "Python",
           "Excel",
-          "Tableau"
+          "Tableau",
+          "Python basics",
+          "business communication",
+          "retail analytics",
+          "dashboarding"
         ],
         "missingSkills": [],
         "matchedEvidence": {
-          "SQL": "*Technical:** Excel (PivotTables, XLOOKUP), SQL, Tableau, Python (pandas), PowerPoint, Git/GitHub basics",
-          "Python": "Relevant coursework: Data Management, Business Analytics, Python for Business, Systems Analysis",
-          "Excel": "*Technical:** Excel (PivotTables, XLOOKUP), SQL, Tableau, Python (pandas), PowerPoint, Git/GitHub basics",
-          "Tableau": "*Technical:** Excel (PivotTables, XLOOKUP), SQL, Tableau, Python (pandas), PowerPoint, Git/GitHub basics"
+          "SQL": "Used SQL to answer recurring questions on store performance and customer purchase patterns with guidance from a senior analyst.",
+          "Excel": "Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team.",
+          "Tableau": "Built a Tableau dashboard tracking product sell-through, stockouts, and regional performance; presented findings to the merchandising manager.",
+          "Python basics": "Python (pandas)",
+          "business communication": "presented findings to the merchandising manager",
+          "retail analytics": "Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations",
+          "dashboarding": "Developed a Tableau dashboard and presented three operational recommendations; separated findings supported by data from assumptions requiring further validation."
         },
-        "fitMethod": "deterministic",
-        "fitReasoning": null,
+        "fitMethod": "llm",
+        "fitReasoning": "The candidate is a CIS student with internship and coursework experience directly in data analysis, matching every required item (SQL, Excel, Tableau, Python basics, business communication) and both preferred items (retail analytics, dashboarding) with verbatim evidence. The role is explicitly entry-level with no prior professional experience required, so the internship and course projects are sufficient for a full match.",
         "fitRationale": [
-          "SQL — resume.md: \"*Technical:** Excel (PivotTables, XLOOKUP), SQL, Tableau, Python (pandas), PowerPoint, Git/GitHub basics\"",
-          "Python — resume.md: \"Relevant coursework: Data Management, Business Analytics, Python for Business, Systems Analysis\"",
-          "Excel — resume.md: \"*Technical:** Excel (PivotTables, XLOOKUP), SQL, Tableau, Python (pandas), PowerPoint, Git/GitHub basics\"",
+          "SQL — resume.md: \"Used SQL to answer recurring questions on store performance and customer purchase patterns with guidance from a senior analyst.\"",
+          "Excel — resume.md: \"Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team.\"",
+          "Tableau — resume.md: \"Built a Tableau dashboard tracking product sell-through, stockouts, and regional performance; presented findings to the merchandising manager.\"",
           "Documented experience: ~1.7 years (resume.md, \"Total professional experience\")."
         ],
         "hardConstraintViolations": [],
@@ -579,17 +707,55 @@
         "judgmentMargin": 0.1,
         "guidelines": "agent-guidelines.md@215582cc",
         "missingPreferredSkills": [],
-        "matchStrength": {},
+        "matchStrength": {
+          "SQL": "full",
+          "Excel": "full",
+          "Tableau": "full",
+          "Python basics": "full",
+          "business communication": "full",
+          "retail analytics": "full",
+          "dashboarding": "full"
+        },
         "lowConfidence": false,
-        "requirementCount": 4,
+        "requirementCount": 7,
         "unassessedRequirements": [],
         "fitUnscoreable": false,
+        "requirementLedger": [
+          {
+            "requirement": "SQL",
+            "priority": "required"
+          },
+          {
+            "requirement": "Excel",
+            "priority": "required"
+          },
+          {
+            "requirement": "Tableau",
+            "priority": "required"
+          },
+          {
+            "requirement": "Python basics",
+            "priority": "required"
+          },
+          {
+            "requirement": "business communication",
+            "priority": "required"
+          },
+          {
+            "requirement": "retail analytics",
+            "priority": "preferred"
+          },
+          {
+            "requirement": "dashboarding",
+            "priority": "preferred"
+          }
+        ],
         "memory": {
           "reusedLedger": false,
           "reusedVerdicts": false,
-          "ledgerSize": 4,
-          "previousScore": null,
-          "note": "Memory: no AI model, so the deterministic keyword matcher (already stable) was used."
+          "ledgerSize": 7,
+          "previousScore": 1,
+          "note": "Memory: first time this posting was read. Stored its 7-requirement list so later runs use the same yardstick."
         }
       },
       "observation": "The agent is stopping for a person (awaiting_approval). The advisor reads the evaluation facts and the résumé (never the posting text) and tells the person what to do next.",
@@ -597,7 +763,7 @@
         "advise_human"
       ],
       "selectedAction": "advise_human",
-      "result": "Default policy (no AI advisor): fit 100%. No required requirement is missing. Recommends: approve. 4 tailored preset(s), 0 gap(s) ranked. Harness note: AI advisor unavailable (Error: 402 Insufficient Balance); default used.",
+      "result": "Strong match: 100% fit against a 60% bar, with every listed requirement backed by real résumé lines. Approve and draft. Recommends: approve. 4 tailored preset(s), 0 gap(s) ranked.",
       "stateAfter": {
         "jobId": "J001",
         "stage": "awaiting_approval",
@@ -612,23 +778,29 @@
         "fitScore": 1,
         "matchedSkills": [
           "SQL",
-          "Python",
           "Excel",
-          "Tableau"
+          "Tableau",
+          "Python basics",
+          "business communication",
+          "retail analytics",
+          "dashboarding"
         ],
         "missingSkills": [],
         "matchedEvidence": {
-          "SQL": "*Technical:** Excel (PivotTables, XLOOKUP), SQL, Tableau, Python (pandas), PowerPoint, Git/GitHub basics",
-          "Python": "Relevant coursework: Data Management, Business Analytics, Python for Business, Systems Analysis",
-          "Excel": "*Technical:** Excel (PivotTables, XLOOKUP), SQL, Tableau, Python (pandas), PowerPoint, Git/GitHub basics",
-          "Tableau": "*Technical:** Excel (PivotTables, XLOOKUP), SQL, Tableau, Python (pandas), PowerPoint, Git/GitHub basics"
+          "SQL": "Used SQL to answer recurring questions on store performance and customer purchase patterns with guidance from a senior analyst.",
+          "Excel": "Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team.",
+          "Tableau": "Built a Tableau dashboard tracking product sell-through, stockouts, and regional performance; presented findings to the merchandising manager.",
+          "Python basics": "Python (pandas)",
+          "business communication": "presented findings to the merchandising manager",
+          "retail analytics": "Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations",
+          "dashboarding": "Developed a Tableau dashboard and presented three operational recommendations; separated findings supported by data from assumptions requiring further validation."
         },
-        "fitMethod": "deterministic",
-        "fitReasoning": null,
+        "fitMethod": "llm",
+        "fitReasoning": "The candidate is a CIS student with internship and coursework experience directly in data analysis, matching every required item (SQL, Excel, Tableau, Python basics, business communication) and both preferred items (retail analytics, dashboarding) with verbatim evidence. The role is explicitly entry-level with no prior professional experience required, so the internship and course projects are sufficient for a full match.",
         "fitRationale": [
-          "SQL — resume.md: \"*Technical:** Excel (PivotTables, XLOOKUP), SQL, Tableau, Python (pandas), PowerPoint, Git/GitHub basics\"",
-          "Python — resume.md: \"Relevant coursework: Data Management, Business Analytics, Python for Business, Systems Analysis\"",
-          "Excel — resume.md: \"*Technical:** Excel (PivotTables, XLOOKUP), SQL, Tableau, Python (pandas), PowerPoint, Git/GitHub basics\"",
+          "SQL — resume.md: \"Used SQL to answer recurring questions on store performance and customer purchase patterns with guidance from a senior analyst.\"",
+          "Excel — resume.md: \"Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team.\"",
+          "Tableau — resume.md: \"Built a Tableau dashboard tracking product sell-through, stockouts, and regional performance; presented findings to the merchandising manager.\"",
           "Documented experience: ~1.7 years (resume.md, \"Total professional experience\")."
         ],
         "hardConstraintViolations": [],
@@ -644,67 +816,104 @@
         "judgmentMargin": 0.1,
         "guidelines": "agent-guidelines.md@215582cc",
         "missingPreferredSkills": [],
-        "matchStrength": {},
+        "matchStrength": {
+          "SQL": "full",
+          "Excel": "full",
+          "Tableau": "full",
+          "Python basics": "full",
+          "business communication": "full",
+          "retail analytics": "full",
+          "dashboarding": "full"
+        },
         "lowConfidence": false,
-        "requirementCount": 4,
+        "requirementCount": 7,
         "unassessedRequirements": [],
         "fitUnscoreable": false,
+        "requirementLedger": [
+          {
+            "requirement": "SQL",
+            "priority": "required"
+          },
+          {
+            "requirement": "Excel",
+            "priority": "required"
+          },
+          {
+            "requirement": "Tableau",
+            "priority": "required"
+          },
+          {
+            "requirement": "Python basics",
+            "priority": "required"
+          },
+          {
+            "requirement": "business communication",
+            "priority": "required"
+          },
+          {
+            "requirement": "retail analytics",
+            "priority": "preferred"
+          },
+          {
+            "requirement": "dashboarding",
+            "priority": "preferred"
+          }
+        ],
         "memory": {
           "reusedLedger": false,
           "reusedVerdicts": false,
-          "ledgerSize": 4,
-          "previousScore": null,
-          "note": "Memory: no AI model, so the deterministic keyword matcher (already stable) was used."
+          "ledgerSize": 7,
+          "previousScore": 1,
+          "note": "Memory: first time this posting was read. Stored its 7-requirement list so later runs use the same yardstick."
         },
         "advice": {
-          "source": "policy",
+          "source": "model",
           "mode": "approval",
-          "headline": "Default policy (no AI advisor): fit 100%. No required requirement is missing.",
+          "headline": "Strong match: 100% fit against a 60% bar, with every listed requirement backed by real résumé lines. Approve and draft.",
           "recommendation": "approve",
-          "recommendationWhy": "Chosen by the built-in default policy, not by an AI.",
+          "recommendationWhy": "Fit is 100% versus a 60% minimum — at or above the bar — and no requirements are missing. The résumé shows SQL, Excel, Tableau, Python (pandas), retail analytics and presenting findings, all in the same retail context as this role. Nothing needs fixing before drafting.",
           "strengths": [
             {
               "requirement": "SQL",
-              "evidenceQuote": "*Technical:** Excel (PivotTables, XLOOKUP), SQL, Tableau, Python (pandas), PowerPoint, Git/GitHub basics"
-            },
-            {
-              "requirement": "Python",
-              "evidenceQuote": "Relevant coursework: Data Management, Business Analytics, Python for Business, Systems Analysis"
+              "evidenceQuote": "Used SQL to answer recurring questions on store performance and customer purchase patterns with guidance from a senior analyst."
             },
             {
               "requirement": "Excel",
-              "evidenceQuote": "*Technical:** Excel (PivotTables, XLOOKUP), SQL, Tableau, Python (pandas), PowerPoint, Git/GitHub basics"
+              "evidenceQuote": "Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team."
+            },
+            {
+              "requirement": "Tableau / dashboarding",
+              "evidenceQuote": "Built a Tableau dashboard tracking product sell-through, stockouts, and regional performance; presented findings to the merchandising manager."
             }
           ],
           "rankedGaps": [],
           "draftPresets": [
             {
-              "label": "Emphasize SQL",
-              "instruction": "- Emphasize SQL, drawing on: \"*Technical:** Excel (PivotTables, XLOOKUP), SQL, Tableau, Python (pandas), PowerPoint, Git/GitHub basics\"",
-              "evidenceQuote": "*Technical:** Excel (PivotTables, XLOOKUP), SQL, Tableau, Python (pandas), PowerPoint, Git/GitHub basics"
+              "label": "Lead with SQL",
+              "instruction": "Open the summary by naming SQL as a tool used to answer recurring store-performance and customer-purchase questions, exactly as stated.",
+              "evidenceQuote": "Used SQL to answer recurring questions on store performance and customer purchase patterns with guidance from a senior analyst."
             },
             {
-              "label": "Emphasize Python",
-              "instruction": "- Emphasize Python, drawing on: \"Relevant coursework: Data Management, Business Analytics, Python for Business, Systems Analysis\"",
-              "evidenceQuote": "Relevant coursework: Data Management, Business Analytics, Python for Business, Systems Analysis"
+              "label": "Retail data at scale",
+              "instruction": "State that you cleaned and combined weekly sales and inventory files in Excel and Python across 18 retail locations and cut manual reporting steps.",
+              "evidenceQuote": "Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team."
             },
             {
-              "label": "Emphasize Excel",
-              "instruction": "- Emphasize Excel, drawing on: \"*Technical:** Excel (PivotTables, XLOOKUP), SQL, Tableau, Python (pandas), PowerPoint, Git/GitHub basics\"",
-              "evidenceQuote": "*Technical:** Excel (PivotTables, XLOOKUP), SQL, Tableau, Python (pandas), PowerPoint, Git/GitHub basics"
+              "label": "Dashboard + audience",
+              "instruction": "Mention the Tableau dashboard on sell-through, stockouts and regional performance, and that you presented the findings to the merchandising manager.",
+              "evidenceQuote": "Built a Tableau dashboard tracking product sell-through, stockouts, and regional performance; presented findings to the merchandising manager."
             },
             {
-              "label": "Emphasize Tableau",
-              "instruction": "- Emphasize Tableau, drawing on: \"*Technical:** Excel (PivotTables, XLOOKUP), SQL, Tableau, Python (pandas), PowerPoint, Git/GitHub basics\"",
-              "evidenceQuote": "*Technical:** Excel (PivotTables, XLOOKUP), SQL, Tableau, Python (pandas), PowerPoint, Git/GitHub basics"
+              "label": "Honest analysis framing",
+              "instruction": "Note that you separate data-supported findings from assumptions needing validation — useful for a junior analyst role.",
+              "evidenceQuote": "Developed a Tableau dashboard and presented three operational recommendations; separated findings supported by data from assumptions requiring further validation."
             }
-          ],
-          "overruled": "AI advisor unavailable (Error: 402 Insufficient Balance); default used"
+          ]
         }
       },
-      "chosenBy": "policy",
-      "brain": "code",
-      "thinking": "Default policy (no AI advisor): fit 100%. No required requirement is missing.\nChosen by the built-in default policy, not by an AI.",
+      "chosenBy": "model",
+      "brain": "ai",
+      "thinking": "Strong match: 100% fit against a 60% bar, with every listed requirement backed by real résumé lines. Approve and draft.\nFit is 100% versus a 60% minimum — at or above the bar — and no requirements are missing. The résumé shows SQL, Excel, Tableau, Python (pandas), retail analytics and presenting findings, all in the same retail context as this role. Nothing needs fixing before drafting.",
       "guidelines": "agent-guidelines.md@215582cc",
       "classAction": "RECOMMEND"
     }
@@ -713,21 +922,69 @@
     "score": 1,
     "matched": [
       "SQL",
-      "Python",
       "Excel",
-      "Tableau"
+      "Tableau",
+      "Python basics",
+      "business communication",
+      "retail analytics",
+      "dashboarding"
     ],
     "missing": [],
+    "missingPreferred": [],
     "matchedEvidence": {
-      "SQL": "*Technical:** Excel (PivotTables, XLOOKUP), SQL, Tableau, Python (pandas), PowerPoint, Git/GitHub basics",
-      "Python": "Relevant coursework: Data Management, Business Analytics, Python for Business, Systems Analysis",
-      "Excel": "*Technical:** Excel (PivotTables, XLOOKUP), SQL, Tableau, Python (pandas), PowerPoint, Git/GitHub basics",
-      "Tableau": "*Technical:** Excel (PivotTables, XLOOKUP), SQL, Tableau, Python (pandas), PowerPoint, Git/GitHub basics"
+      "SQL": "Used SQL to answer recurring questions on store performance and customer purchase patterns with guidance from a senior analyst.",
+      "Excel": "Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team.",
+      "Tableau": "Built a Tableau dashboard tracking product sell-through, stockouts, and regional performance; presented findings to the merchandising manager.",
+      "Python basics": "Python (pandas)",
+      "business communication": "presented findings to the merchandising manager",
+      "retail analytics": "Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations",
+      "dashboarding": "Developed a Tableau dashboard and presented three operational recommendations; separated findings supported by data from assumptions requiring further validation."
     },
-    "unscoreable": false,
+    "matchStrength": {
+      "SQL": "full",
+      "Excel": "full",
+      "Tableau": "full",
+      "Python basics": "full",
+      "business communication": "full",
+      "retail analytics": "full",
+      "dashboarding": "full"
+    },
     "lowConfidence": false,
-    "method": "deterministic",
-    "reasoning": null,
-    "note": "LLM call failed (Error: 402 Insufficient Balance) — fell back to deterministic keyword matching."
+    "requirementCount": 7,
+    "unassessedRequirements": [],
+    "ledger": [
+      {
+        "requirement": "SQL",
+        "priority": "required"
+      },
+      {
+        "requirement": "Excel",
+        "priority": "required"
+      },
+      {
+        "requirement": "Tableau",
+        "priority": "required"
+      },
+      {
+        "requirement": "Python basics",
+        "priority": "required"
+      },
+      {
+        "requirement": "business communication",
+        "priority": "required"
+      },
+      {
+        "requirement": "retail analytics",
+        "priority": "preferred"
+      },
+      {
+        "requirement": "dashboarding",
+        "priority": "preferred"
+      }
+    ],
+    "fromLedger": false,
+    "method": "llm",
+    "reasoning": "The candidate is a CIS student with internship and coursework experience directly in data analysis, matching every required item (SQL, Excel, Tableau, Python basics, business communication) and both preferred items (retail analytics, dashboarding) with verbatim evidence. The role is explicitly entry-level with no prior professional experience required, so the internship and course projects are sufficient for a full match.",
+    "note": "LLM semantic matching."
   }
 }

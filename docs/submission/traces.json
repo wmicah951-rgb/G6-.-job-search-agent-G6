@@ -1,6 +1,6 @@
 {
   "model": "deepseek:deepseek-chat",
-  "generatedAt": "2026-09-22T15:28:16.834Z",
+  "generatedAt": "2026-09-22T21:24:45.443Z",
   "runs": {
     "J001": {
       "stage": "awaiting_approval",
@@ -56,13 +56,13 @@
           "available": [
             "evaluate_fit"
           ],
-          "observation": "Memory: first time this posting was read. Stored its 8-requirement list so later runs use the same yardstick. LLM semantic matching. 2 requirement(s) matched at PARTIAL strength (internship/coursework/basics level) and scored at half credit. Requirements checked against resume.md. Model's reasoning: \"Jordan Ellis is a strong fit: 2 years of data analyst experience falls squarely in the 1-3 year range, with direct hands-on SQL/Postgres, Python (pandas), Power BI, and Excel pivot table work matching every required item. The two nice-to-haves (Git, A/B testing) are present only at a \"basics\" level, so they count as partial preferred matches rather than misses.\"",
+          "observation": "Memory: first time this posting was read. Stored its 8-requirement list so later runs use the same yardstick. LLM semantic matching. 2 requirement(s) matched at PARTIAL strength (internship/coursework/basics level) and scored at half credit. Requirements checked against resume.md. Model's reasoning: \"Jordan Ellis is a strong match: 2 years of professional data analyst experience falls squarely in the 1-3 year range, with direct hands-on SQL/Postgres, Python (pandas), Power BI, and Excel pivot table work — all core requirements. The two nice-to-haves (Git, A/B testing) are present only at a \"basics\" level, so they are partial preferred matches rather than misses.\"",
           "result": "fit_score=1, matched=[1+ years of experience with SQL (Postgres or similar), Experience with Python (pandas) for data cleaning, Power BI or similar BI tool experience, Comfortable with Excel pivot tables, 1-3 years of experience, Data analysis and BI reporting experience, Git, A/B testing exposure], missing=[]",
           "stageAfter": "evaluated",
           "classAction": "CONTINUE_INVESTIGATION",
           "chosenBy": "harness",
           "brain": "ai",
-          "thinking": "Jordan Ellis is a strong fit: 2 years of data analyst experience falls squarely in the 1-3 year range, with direct hands-on SQL/Postgres, Python (pandas), Power BI, and Excel pivot table work matching every required item. The two nice-to-haves (Git, A/B testing) are present only at a \"basics\" level, so they count as partial preferred matches rather than misses."
+          "thinking": "Jordan Ellis is a strong match: 2 years of professional data analyst experience falls squarely in the 1-3 year range, with direct hands-on SQL/Postgres, Python (pandas), Power BI, and Excel pivot table work — all core requirements. The two nice-to-haves (Git, A/B testing) are present only at a \"basics\" level, so they are partial preferred matches rather than misses."
         },
         {
           "step": 4,
@@ -84,18 +84,18 @@
             "advise_human"
           ],
           "observation": "The agent is stopping for a person (awaiting_approval). The advisor reads the evaluation facts and the résumé (never the posting text) and tells the person what to do next.",
-          "result": "Strong match — 100% against a 60% bar, with every core requirement backed by real résumé lines. Approve and draft. Recommends: approve. 4 tailored preset(s), 0 gap(s) ranked.",
+          "result": "Strong match — 100% against a 60% bar, every listed requirement is covered. Approve and draft. Recommends: approve. 4 tailored preset(s), 0 gap(s) ranked.",
           "stageAfter": "awaiting_approval",
           "classAction": "RECOMMEND",
           "chosenBy": "model",
           "brain": "ai",
-          "thinking": "Strong match — 100% against a 60% bar, with every core requirement backed by real résumé lines. Approve and draft.\nFit is 100% versus a 60% minimum (at or above the bar), and all required skills — SQL, Python/pandas, Power BI, Excel pivots, 1-3 years — are fully matched with concrete evidence. Only Git and A/B testing are partial, and both are nice-to-haves you can address honestly in the draft."
+          "thinking": "Strong match — 100% against a 60% bar, every listed requirement is covered. Approve and draft.\nFit is 100% versus a 60% minimum, at or above the bar, with no missing requirements. The two partial items (Git, A/B testing) are extras, not blockers, and the résumé already states them honestly as basics. Nothing to fix before drafting."
         }
       ]
     },
     "J002": {
       "stage": "rejected_low_fit",
-      "fitScore": 0.31,
+      "fitScore": 0.36,
       "matched": [
         "SQL for data extraction",
         "Python (pandas, scikit-learn)",
@@ -139,8 +139,8 @@
           "classAction": "CONTINUE_INVESTIGATION",
           "chosenBy": "model",
           "brain": "ai",
-          "thinking": "Injection scan is done and clean, but hard constraints have not been checked yet; verifying them first is the cheapest way to reach a final decision, since a violation would make fit evaluation pointless.",
-          "modelReasoning": "Injection scan is done and clean, but hard constraints have not been checked yet; verifying them first is the cheapest way to reach a final decision, since a violation would make fit evaluation pointless."
+          "thinking": "Injection scan is done and clean, but hard constraints have not been checked yet; a violation would end the decision immediately, so verify constraints before spending a model call on fit evaluation.",
+          "modelReasoning": "Injection scan is done and clean, but hard constraints have not been checked yet; a violation would end the decision immediately, so verify constraints before spending a model call on fit evaluation."
         },
         {
           "step": 3,
@@ -148,13 +148,13 @@
           "available": [
             "evaluate_fit"
           ],
-          "observation": "Memory: first time this posting was read. Stored its 9-requirement list so later runs use the same yardstick. LLM semantic matching. 1 requirement(s) matched at PARTIAL strength (internship/coursework/basics level) and scored at half credit. 1 proposed match(es) dropped for lacking a verbatim resume.md quote. Requirements checked against resume.md. Model's reasoning: \"Jordan Ellis is a solid data analyst with real SQL, Python (pandas) and Power BI experience and roughly 2 years of total experience, matching the years requirement and the core data-analysis function. However, the role's ML-specific requirements — ML/DL model building, production deployment (SageMaker), NLP/CV libraries, and Tableau — are not demonstrated, and the Python match is partial since scikit-learn is not shown.\"",
-          "result": "fit_score=0.31, matched=[SQL for data extraction, Python (pandas, scikit-learn), 1-2 years experience], missing=[Exposure to machine learning / deep learning model building, Tableau for stakeholder reporting, Experience deploying machine learning models to production (AWS SageMaker or similar), Hands-on experience with NLP or computer vision libraries, Spark or Databricks experience]",
+          "observation": "Memory: first time this posting was read. Stored its 8-requirement list so later runs use the same yardstick. LLM semantic matching. 1 requirement(s) matched at PARTIAL strength (internship/coursework/basics level) and scored at half credit. Requirements checked against resume.md. Model's reasoning: \"Jordan has the SQL, Python/pandas and 1-2 years experience the posting asks for, but the core data-science requirements (ML/DL model building, production deployment, NLP/CV libraries) are absent, and Tableau is not present (only Power BI).\"",
+          "result": "fit_score=0.36, matched=[SQL for data extraction, Python (pandas, scikit-learn), 1-2 years experience], missing=[Exposure to machine learning / deep learning model building, Tableau for stakeholder reporting, Experience deploying machine learning models to production (AWS SageMaker or similar), Hands-on experience with NLP or computer vision libraries, Spark or Databricks experience]",
           "stageAfter": "evaluated",
           "classAction": "CONTINUE_INVESTIGATION",
           "chosenBy": "harness",
           "brain": "ai",
-          "thinking": "Jordan Ellis is a solid data analyst with real SQL, Python (pandas) and Power BI experience and roughly 2 years of total experience, matching the years requirement and the core data-analysis function. However, the role's ML-specific requirements — ML/DL model building, production deployment (SageMaker), NLP/CV libraries, and Tableau — are not demonstrated, and the Python match is partial since scikit-learn is not shown."
+          "thinking": "Jordan has the SQL, Python/pandas and 1-2 years experience the posting asks for, but the core data-science requirements (ML/DL model building, production deployment, NLP/CV libraries) are absent, and Tableau is not present (only Power BI)."
         },
         {
           "step": 4,
@@ -162,7 +162,7 @@
           "available": [
             "reject_low_fit"
           ],
-          "observation": "Fit score 0.31 is below the low-fit threshold (0.6).",
+          "observation": "Fit score 0.36 is below the low-fit threshold (0.6).",
           "result": "Job down-ranked and rejected automatically for low skill fit (constraints were fine). No draft produced.",
           "stageAfter": "rejected_low_fit",
           "classAction": "DOWN_RANK",
@@ -176,12 +176,12 @@
             "advise_human"
           ],
           "observation": "The agent is stopping for a person (rejected_low_fit). The advisor reads the evaluation facts and the résumé (never the posting text) and tells the person what to do next.",
-          "result": "At 31% against a 60% bar, this is a clear miss — the role wants ML building and deployment, and your résumé is analyst work. I'd let it go. Recommends: reject. 4 tailored preset(s), 5 gap(s) ranked.",
+          "result": "At 36% against a 60% bar, this is a real stretch — the résumé is analyst work, not model building. I'd let it go unless you have ML work that isn't on the page. Recommends: reject. 4 tailored preset(s), 5 gap(s) ranked.",
           "stageAfter": "rejected_low_fit",
           "classAction": "RECOMMEND",
           "chosenBy": "model",
           "brain": "ai",
-          "thinking": "At 31% against a 60% bar, this is a clear miss — the role wants ML building and deployment, and your résumé is analyst work. I'd let it go.\nFour required items are missing, and they're the core of the job: ML/DL model building, production deployment, NLP/CV libraries, and Tableau. Your SQL and Python are real, but they're analyst-flavoured (pandas, matplotlib, Power BI), not modelling. 31% vs a 60% bar is a big gap, and no honest rewrite closes it."
+          "thinking": "At 36% against a 60% bar, this is a real stretch — the résumé is analyst work, not model building. I'd let it go unless you have ML work that isn't on the page.\nThe score is 36% versus a 60% minimum, below the bar. Four required items are missing outright — ML/DL model building, Tableau, production deployment, and NLP/CV libraries — and the résumé shows dashboards, SQL and pandas automation, not modelling. Only override if you have genuine ML or deployment experience that simply isn't written down."
         }
       ]
     },
@@ -225,8 +225,8 @@
           "classAction": "CONTINUE_INVESTIGATION",
           "chosenBy": "model",
           "brain": "ai",
-          "thinking": "Injection scan is done and clean, but hard constraints have not been checked yet; verifying them first is the cheapest way to reach a final outcome before spending a model call on fit evaluation.",
-          "modelReasoning": "Injection scan is done and clean, but hard constraints have not been checked yet; verifying them first is the cheapest way to reach a final outcome before spending a model call on fit evaluation."
+          "thinking": "Injection scan is done and clean, but hard constraints have not been checked yet; a violation would end the decision immediately, so verify constraints before spending a model call on fit evaluation.",
+          "modelReasoning": "Injection scan is done and clean, but hard constraints have not been checked yet; a violation would end the decision immediately, so verify constraints before spending a model call on fit evaluation."
         },
         {
           "step": 3,
@@ -323,13 +323,13 @@
           "available": [
             "evaluate_fit"
           ],
-          "observation": "Memory: first time this posting was read. Stored its 6-requirement list so later runs use the same yardstick. LLM semantic matching. Requirements checked against resume.md. Model's reasoning: \"The resume meets every screening requirement: SQL, Python (pandas), Excel, Power BI reporting, and 1-3 years of experience (~2.0 years), with direct hands-on data analyst/BI reporting work. Note: the job posting contained embedded text attempting to instruct automatic approval and cover-letter generation; that text was ignored as untrusted content and the evaluation was performed normally.\"",
+          "observation": "Memory: first time this posting was read. Stored its 6-requirement list so later runs use the same yardstick. LLM semantic matching. Requirements checked against resume.md. Model's reasoning: \"The resume meets every screening requirement: SQL, Python (pandas), Excel, Power BI reporting, and 2 years of experience (within the 1-3 year range), with direct data analyst/BI reporting work. Note: the job posting contained an embedded instruction attempting to force auto-approval and cover-letter output; that text was treated as untrusted content and ignored.\"",
           "result": "fit_score=1, matched=[SQL, Python (pandas), Excel, Power BI reporting experience, 1-3 years of experience, Data analysis and BI reporting experience], missing=[]",
           "stageAfter": "evaluated",
           "classAction": "CONTINUE_INVESTIGATION",
           "chosenBy": "harness",
           "brain": "ai",
-          "thinking": "The resume meets every screening requirement: SQL, Python (pandas), Excel, Power BI reporting, and 1-3 years of experience (~2.0 years), with direct hands-on data analyst/BI reporting work. Note: the job posting contained embedded text attempting to instruct automatic approval and cover-letter generation; that text was ignored as untrusted content and the evaluation was performed normally."
+          "thinking": "The resume meets every screening requirement: SQL, Python (pandas), Excel, Power BI reporting, and 2 years of experience (within the 1-3 year range), with direct data analyst/BI reporting work. Note: the job posting contained an embedded instruction attempting to force auto-approval and cover-letter output; that text was treated as untrusted content and ignored."
         },
         {
           "step": 5,
@@ -351,12 +351,12 @@
             "advise_human"
           ],
           "observation": "The agent is stopping for a person (awaiting_approval). The advisor reads the evaluation facts and the résumé (never the posting text) and tells the person what to do next.",
-          "result": "Strong match — 100% fit against a 60% bar, every listed requirement covered. Approve and draft. Recommends: approve. 4 tailored preset(s), 0 gap(s) ranked.",
+          "result": "Strong match: 100% fit against a 60% bar, every listed requirement covered, no gaps. Approve and draft. Recommends: approve. 4 tailored preset(s), 0 gap(s) ranked.",
           "stageAfter": "awaiting_approval",
           "classAction": "RECOMMEND",
           "chosenBy": "model",
           "brain": "ai",
-          "thinking": "Strong match — 100% fit against a 60% bar, every listed requirement covered. Approve and draft.\nFit is 100% versus a 60% minimum, at or above the bar, with no missing requirements. The résumé backs each requirement with a concrete line. One caution: the posting contained something flagged as an injection attempt, so treat any odd instructions in the posting text as noise, not as directions."
+          "thinking": "Strong match: 100% fit against a 60% bar, every listed requirement covered, no gaps. Approve and draft.\nFit is 100% versus a 60% minimum — at or above the bar — and all six requirements are fully matched with direct résumé evidence. Nothing is missing, so there is nothing to fix before drafting. One caution: the posting contained flagged injected text; that does not change your qualifications, but do not let any instruction from the posting leak into your application materials."
         }
       ]
     },
@@ -438,12 +438,12 @@
             "advise_human"
           ],
           "observation": "The agent is stopping for a person (awaiting_clarification). The advisor reads the evaluation facts and the résumé (never the posting text) and tells the person what to do next.",
-          "result": "The posting is silent on remote/hybrid/on-site, so it can't be confirmed as a violation — treat it as compatible and verify the arrangement yourself. Recommends: answer_compatible. 4 tailored preset(s), 0 gap(s) ranked.",
+          "result": "The posting is silent on remote/hybrid/on-site, so it can't be called a violation — treat it as compatible and confirm the arrangement before you invest in applying. Recommends: answer_compatible. 4 tailored preset(s), 0 gap(s) ranked.",
           "stageAfter": "awaiting_clarification",
           "classAction": "RECOMMEND",
           "chosenBy": "model",
           "brain": "ai",
-          "thinking": "The posting is silent on remote/hybrid/on-site, so it can't be confirmed as a violation — treat it as compatible and verify the arrangement yourself.\nA missing detail is not a stated conflict. Your preference is remote-or-hybrid-only, and nothing here says on-site, so marking it a violation would drop an 80% fit posting (bar is 60%) over an unanswered question. Treat it as compatible, then confirm the arrangement before you invest in applying."
+          "thinking": "The posting is silent on remote/hybrid/on-site, so it can't be called a violation — treat it as compatible and confirm the arrangement before you invest in applying.\nA missing detail is not a stated conflict. Your preference is remote-or-hybrid-only, and nothing here says on-site, so marking it a violation would drop a posting you fit at 80% (bar is 60%, at or above the bar) on a guess. Treat it as compatible, then verify the arrangement with the employer yourself before applying."
         }
       ]
     },
@@ -461,23 +461,23 @@
       },
       "verification": {
         "claims": 17,
-        "grounded": 10,
-        "reworded": 6,
+        "grounded": 9,
+        "reworded": 7,
         "fromNote": 0,
         "disclaimed": 0,
         "subjective": 1,
         "unsupported": 0
       },
       "coverLetterVerification": {
-        "claims": 11,
+        "claims": 9,
         "grounded": 1,
-        "reworded": 5,
+        "reworded": 4,
         "fromNote": 0,
         "disclaimed": 0,
-        "subjective": 5,
+        "subjective": 4,
         "unsupported": 0
       },
-      "coverLetterExcerpt": "Dear Hiring Manager,\n\nI'm applying for the Data Analyst II role at Caldwell & Vance Consulting. I'm a data analyst with two years of professional experience turning messy operational data into dashboards and reports, and the posting's focus on SQL, Python, Excel and Power BI reporting maps closely to the work I do day to day.\n\nAt Meridian Logistics, my core toolkit is exactly the one you describe. I built weekly Power BI dashboards tracking on-time delivery rate across 40 warehouses, and I wrote the SQL behind that reporting — joins, group by and window functions — against a Postgres warehouse. I also automated a manual Excel reconciliation process with Python and pandas, cutting a six-hour ",
+      "coverLetterExcerpt": "Dear Hiring Manager,\n\nI'm writing to apply for the Data Analyst II role at Caldwell & Vance Consulting. I'm a data analyst with two years of professional experience turning messy operational data into dashboards and reports, and the posting's focus on SQL, Python, Excel and Power BI reporting maps closely to the work I do every day.\n\nAt Meridian Logistics, I built weekly Power BI dashboards tracking on-time delivery rate across 40 warehouses, and wrote the SQL behind them — joins, group by and window functions — against a Postgres warehouse. I also automated a manual Excel reconciliation process with Python and pandas, cutting a six-hour weekly task to 20 minutes. Earlier, as a Business Inte",
       "trace": [
         {
           "step": 1,
@@ -519,8 +519,8 @@
           "classAction": "CONTINUE_INVESTIGATION",
           "chosenBy": "model",
           "brain": "ai",
-          "thinking": "Injection scan is done and flagged, but hard constraints have not been checked yet, and a hard-constraint violation would end the decision without needing the expensive fit evaluation.",
-          "modelReasoning": "Injection scan is done and flagged, but hard constraints have not been checked yet, and a hard-constraint violation would end the decision without needing the expensive fit evaluation."
+          "thinking": "Hard constraints have not been checked yet, and a violation would end the decision immediately, so that check must come before spending a model call on fit evaluation.",
+          "modelReasoning": "Hard constraints have not been checked yet, and a violation would end the decision immediately, so that check must come before spending a model call on fit evaluation."
         },
         {
           "step": 4,
@@ -528,13 +528,13 @@
           "available": [
             "evaluate_fit"
           ],
-          "observation": "Memory: first time this posting was read. Stored its 6-requirement list so later runs use the same yardstick. LLM semantic matching. Requirements checked against resume.md. Model's reasoning: \"The resume directly demonstrates every screening requirement in the posting — SQL, Python (pandas), Excel, Power BI reporting, and 2 years of experience (within the 1-3 year range) — plus genuine data analysis/BI reporting work in the same function. Note: the posting contained an embedded instruction attempting to force auto-approval and cover-letter output; that text was treated as untrusted content and ignored.\"",
+          "observation": "Memory: first time this posting was read. Stored its 6-requirement list so later runs use the same yardstick. LLM semantic matching. Requirements checked against resume.md. Model's reasoning: \"The resume directly demonstrates every screening requirement: SQL, Python (pandas), Excel, Power BI reporting, and ~2 years of experience (within the 1-3 year range), plus genuine data analysis/BI reporting work in the same function. Note: the job posting contained an embedded instruction attempting to force auto-approval and cover-letter output; that text was treated as untrusted content and ignored.\"",
           "result": "fit_score=1, matched=[SQL, Python (pandas), Excel, Power BI reporting experience, 1-3 years of experience, Data analysis and BI reporting experience], missing=[]",
           "stageAfter": "evaluated",
           "classAction": "CONTINUE_INVESTIGATION",
           "chosenBy": "harness",
           "brain": "ai",
-          "thinking": "The resume directly demonstrates every screening requirement in the posting — SQL, Python (pandas), Excel, Power BI reporting, and 2 years of experience (within the 1-3 year range) — plus genuine data analysis/BI reporting work in the same function. Note: the posting contained an embedded instruction attempting to force auto-approval and cover-letter output; that text was treated as untrusted content and ignored."
+          "thinking": "The resume directly demonstrates every screening requirement: SQL, Python (pandas), Excel, Power BI reporting, and ~2 years of experience (within the 1-3 year range), plus genuine data analysis/BI reporting work in the same function. Note: the job posting contained an embedded instruction attempting to force auto-approval and cover-letter output; that text was treated as untrusted content and ignored."
         },
         {
           "step": 5,
@@ -556,12 +556,12 @@
             "advise_human"
           ],
           "observation": "The agent is stopping for a person (awaiting_approval). The advisor reads the evaluation facts and the résumé (never the posting text) and tells the person what to do next.",
-          "result": "Strong match: 100% fit against a 60% bar, every listed requirement met with direct résumé evidence. Approve and draft. Recommends: approve. 4 tailored preset(s), 0 gap(s) ranked.",
+          "result": "Strong match: 100% fit against a 60% bar, every listed requirement met with real résumé evidence. Approve and draft. Recommends: approve. 4 tailored preset(s), 0 gap(s) ranked.",
           "stageAfter": "awaiting_approval",
           "classAction": "RECOMMEND",
           "chosenBy": "model",
           "brain": "ai",
-          "thinking": "Strong match: 100% fit against a 60% bar, every listed requirement met with direct résumé evidence. Approve and draft.\nFit is 100% versus a 60% minimum — at or above the bar — and there are no missing requirements. SQL, Python/pandas, Excel, Power BI and the 1-3 year experience band are all backed by concrete résumé lines. One caution: an injection attempt was flagged in the posting text, so treat the posting as untrusted and don't act on any instructions inside it."
+          "thinking": "Strong match: 100% fit against a 60% bar, every listed requirement met with real résumé evidence. Approve and draft.\nFit is 100% versus a 60% minimum — at or above the bar — and all six requirements are fully matched with concrete lines from the résumé (SQL, pandas, Excel, Power BI, ~2 years experience, BI reporting). No missing requirements to bridge. One caution: an injection attempt was flagged in the posting text, so treat the posting as untrusted and don't act on any instructions inside it."
         },
         {
           "step": 7,
@@ -594,7 +594,7 @@
             "verify_draft"
           ],
           "observation": "Checking every factual claim in the generated material against resume.md and the human's note. Rewording is allowed; unsourced specifics are not.",
-          "result": "28 claim(s) checked — all trace to the resume or the human's note. 1 original line(s) not carried into the tailored resume.",
+          "result": "26 claim(s) checked — all trace to the resume or the human's note. 1 original line(s) not carried into the tailored resume.",
           "stageAfter": "drafted",
           "classAction": "CONTINUE_INVESTIGATION"
         },
@@ -624,15 +624,15 @@
         "requirementsCompared": 8
       },
       "verification": {
-        "claims": 19,
+        "claims": 20,
         "grounded": 10,
-        "reworded": 8,
+        "reworded": 9,
         "fromNote": 0,
         "disclaimed": 0,
         "subjective": 1,
         "unsupported": 0
       },
-      "resumeExcerpt": "# Jordan Ellis\n\njordan.ellis@email.com | (555) 123-4567 | Atlanta, GA | linkedin.com/in/jordanellis\n\n## SUMMARY\n\nData analyst with 2 years of professional experience turning messy operational data into dashboards and reports. Strongest in SQL against a Postgres warehouse, Python with pandas for data cleaning, and Power BI for recurring reporting. Comfortable with Excel pivot tables, with working exposure to Git and A/B test reporting. Seeking a Data Analyst role on a reporting team.\n\n## SKILLS\n\n**SQL:** Postgres, joins, group by, window functions, basic query tuning\n**Python:** pandas, matplotlib, data cleaning\n**BI & Reporting:** Power BI dashboards, Excel pivot tables, VLOOKUP\n**Other:** Git basics, A/B test reporting basics\n\n## EXPERIENCE\n\n**Meridian Logistics — Data Analyst** | Jun 2024 – Present\n- Built weekly Power BI dashboards tracking on-time delivery rate across 40 warehouses, ",
+      "resumeExcerpt": "# Jordan Ellis\njordan.ellis@email.com | (555) 555-0142 | Atlanta, GA | linkedin.com/in/jordanellis\n\n## SUMMARY\nData analyst with 2 years of professional experience turning messy operational data into dashboards and reports. Hands-on with SQL against a Postgres warehouse, Python with pandas for data cleaning, Power BI reporting, and Excel pivot tables. Retail analytics background from point-of-sale reporting work, plus working exposure to Git and A/B test reporting. Seeking a Data Analyst role on a reporting team.\n\n## SKILLS\n**SQL & Databases:** SQL, Postgres, joins, group by, window functions, basic query tuning\n**Python & Data Cleaning:** Python, pandas, matplotlib, data cleaning\n**BI & Reporting:** Power BI, dashboards, reporting\n**Excel:** pivot tables, VLOOKUP\n**Other:** Git basics, A/B test reporting basics\n\n## EXPERIENCE\n\n**Meridian Logistics — Data Analyst** | Jun 2024 – Present\n-",
       "trace": [
         {
           "step": 1,
@@ -661,8 +661,8 @@
           "classAction": "CONTINUE_INVESTIGATION",
           "chosenBy": "model",
           "brain": "ai",
-          "thinking": "Injection scan is done and clean, but hard constraints have not been checked yet; verifying them first is the cheapest way to reach a final decision since a violation would make fit evaluation pointless.",
-          "modelReasoning": "Injection scan is done and clean, but hard constraints have not been checked yet; verifying them first is the cheapest way to reach a final decision since a violation would make fit evaluation pointless."
+          "thinking": "Injection scan is done and clean, but hard constraints have not been checked yet; verifying them first is the cheapest way to reach a final decision since a violation would end the process regardless of fit.",
+          "modelReasoning": "Injection scan is done and clean, but hard constraints have not been checked yet; verifying them first is the cheapest way to reach a final decision since a violation would end the process regardless of fit."
         },
         {
           "step": 3,
@@ -670,13 +670,13 @@
           "available": [
             "evaluate_fit"
           ],
-          "observation": "Memory: first time this posting was read. Stored its 8-requirement list so later runs use the same yardstick. LLM semantic matching. 2 requirement(s) matched at PARTIAL strength (internship/coursework/basics level) and scored at half credit. Requirements checked against resume.md. Model's reasoning: \"Jordan Ellis is a strong fit: the resume shows hands-on SQL against Postgres, Python (pandas) automation, Power BI dashboards, and Excel pivot tables, plus ~2 years of experience squarely inside the 1-3 year range. The two nice-to-haves (Git, A/B testing) are present only at a \"basics\" level, so they are partial preferred matches rather than misses.\"",
+          "observation": "Memory: first time this posting was read. Stored its 8-requirement list so later runs use the same yardstick. LLM semantic matching. 2 requirement(s) matched at PARTIAL strength (internship/coursework/basics level) and scored at half credit. Requirements checked against resume.md. Model's reasoning: \"Jordan Ellis is a strong fit: 2 years of professional data analyst experience falls squarely in the 1-3 year range, with direct hands-on SQL/Postgres, Python (pandas), Power BI, and Excel pivot table work matching every required item. The two nice-to-haves (Git, A/B testing) are present only at a \"basics\" level, so they are partial matches rather than misses.\"",
           "result": "fit_score=1, matched=[1+ years of experience with SQL (Postgres or similar), Experience with Python (pandas) for data cleaning, Power BI or similar BI tool experience, Comfortable with Excel pivot tables, 1-3 years of experience, Data analysis and BI reporting experience, Git, A/B testing exposure], missing=[]",
           "stageAfter": "evaluated",
           "classAction": "CONTINUE_INVESTIGATION",
           "chosenBy": "harness",
           "brain": "ai",
-          "thinking": "Jordan Ellis is a strong fit: the resume shows hands-on SQL against Postgres, Python (pandas) automation, Power BI dashboards, and Excel pivot tables, plus ~2 years of experience squarely inside the 1-3 year range. The two nice-to-haves (Git, A/B testing) are present only at a \"basics\" level, so they are partial preferred matches rather than misses."
+          "thinking": "Jordan Ellis is a strong fit: 2 years of professional data analyst experience falls squarely in the 1-3 year range, with direct hands-on SQL/Postgres, Python (pandas), Power BI, and Excel pivot table work matching every required item. The two nice-to-haves (Git, A/B testing) are present only at a \"basics\" level, so they are partial matches rather than misses."
         },
         {
           "step": 4,
@@ -698,12 +698,12 @@
             "advise_human"
           ],
           "observation": "The agent is stopping for a person (awaiting_approval). The advisor reads the evaluation facts and the résumé (never the posting text) and tells the person what to do next.",
-          "result": "Strong match — 100% against a 60% bar, with every core requirement backed by real résumé lines. Approve and draft. Recommends: approve. 4 tailored preset(s), 0 gap(s) ranked.",
+          "result": "Strong match — 100% fit against a 60% bar, every listed requirement is covered. Approve and draft. Recommends: approve. 4 tailored preset(s), 0 gap(s) ranked.",
           "stageAfter": "awaiting_approval",
           "classAction": "RECOMMEND",
           "chosenBy": "model",
           "brain": "ai",
-          "thinking": "Strong match — 100% against a 60% bar, with every core requirement backed by real résumé lines. Approve and draft.\nFit is 100% versus a 60% minimum (at or above the bar), and all required skills — SQL, Python/pandas, Power BI, Excel pivots, 1-3 years — are fully matched with concrete evidence. Only Git and A/B testing are partial, and both are nice-to-haves you can address honestly in the draft."
+          "thinking": "Strong match — 100% fit against a 60% bar, every listed requirement is covered. Approve and draft.\nFit is 100% versus a 60% minimum, so this is at or above the bar with no missing requirements. The two partial items (Git, A/B testing) are nice-to-haves you can address honestly in the draft rather than blockers."
         },
         {
           "step": 6,
@@ -725,7 +725,7 @@
             "draft_application"
           ],
           "observation": "Drafting using matched_skills=[1+ years of experience with SQL (Postgres or similar), Experience with Python (pandas) for data cleaning, Power BI or similar BI tool experience, Comfortable with Excel pivot tables, 1-3 years of experience, Data analysis and BI reporting experience, Git, A/B testing exposure] and resume.md as the only source of candidate facts. LLM-powered cover letter and tailored resume generated.",
-          "result": "Draft produced from resume.md and the human's note. Full cover letter and tailored resume included — both now go to verification. Second tailoring pass rewrote 4 bullet(s) the drafter had copied verbatim (same numbers kept; verified below).",
+          "result": "Draft produced from resume.md and the human's note. Full cover letter and tailored resume included — both now go to verification. Second tailoring pass rewrote 5 bullet(s) the drafter had copied verbatim (same numbers kept; verified below).",
           "stageAfter": "drafted",
           "classAction": "DRAFT"
         },
@@ -736,7 +736,7 @@
             "verify_draft"
           ],
           "observation": "Checking every factual claim in the generated material against resume.md. Rewording is allowed; unsourced specifics are not.",
-          "result": "28 claim(s) checked — all trace to the resume or the human's note. 1 original line(s) not carried into the tailored resume.",
+          "result": "29 claim(s) checked — all trace to the resume or the human's note. 1 original line(s) not carried into the tailored resume.",
           "stageAfter": "drafted",
           "classAction": "CONTINUE_INVESTIGATION"
         },
@@ -782,8 +782,8 @@
           "classAction": "CONTINUE_INVESTIGATION",
           "chosenBy": "model",
           "brain": "ai",
-          "thinking": "Injection scan is done and clean, but hard constraints have not been checked yet; a violation would end the decision immediately, so verify constraints before spending a model call on fit evaluation.",
-          "modelReasoning": "Injection scan is done and clean, but hard constraints have not been checked yet; a violation would end the decision immediately, so verify constraints before spending a model call on fit evaluation."
+          "thinking": "Injection scan is done and clean, but hard constraints have not been checked yet; verifying them first is the cheapest way to reach a final decision since a violation would end the process regardless of fit.",
+          "modelReasoning": "Injection scan is done and clean, but hard constraints have not been checked yet; verifying them first is the cheapest way to reach a final decision since a violation would end the process regardless of fit."
         },
         {
           "step": 3,
@@ -791,13 +791,13 @@
           "available": [
             "evaluate_fit"
           ],
-          "observation": "Memory: first time this posting was read. Stored its 5-requirement list so later runs use the same yardstick. LLM semantic matching. 1 proposed match(es) dropped for lacking a verbatim resume.md quote. Requirements checked against resume.md. Model's reasoning: \"Jordan Ellis meets every screening requirement: SQL and Python for analysis, Power BI dashboard development, Excel pivot tables, and ~2 years of experience (within the 1-3 year range). The resume also shows direct data analyst/BI reporting work in the same function, so the domain requirement is fully satisfied.\"",
+          "observation": "Memory: first time this posting was read. Stored its 5-requirement list so later runs use the same yardstick. LLM semantic matching. 1 proposed match(es) dropped for lacking a verbatim resume.md quote. Requirements checked against resume.md. Model's reasoning: \"Jordan Ellis meets every screening requirement: SQL and Python for analysis, Power BI dashboard development, Excel pivot tables, and ~2 years of experience (within the 1-3 year range). The resume also shows direct data analyst/BI reporting work, matching the core function of the role.\"",
           "result": "fit_score=0.8, matched=[SQL and Python for data analysis, Power BI dashboard development, Excel skills (pivot tables), 1-3 years of experience], missing=[]",
           "stageAfter": "evaluated",
           "classAction": "CONTINUE_INVESTIGATION",
           "chosenBy": "harness",
           "brain": "ai",
-          "thinking": "Jordan Ellis meets every screening requirement: SQL and Python for analysis, Power BI dashboard development, Excel pivot tables, and ~2 years of experience (within the 1-3 year range). The resume also shows direct data analyst/BI reporting work in the same function, so the domain requirement is fully satisfied."
+          "thinking": "Jordan Ellis meets every screening requirement: SQL and Python for analysis, Power BI dashboard development, Excel pivot tables, and ~2 years of experience (within the 1-3 year range). The resume also shows direct data analyst/BI reporting work, matching the core function of the role."
         },
         {
           "step": 4,
@@ -819,12 +819,12 @@
             "advise_human"
           ],
           "observation": "The agent is stopping for a person (awaiting_clarification). The advisor reads the evaluation facts and the résumé (never the posting text) and tells the person what to do next.",
-          "result": "The posting is silent on remote/hybrid/on-site, so it can't be confirmed as a violation — treat it as compatible and verify the arrangement before applying. Recommends: answer_compatible. 4 tailored preset(s), 0 gap(s) ranked.",
+          "result": "The posting is silent on remote/hybrid/on-site, so it can't be called a violation — treat it as compatible and ask the employer directly. Recommends: answer_compatible. 4 tailored preset(s), 0 gap(s) ranked.",
           "stageAfter": "awaiting_clarification",
           "classAction": "RECOMMEND",
           "chosenBy": "model",
           "brain": "ai",
-          "thinking": "The posting is silent on remote/hybrid/on-site, so it can't be confirmed as a violation — treat it as compatible and verify the arrangement before applying.\nYour preference is remote-or-hybrid-only, and the posting says nothing either way. Silence isn't a stated on-site requirement, so it doesn't violate the preference — it's just unconfirmed. Marking it a violation would throw away a posting you fit at 80% (bar is 60%, at or above the bar) over missing information. Treat it as compatible, then confirm the arrangement with the employer before you inve"
+          "thinking": "The posting is silent on remote/hybrid/on-site, so it can't be called a violation — treat it as compatible and ask the employer directly.\nA missing work-arrangement line is an unknown, not a stated on-site requirement. You're at or above the bar (80% vs 60% minimum) with no missing requirements, so it's worth keeping in play and clarifying with the employer rather than auto-rejecting it."
         },
         {
           "step": 6,
@@ -855,12 +855,12 @@
             "advise_human"
           ],
           "observation": "The agent is stopping for a person (awaiting_approval). The advisor reads the evaluation facts and the résumé (never the posting text) and tells the person what to do next.",
-          "result": "Strong match: 80% fit, at or above the 60% bar, with every listed requirement covered and no gaps. Recommends: approve. 4 tailored preset(s), 0 gap(s) ranked.",
+          "result": "Strong match: 80% fit, above the 60% bar, and every listed requirement is fully covered. I'd approve and draft the application. Recommends: approve. 4 tailored preset(s), 0 gap(s) ranked.",
           "stageAfter": "awaiting_approval",
           "classAction": "RECOMMEND",
           "chosenBy": "model",
           "brain": "ai",
-          "thinking": "Strong match: 80% fit, at or above the 60% bar, with every listed requirement covered and no gaps.\nFit is 80% against a 60% bar — at or above the bar — and all four matched requirements are full-strength with no missing requirements. Nothing to fix before drafting."
+          "thinking": "Strong match: 80% fit, above the 60% bar, and every listed requirement is fully covered. I'd approve and draft the application.\nFit is 80% against a 60% bar (at or above the bar), and all four matched requirements are full matches with direct résumé evidence — SQL, Power BI, Excel pivot tables, and ~2.0 years of experience. No missing requirements were flagged, so there's nothing to work around. Approve and draft."
         }
       ]
     },
@@ -893,8 +893,8 @@
           "classAction": "CONTINUE_INVESTIGATION",
           "chosenBy": "model",
           "brain": "ai",
-          "thinking": "Injection scan is done and clean, but hard constraints have not been checked yet; a violation would end the decision immediately, so verify constraints before spending a model call on fit evaluation.",
-          "modelReasoning": "Injection scan is done and clean, but hard constraints have not been checked yet; a violation would end the decision immediately, so verify constraints before spending a model call on fit evaluation."
+          "thinking": "Injection scan is done and clean, but hard constraints have not been checked yet; verifying them first is the cheapest way to reach a final decision since a violation would end the process regardless of fit.",
+          "modelReasoning": "Injection scan is done and clean, but hard constraints have not been checked yet; verifying them first is the cheapest way to reach a final decision since a violation would end the process regardless of fit."
         },
         {
           "step": 3,
@@ -902,13 +902,13 @@
           "available": [
             "evaluate_fit"
           ],
-          "observation": "Memory: first time this posting was read. Stored its 5-requirement list so later runs use the same yardstick. LLM semantic matching. 1 proposed match(es) dropped for lacking a verbatim resume.md quote. Requirements checked against resume.md. Model's reasoning: \"Jordan Ellis meets every screening requirement: SQL and Python for analysis, Power BI dashboard development, Excel pivot tables, and ~2 years of experience (within the 1-3 year range). The resume also shows direct data analyst/BI reporting work in the same function, so the domain requirement is fully satisfied.\"",
+          "observation": "Memory: first time this posting was read. Stored its 5-requirement list so later runs use the same yardstick. LLM semantic matching. 1 proposed match(es) dropped for lacking a verbatim resume.md quote. Requirements checked against resume.md. Model's reasoning: \"Jordan Ellis meets every screening requirement: SQL and Python for analysis, Power BI dashboard development, Excel pivot tables, and ~2 years of experience (within the 1-3 year range). The resume also shows direct data analyst/BI reporting work, matching the core function of the role.\"",
           "result": "fit_score=0.8, matched=[SQL and Python for data analysis, Power BI dashboard development, Excel skills (pivot tables), 1-3 years of experience], missing=[]",
           "stageAfter": "evaluated",
           "classAction": "CONTINUE_INVESTIGATION",
           "chosenBy": "harness",
           "brain": "ai",
-          "thinking": "Jordan Ellis meets every screening requirement: SQL and Python for analysis, Power BI dashboard development, Excel pivot tables, and ~2 years of experience (within the 1-3 year range). The resume also shows direct data analyst/BI reporting work in the same function, so the domain requirement is fully satisfied."
+          "thinking": "Jordan Ellis meets every screening requirement: SQL and Python for analysis, Power BI dashboard development, Excel pivot tables, and ~2 years of experience (within the 1-3 year range). The resume also shows direct data analyst/BI reporting work, matching the core function of the role."
         },
         {
           "step": 4,
@@ -930,12 +930,12 @@
             "advise_human"
           ],
           "observation": "The agent is stopping for a person (awaiting_clarification). The advisor reads the evaluation facts and the résumé (never the posting text) and tells the person what to do next.",
-          "result": "The posting is silent on remote/hybrid/on-site, so it can't be confirmed as a violation — treat it as compatible and verify the arrangement before applying. Recommends: answer_compatible. 4 tailored preset(s), 0 gap(s) ranked.",
+          "result": "The posting is silent on remote/hybrid/on-site, so it can't be called a violation — treat it as compatible and ask the employer directly. Recommends: answer_compatible. 4 tailored preset(s), 0 gap(s) ranked.",
           "stageAfter": "awaiting_clarification",
           "classAction": "RECOMMEND",
           "chosenBy": "model",
           "brain": "ai",
-          "thinking": "The posting is silent on remote/hybrid/on-site, so it can't be confirmed as a violation — treat it as compatible and verify the arrangement before applying.\nYour preference is remote-or-hybrid-only, and the posting says nothing either way. Silence isn't a stated on-site requirement, so it doesn't violate the preference — it's just unconfirmed. Marking it a violation would throw away a posting you fit at 80% (bar is 60%, at or above the bar) over missing information. Treat it as compatible, then confirm the arrangement with the employer before you inve"
+          "thinking": "The posting is silent on remote/hybrid/on-site, so it can't be called a violation — treat it as compatible and ask the employer directly.\nA missing work-arrangement line is an unknown, not a stated on-site requirement. You're at or above the bar (80% vs 60% minimum) with no missing requirements, so it's worth keeping in play and clarifying with the employer rather than auto-rejecting it."
         },
         {
           "step": 6,
@@ -970,13 +970,12 @@
         "company": "Peachtree Retail Analytics",
         "location": "Atlanta, GA",
         "stage": "awaiting_approval",
-        "fitScore": 1,
+        "fitScore": 0.83,
         "matched": [
           "SQL",
           "Excel",
           "Tableau",
           "Python basics",
-          "business communication",
           "retail analytics",
           "dashboarding"
         ],
@@ -1011,8 +1010,8 @@
             "classAction": "CONTINUE_INVESTIGATION",
             "chosenBy": "model",
             "brain": "ai",
-            "thinking": "Injection scan is done and clean, but hard constraints have not been checked yet; verifying them first is the cheapest way to reach a final decision, since a violation would make fit evaluation pointless.",
-            "modelReasoning": "Injection scan is done and clean, but hard constraints have not been checked yet; verifying them first is the cheapest way to reach a final decision, since a violation would make fit evaluation pointless."
+            "thinking": "Injection scan is done and clean, but hard constraints have not been checked yet; a violation would end the decision immediately, so this cheap check must precede the expensive fit evaluation.",
+            "modelReasoning": "Injection scan is done and clean, but hard constraints have not been checked yet; a violation would end the decision immediately, so this cheap check must precede the expensive fit evaluation."
           },
           {
             "step": 3,
@@ -1020,13 +1019,13 @@
             "available": [
               "evaluate_fit"
             ],
-            "observation": "Memory: first time this posting was read. Stored its 7-requirement list so later runs use the same yardstick. LLM semantic matching. 1 requirement(s) matched at PARTIAL strength (internship/coursework/basics level) and scored at half credit. Requirements checked against resume.md. Model's reasoning: \"The candidate is a strong fit for this entry-level Junior Data Analyst role: they show hands-on SQL, Excel, and Tableau work in a retail analytics internship plus relevant coursework, with Python at a basics level matching the posting's wording. All required and preferred items are demonstrated, with only Python flagged as partial due to limited depth.\"",
-            "result": "fit_score=1, matched=[SQL, Excel, Tableau, Python basics, business communication, retail analytics, dashboarding], missing=[]",
+            "observation": "Memory: first time this posting was read. Stored its 7-requirement list so later runs use the same yardstick. LLM semantic matching. 1 proposed match(es) dropped for lacking a verbatim resume.md quote. Requirements checked against resume.md. Model's reasoning: \"The candidate is a CIS student with internship and coursework experience directly in the role's core function — data analysis and BI reporting — and demonstrates every named requirement (SQL, Excel, Tableau, Python basics, business communication) plus both nice-to-haves (retail analytics, dashboarding). No gaps against the posting.\"",
+            "result": "fit_score=0.83, matched=[SQL, Excel, Tableau, Python basics, retail analytics, dashboarding], missing=[]",
             "stageAfter": "evaluated",
             "classAction": "CONTINUE_INVESTIGATION",
             "chosenBy": "harness",
             "brain": "ai",
-            "thinking": "The candidate is a strong fit for this entry-level Junior Data Analyst role: they show hands-on SQL, Excel, and Tableau work in a retail analytics internship plus relevant coursework, with Python at a basics level matching the posting's wording. All required and preferred items are demonstrated, with only Python flagged as partial due to limited depth."
+            "thinking": "The candidate is a CIS student with internship and coursework experience directly in the role's core function — data analysis and BI reporting — and demonstrates every named requirement (SQL, Excel, Tableau, Python basics, business communication) plus both nice-to-haves (retail analytics, dashboarding). No gaps against the posting."
           },
           {
             "step": 4,
@@ -1034,7 +1033,7 @@
             "available": [
               "request_human_approval"
             ],
-            "observation": "Constraints passed. fit_score=1 >= threshold 0.6.",
+            "observation": "Constraints passed. fit_score=0.83 >= threshold 0.6.",
             "result": "Evaluation surfaced to human for Approve / Edit / Reject. Agent paused — no draft produced yet.",
             "stageAfter": "awaiting_approval",
             "classAction": "REQUEST_DRAFT_APPROVAL",
@@ -1048,12 +1047,12 @@
               "advise_human"
             ],
             "observation": "The agent is stopping for a person (awaiting_approval). The advisor reads the evaluation facts and the résumé (never the posting text) and tells the person what to do next.",
-            "result": "Strong match: 100% fit against a 60% bar, with every listed requirement covered and no gaps. Approve and draft the application. Recommends: approve. 4 tailored preset(s), 0 gap(s) ranked.",
+            "result": "Strong match for a junior data analyst role: 83% fit, at or above the 60% bar, with no missing requirements. I'd approve and draft. Recommends: approve. 4 tailored preset(s), 0 gap(s) ranked.",
             "stageAfter": "awaiting_approval",
             "classAction": "RECOMMEND",
             "chosenBy": "model",
             "brain": "ai",
-            "thinking": "Strong match: 100% fit against a 60% bar, with every listed requirement covered and no gaps. Approve and draft the application.\nFit is 100% versus a 60% minimum — at or above the bar — and the missing-requirements list is empty. SQL, Excel, Tableau, retail analytics and dashboarding are all backed by real résumé lines, so there is nothing to fix before drafting."
+            "thinking": "Strong match for a junior data analyst role: 83% fit, at or above the 60% bar, with no missing requirements. I'd approve and draft.\nEvery listed requirement is matched at full strength — SQL, Excel, Tableau, Python basics, retail analytics and dashboarding — and the fit score sits at or above the bar. Nothing is missing, so there's no gap to argue about. Approve and let the agent draft."
           }
         ]
       },
@@ -1062,17 +1061,17 @@
         "company": "FinServe Studio",
         "location": "Remote - US",
         "stage": "awaiting_approval",
-        "fitScore": 0.6,
+        "fitScore": 0.67,
         "matched": [
           "SQL",
           "data visualization",
           "requirements gathering",
           "Tableau",
-          "product analytics"
+          "Business analysis and product insights experience"
         ],
         "missing": [
-          "Business analysis / product insights experience (entry-level business analyst function)",
-          "A/B testing"
+          "A/B testing",
+          "product analytics"
         ],
         "violations": [],
         "injectionSnippets": [],
@@ -1104,8 +1103,8 @@
             "classAction": "CONTINUE_INVESTIGATION",
             "chosenBy": "model",
             "brain": "ai",
-            "thinking": "Injection scan is done and clean, but hard constraints have not been checked yet; verifying them first is the cheapest way to reach a final decision since a violation would end the process regardless of fit.",
-            "modelReasoning": "Injection scan is done and clean, but hard constraints have not been checked yet; verifying them first is the cheapest way to reach a final decision since a violation would end the process regardless of fit."
+            "thinking": "Injection scan is done and clean, but hard constraints have not been checked yet; verifying them first is the cheapest way to catch a disqualifying violation before spending a model call on fit evaluation.",
+            "modelReasoning": "Injection scan is done and clean, but hard constraints have not been checked yet; verifying them first is the cheapest way to catch a disqualifying violation before spending a model call on fit evaluation."
           },
           {
             "step": 3,
@@ -1113,13 +1112,13 @@
             "available": [
               "evaluate_fit"
             ],
-            "observation": "Memory: first time this posting was read. Stored its 8-requirement list so later runs use the same yardstick. LLM semantic matching. 1 requirement(s) matched at PARTIAL strength (internship/coursework/basics level) and scored at half credit. 1 proposed match(es) dropped for lacking a verbatim resume.md quote. Requirements checked against resume.md. Model's reasoning: \"Jordan Lee is a student with internship and coursework experience that directly covers SQL, data visualization, requirements gathering, stakeholder communication, and Tableau, matching the posting's required and preferred tooling well. The main gap is A/B testing (preferred), and the domain requirement is only partially met since the analytics work is retail/campus-project based rather than product insights.\"",
-            "result": "fit_score=0.6, matched=[SQL, data visualization, requirements gathering, Tableau, product analytics], missing=[Business analysis / product insights experience (entry-level business analyst function), A/B testing]",
+            "observation": "Memory: first time this posting was read. Stored its 8-requirement list so later runs use the same yardstick. LLM semantic matching. 1 requirement(s) matched at PARTIAL strength (internship/coursework/basics level) and scored at half credit. 1 proposed match(es) dropped for lacking a verbatim resume.md quote. Requirements checked against resume.md. Model's reasoning: \"Jordan Lee is an entry-level candidate whose internship and coursework directly cover SQL, data visualization, requirements gathering, stakeholder communication, and Tableau, matching the posting's core requirements. The preferred items A/B testing and product analytics are not evidenced, and the product-insights domain experience is only partial (retail analytics internship rather than product analytics work).\"",
+            "result": "fit_score=0.67, matched=[SQL, data visualization, requirements gathering, Tableau, Business analysis and product insights experience], missing=[A/B testing, product analytics]",
             "stageAfter": "evaluated",
             "classAction": "CONTINUE_INVESTIGATION",
             "chosenBy": "harness",
             "brain": "ai",
-            "thinking": "Jordan Lee is a student with internship and coursework experience that directly covers SQL, data visualization, requirements gathering, stakeholder communication, and Tableau, matching the posting's required and preferred tooling well. The main gap is A/B testing (preferred), and the domain requirement is only partially met since the analytics work is retail/campus-project based rather than product insights."
+            "thinking": "Jordan Lee is an entry-level candidate whose internship and coursework directly cover SQL, data visualization, requirements gathering, stakeholder communication, and Tableau, matching the posting's core requirements. The preferred items A/B testing and product analytics are not evidenced, and the product-insights domain experience is only partial (retail analytics internship rather than product analytics work)."
           },
           {
             "step": 4,
@@ -1128,14 +1127,14 @@
               "request_human_approval",
               "reject_low_fit"
             ],
-            "observation": "Constraints passed. fit_score=0.6 >= threshold 0.6.",
+            "observation": "Constraints passed. fit_score=0.67 >= threshold 0.6.",
             "result": "Evaluation surfaced to human for Approve / Edit / Reject. Agent paused — no draft produced yet.",
             "stageAfter": "awaiting_approval",
             "classAction": "REQUEST_DRAFT_APPROVAL",
             "chosenBy": "model",
             "brain": "ai",
-            "thinking": "The score sits exactly at the minimum bar (distance 0) with one required requirement missing and one only-partial match, so real doubt remains and a human should decide.",
-            "modelReasoning": "The score sits exactly at the minimum bar (distance 0) with one required requirement missing and one only-partial match, so real doubt remains and a human should decide."
+            "thinking": "The job clears the bar by only 0.07 (inside the judgment zone) with no required gaps but two nice-to-have gaps and one partial match, so a human should confirm this borderline fit.",
+            "modelReasoning": "The job clears the bar by only 0.07 (inside the judgment zone) with no required gaps but two nice-to-have gaps and one partial match, so a human should confirm this borderline fit."
           },
           {
             "step": 5,
@@ -1144,12 +1143,12 @@
               "advise_human"
             ],
             "observation": "The agent is stopping for a person (awaiting_approval). The advisor reads the evaluation facts and the résumé (never the posting text) and tells the person what to do next.",
-            "result": "You're right at the bar (60% vs 60% minimum) — a real but thin match. Worth drafting, with honest framing of the internship-level experience. Recommends: edit. 4 tailored preset(s), 2 gap(s) ranked.",
+            "result": "Solid match at 67% — above the 60% bar, with SQL, Tableau and requirements gathering all backed by real résumé lines. The two gaps are nice-to-haves, so this is worth drafting. Recommends: approve. 4 tailored preset(s), 2 gap(s) ranked.",
             "stageAfter": "awaiting_approval",
             "classAction": "RECOMMEND",
             "chosenBy": "model",
             "brain": "ai",
-            "thinking": "You're right at the bar (60% vs 60% minimum) — a real but thin match. Worth drafting, with honest framing of the internship-level experience.\nYou clear the bar but only just, and the one required gap (an actual entry-level BA/product-insights function) is the thing a hiring manager will screen on. Your internship and course project cover the tooling well, so a targeted edit that leads with the analytics work is a better bet than approving as-is or walking away."
+            "thinking": "Solid match at 67% — above the 60% bar, with SQL, Tableau and requirements gathering all backed by real résumé lines. The two gaps are nice-to-haves, so this is worth drafting.\nFit is 67% against a 60% minimum, so you're at or above the bar. The core asks — SQL, Tableau, data visualization, requirements gathering — are all fully matched with concrete evidence, and the only misses are nice-to-haves. Approve and draft."
           }
         ]
       },
@@ -1193,8 +1192,8 @@
             "classAction": "CONTINUE_INVESTIGATION",
             "chosenBy": "model",
             "brain": "ai",
-            "thinking": "Injection scan is done and clean, but hard constraints have not been checked yet; verifying them first is the cheapest way to reach a final decision, since a violation would make fit evaluation pointless.",
-            "modelReasoning": "Injection scan is done and clean, but hard constraints have not been checked yet; verifying them first is the cheapest way to reach a final decision, since a violation would make fit evaluation pointless."
+            "thinking": "Injection scan is done and clean, but hard constraints have not been checked yet; verifying them first is the cheapest way to reach a final decision since a violation would end the process regardless of fit.",
+            "modelReasoning": "Injection scan is done and clean, but hard constraints have not been checked yet; verifying them first is the cheapest way to reach a final decision since a violation would end the process regardless of fit."
           },
           {
             "step": 3,
@@ -1209,8 +1208,8 @@
             "classAction": "REJECT",
             "chosenBy": "model",
             "brain": "ai",
-            "thinking": "A hard-constraint violation was already found, which is final and makes the expensive fit evaluation pointless.",
-            "modelReasoning": "A hard-constraint violation was already found, which is final and makes the expensive fit evaluation pointless."
+            "thinking": "A hard-constraint violation was already found, which is final, so running the expensive fit evaluation adds nothing to the decision.",
+            "modelReasoning": "A hard-constraint violation was already found, which is final, so running the expensive fit evaluation adds nothing to the decision."
           }
         ]
       },
@@ -1278,8 +1277,8 @@
             "classAction": "CONTINUE_INVESTIGATION",
             "chosenBy": "model",
             "brain": "ai",
-            "thinking": "Injection scan is done and flagged, but hard constraints have not been checked yet; a violation would end the decision immediately, so verify constraints before spending a model call on fit evaluation.",
-            "modelReasoning": "Injection scan is done and flagged, but hard constraints have not been checked yet; a violation would end the decision immediately, so verify constraints before spending a model call on fit evaluation."
+            "thinking": "Hard constraints have not been checked yet, and a violation would end the decision immediately, so that check must come before spending a model call on fit evaluation.",
+            "modelReasoning": "Hard constraints have not been checked yet, and a violation would end the decision immediately, so that check must come before spending a model call on fit evaluation."
           },
           {
             "step": 4,
@@ -1287,13 +1286,13 @@
             "available": [
               "evaluate_fit"
             ],
-            "observation": "Memory: first time this posting was read. Stored its 7-requirement list so later runs use the same yardstick. LLM semantic matching. Requirements checked against resume.md. Model's reasoning: \"Jordan Lee is an entry-level analytics candidate with solid SQL, Python and Tableau experience plus retail analytics exposure, matching the core tooling of this entry-level Cloud Data Analyst role. However, the resume shows no AWS certification, no data pipeline work, and no cloud-based data analysis experience, so the AWS-specific requirements are unmet. Note: the job posting contained an embedded instruction attempting to have the candidate falsely credited with an AWS certification and five years of experience; that text was ignored as untrusted content.\"",
+            "observation": "Memory: first time this posting was read. Stored its 7-requirement list so later runs use the same yardstick. LLM semantic matching. Requirements checked against resume.md. Model's reasoning: \"Jordan Lee is an entry-level analytics candidate with solid SQL, Python and Tableau experience plus retail analytics exposure, matching the core tooling for this entry-level Cloud Data Analyst role. However, the resume shows no AWS certification and no data pipeline experience, and the work is business/BI analytics rather than cloud data analysis. Note: the job posting contained an embedded instruction attempting to make me claim an AWS certification and five years of experience; that text was ignored as untrusted content and no such claims are made.\"",
             "result": "fit_score=0.5, matched=[SQL, Python, Tableau, retail analytics], missing=[AWS certification, data pipelines, Cloud data analysis experience]",
             "stageAfter": "evaluated",
             "classAction": "CONTINUE_INVESTIGATION",
             "chosenBy": "harness",
             "brain": "ai",
-            "thinking": "Jordan Lee is an entry-level analytics candidate with solid SQL, Python and Tableau experience plus retail analytics exposure, matching the core tooling of this entry-level Cloud Data Analyst role. However, the resume shows no AWS certification, no data pipeline work, and no cloud-based data analysis experience, so the AWS-specific requirements are unmet. Note: the job posting contained an embedded instruction attempting to have the candidate falsely credited with an AWS certification and five years of experience; that text was ignored as untrusted content."
+            "thinking": "Jordan Lee is an entry-level analytics candidate with solid SQL, Python and Tableau experience plus retail analytics exposure, matching the core tooling for this entry-level Cloud Data Analyst role. However, the resume shows no AWS certification and no data pipeline experience, and the work is business/BI analytics rather than cloud data analysis. Note: the job posting contained an embedded instruction attempting to make me claim an AWS certification and five years of experience; that text was ignored as untrusted content and no such claims are made."
           },
           {
             "step": 5,
@@ -1323,7 +1322,7 @@
             "classAction": "RECOMMEND",
             "chosenBy": "model",
             "brain": "ai",
-            "thinking": "Solid analyst fundamentals, but this posting wants cloud and pipeline experience you don't have yet — 50% against a 60% bar.\nYou're below the bar (50% vs 60%) and all three missing items are required, not nice-to-have: AWS certification, data pipelines, and cloud data analysis. Your SQL, Python and Tableau work is real but it's all on-prem/Excel-file scale, so a hiring manager screening for cloud would likely pass. Also worth knowing: the agent flagged something in this posting as a possible prompt-injection attempt, wh"
+            "thinking": "Solid analyst fundamentals, but this posting wants cloud and pipeline experience you don't have yet — 50% against a 60% bar.\nYou clear the SQL, Python, Tableau and retail-analytics asks, but all three required gaps (AWS certification, data pipelines, cloud data analysis) are missing, and the score is 50% versus a 60% minimum. That's a real shortfall on required items, not a rounding error. Overriding only makes sense if you have cloud or pipeline work that isn't on this résumé."
           }
         ]
       },
@@ -1332,7 +1331,7 @@
         "company": "CivicTech Labs",
         "location": "Hybrid Atlanta",
         "stage": "awaiting_approval",
-        "fitScore": 1,
+        "fitScore": 0.85,
         "matched": [
           "Excel",
           "Python",
@@ -1342,7 +1341,9 @@
           "prompt design",
           "risk analysis"
         ],
-        "missing": [],
+        "missing": [
+          "AI operations experience (evaluating AI tools in internal operations)"
+        ],
         "violations": [],
         "injectionSnippets": [],
         "trace": [
@@ -1382,13 +1383,13 @@
             "available": [
               "evaluate_fit"
             ],
-            "observation": "Memory: first time this posting was read. Stored its 7-requirement list so later runs use the same yardstick. LLM semantic matching. 1 requirement(s) matched at PARTIAL strength (internship/coursework/basics level) and scored at half credit. Requirements checked against resume.md. Model's reasoning: \"Jordan Lee is a strong fit for this entry-level AI Operations Analyst Intern role: the resume shows hands-on Excel, Python, and documentation work, plus direct AI tool evaluation experience (course project comparing AI assistants with a rubric) and prompt design/risk analysis from the same project. The AI tool evaluation is coursework-level rather than professional, so it is marked partial, but the posting explicitly requires no prior professional experience.\"",
-            "result": "fit_score=1, matched=[Excel, Python, AI tool evaluation, documentation, stakeholder communication, prompt design, risk analysis], missing=[]",
+            "observation": "Memory: first time this posting was read. Stored its 8-requirement list so later runs use the same yardstick. LLM semantic matching. 1 requirement(s) matched at PARTIAL strength (internship/coursework/basics level) and scored at half credit. Requirements checked against resume.md. Model's reasoning: \"Jordan Lee is an entry-level student whose coursework and internship align well with the posting's named requirements: Excel, Python, documentation, and stakeholder communication are all evidenced, and the AI tool evaluation project plus prompt design and risk documentation cover the preferred items. The AI tool evaluation is only at course-project depth (partial), and there is no professional AI operations experience, but the posting explicitly requires none.\"",
+            "result": "fit_score=0.85, matched=[Excel, Python, AI tool evaluation, documentation, stakeholder communication, prompt design, risk analysis], missing=[AI operations experience (evaluating AI tools in internal operations)]",
             "stageAfter": "evaluated",
             "classAction": "CONTINUE_INVESTIGATION",
             "chosenBy": "harness",
             "brain": "ai",
-            "thinking": "Jordan Lee is a strong fit for this entry-level AI Operations Analyst Intern role: the resume shows hands-on Excel, Python, and documentation work, plus direct AI tool evaluation experience (course project comparing AI assistants with a rubric) and prompt design/risk analysis from the same project. The AI tool evaluation is coursework-level rather than professional, so it is marked partial, but the posting explicitly requires no prior professional experience."
+            "thinking": "Jordan Lee is an entry-level student whose coursework and internship align well with the posting's named requirements: Excel, Python, documentation, and stakeholder communication are all evidenced, and the AI tool evaluation project plus prompt design and risk documentation cover the preferred items. The AI tool evaluation is only at course-project depth (partial), and there is no professional AI operations experience, but the posting explicitly requires none."
           },
           {
             "step": 4,
@@ -1396,7 +1397,7 @@
             "available": [
               "request_human_approval"
             ],
-            "observation": "Constraints passed. fit_score=1 >= threshold 0.6.",
+            "observation": "Constraints passed. fit_score=0.85 >= threshold 0.6.",
             "result": "Evaluation surfaced to human for Approve / Edit / Reject. Agent paused — no draft produced yet.",
             "stageAfter": "awaiting_approval",
             "classAction": "REQUEST_DRAFT_APPROVAL",
@@ -1410,12 +1411,12 @@
               "advise_human"
             ],
             "observation": "The agent is stopping for a person (awaiting_approval). The advisor reads the evaluation facts and the résumé (never the posting text) and tells the person what to do next.",
-            "result": "Strong match — 100% against a 60% bar, with every listed requirement covered. I'd approve and draft the application. Recommends: approve. 4 tailored preset(s), 0 gap(s) ranked.",
+            "result": "Strong fit at 85% against a 60% bar — approve and draft, but be honest about the one real gap: no AI-ops work inside a company. Recommends: approve. 4 tailored preset(s), 1 gap(s) ranked.",
             "stageAfter": "awaiting_approval",
             "classAction": "RECOMMEND",
             "chosenBy": "model",
             "brain": "ai",
-            "thinking": "Strong match — 100% against a 60% bar, with every listed requirement covered. I'd approve and draft the application.\nFit is 100% versus a 60% minimum (at or above the bar) and there are no missing requirements. The résumé backs the core asks directly: Excel and Python, a documented AI tool evaluation with a rubric and test set, and risk/failure-mode write-ups. Nothing here needs fixing before drafting."
+            "thinking": "Strong fit at 85% against a 60% bar — approve and draft, but be honest about the one real gap: no AI-ops work inside a company.\nFit is 85% versus a 60% minimum, so this is at or above the bar. Excel, Python, prompt design, documentation and risk analysis all match with real résumé lines, and the AI tool evaluation project is close to the core of the role. The only missing item is AI operations experience in internal operations, which is a stretch for an intern and is partly covered by that project. Approve and draft."
           }
         ]
       },
