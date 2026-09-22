@@ -49,6 +49,7 @@ type Result = {
     steps?: {
       step: number;
       action: string;
+      classAction?: string | null;
       chosenBy: "model" | "harness" | "policy" | null;
       brain: "ai" | "code" | null;
       thinking: string | null;
@@ -385,6 +386,14 @@ export default function TestLabPage() {
                                     <li key={st.step} className="border border-neutral-200 rounded-lg p-2 bg-neutral-50/70">
                                       <div className="flex flex-wrap items-center gap-1.5">
                                         <span className="font-mono font-bold">{st.step}. {st.action}</span>
+                                        {st.classAction && (
+                                          <span
+                                            className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold bg-sky-100 text-sky-900"
+                                            title="The same action in the class starter kit's vocabulary"
+                                          >
+                                            {st.classAction}
+                                          </span>
+                                        )}
                                         <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${st.brain === "ai" ? "bg-indigo-600 text-white" : "bg-neutral-300 text-neutral-800"}`}>
                                           {st.brain === "ai" ? "🧠 AI thinking" : "⚙ code rule"}
                                         </span>

@@ -9,6 +9,41 @@ import jsPDF from "jspdf";
 
 export type PdfKind = "resume" | "letter" | "plain";
 
+/**
+ * How the document LOOKS. All three styles produce the same document: same section order,
+ * same single ATS-safe column, same content, same headings. Only typeface, heading treatment
+ * and density change, so two people in a group can pick different looks and still hand in
+ * work a screening system reads identically.
+ *   classic - Times body, ruled section headings (the traditional résumé look)
+ *   modern  - Helvetica throughout, heavier headings, a little more air (the default)
+ *   compact - Helvetica, tighter leading and margins, for a résumé that must fit one page
+ */
+export type DocStyle = "classic" | "modern" | "compact";
+
+interface StyleSpec {
+  serif: boolean;
+  bodySize: number;
+  leading: number;
+  marginX: number;
+  marginY: number;
+  nameSize: number;
+  headingSize: number;
+  rule: boolean;
+  uppercaseHeadings: boolean;
+}
+
+const STYLES: Record<DocStyle, StyleSpec> = {
+  classic: { serif: true, bodySize: 10.5, leading: 1.4, marginX: 54, marginY: 52, nameSize: 20, headingSize: 11, rule: true, uppercaseHeadings: true },
+  modern: { serif: false, bodySize: 10, leading: 1.38, marginX: 50, marginY: 48, nameSize: 21, headingSize: 11, rule: true, uppercaseHeadings: true },
+  compact: { serif: false, bodySize: 9.2, leading: 1.26, marginX: 42, marginY: 38, nameSize: 17, headingSize: 10, rule: false, uppercaseHeadings: true },
+};
+
+export const DOC_STYLE_LABELS: { value: DocStyle; label: string; hint: string }[] = [
+  { value: "modern", label: "Modern", hint: "Helvetica, ruled headings — the default" },
+  { value: "classic", label: "Classic", hint: "Times body, traditional résumé look" },
+  { value: "compact", label: "Compact", hint: "Tighter spacing to fit one page" },
+];
+
 // jsPDF's built-in fonts are Latin-1 only: map anything else to a safe form.
 function sanitize(t: string): string {
   return t
@@ -43,17 +78,24 @@ function tokenize(line: string): Tok[] {
   return out;
 }
 
-export function renderMarkdownPdf(rawText: string, filename: string, kind: PdfKind = "plain") {
+export function renderMarkdownPdf(
+  rawText: string,
+  filename: string,
+  kind: PdfKind = "plain",
+  style: DocStyle = "modern"
+) {
+  const spec = STYLES[style] ?? STYLES.modern;
+  const face = spec.serif ? "times" : "helvetica";
   const doc = new jsPDF({ unit: "pt", format: "letter" });
-  const marginX = kind === "resume" ? 50 : 62;
-  const marginY = kind === "resume" ? 48 : 62;
+  const marginX = kind === "resume" ? spec.marginX : spec.marginX + 12;
+  const marginY = kind === "resume" ? spec.marginY : spec.marginY + 14;
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
   const maxW = pageW - marginX * 2;
   let y = marginY;
 
-  const body = kind === "resume" ? 10 : 11;
-  const lead = body * 1.38;
+  const body = kind === "resume" ? spec.bodySize : spec.bodySize + 1;
+  const lead = body * spec.leading;
 
   function ensure(space: number) {
     if (y + space > pageH - marginY) {
@@ -68,14 +110,14 @@ export function renderMarkdownPdf(rawText: string, filename: string, kind: PdfKi
     const toks = tokenize(text);
     doc.setFontSize(size);
     doc.setTextColor(opts?.color ?? 20);
-    const lh = size * 1.38;
+    const lh = size * spec.leading;
     const gap = size * 0.278;
     const hang = opts?.hangX ?? x;
     let cx = x;
     let first = true;
     ensure(lh);
     for (const t of toks) {
-      doc.setFont("helvetica", t.bold ? "bold" : "normal");
+      doc.setFont(face, t.bold ? "bold" : "normal");
       const w = doc.getTextWidth(t.text);
       const g = !first && t.spaceBefore ? gap : 0;
       if (!first && cx + g + w > x + width) {
@@ -111,8 +153,8 @@ export function renderMarkdownPdf(rawText: string, filename: string, kind: PdfKi
       seenName = true;
       expectContact = true;
       const name = trimmed.replace(/^#\s+/, "").replace(/\*\*/g, "");
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(21);
+      doc.setFont(face, "bold");
+      doc.setFontSize(spec.nameSize);
       doc.setTextColor(10);
       ensure(30);
       doc.text(name, pageW / 2, y + 4, { align: "center" });
@@ -122,7 +164,7 @@ export function renderMarkdownPdf(rawText: string, filename: string, kind: PdfKi
 
     if (kind === "resume" && expectContact && !/^#/.test(trimmed)) {
       expectContact = false;
-      doc.setFont("helvetica", "normal");
+      doc.setFont(face, "normal");
       doc.setFontSize(9);
       doc.setTextColor(80);
       const contact = trimmed.replace(/\*\*/g, "");
@@ -142,15 +184,17 @@ export function renderMarkdownPdf(rawText: string, filename: string, kind: PdfKi
       if (kind === "resume") {
         y += 8;
         ensure(26);
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(11);
+        doc.setFont(face, "bold");
+        doc.setFontSize(spec.headingSize);
         doc.setTextColor(10);
-        doc.text(label.toUpperCase(), marginX, y);
+        doc.text(spec.uppercaseHeadings ? label.toUpperCase() : label, marginX, y);
         y += 3;
-        doc.setDrawColor(60);
-        doc.setLineWidth(0.7);
-        doc.line(marginX, y, pageW - marginX, y);
-        y += 13;
+        if (spec.rule) {
+          doc.setDrawColor(60);
+          doc.setLineWidth(0.7);
+          doc.line(marginX, y, pageW - marginX, y);
+        }
+        y += spec.rule ? 13 : 10;
       } else {
         rich(`**${label}**`, marginX, maxW, body + 1);
       }
@@ -161,7 +205,7 @@ export function renderMarkdownPdf(rawText: string, filename: string, kind: PdfKi
     if (bullet) {
       const indent = 14;
       ensure(lead);
-      doc.setFont("helvetica", "normal");
+      doc.setFont(face, "normal");
       doc.setFontSize(body);
       doc.setTextColor(20);
       doc.text("•", marginX + 3, y);

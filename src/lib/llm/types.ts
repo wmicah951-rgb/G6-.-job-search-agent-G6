@@ -232,7 +232,14 @@ export const FIT_SYSTEM_PROMPT =
   "resume line 'basic regression analysis in R' is a MISS — regression analysis is a " +
   "different skill from building ML/DL models. Example: requirement 'Tableau' against a " +
   "resume showing only Power BI is a MISS — a different product. Never stretch a quote to " +
-  "cover a requirement it does not genuinely support; when in doubt, call it missing.";
+  "cover a requirement it does not genuinely support; when in doubt, call it missing.\n" +
+  "SUBJECTS, LICENCES AND CREDENTIALS ARE NOT INTERCHANGEABLE. If a requirement names a " +
+  "specific subject, speciality, licence, endorsement, certification or regulated domain, " +
+  "the resume must name THAT one. A maths teacher does not partially meet 'physics content " +
+  "coursework'; a med-surg nurse does not partially meet 'NRP certification'; an HVAC " +
+  "technician does not partially meet 'ammonia PSM training'; a store manager does not " +
+  "partially meet 'demand forecasting' because they wrote 'traffic forecasts'. These are " +
+  "MISSES. This rule holds for every field, not only technology roles.";
 
 export const FIT_TOOL_NAME = "record_fit_evaluation";
 export const FIT_TOOL_DESCRIPTION =

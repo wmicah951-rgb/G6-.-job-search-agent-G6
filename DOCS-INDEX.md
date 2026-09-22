@@ -45,6 +45,9 @@ Every command, what it proves, and roughly how long it takes.
 |---|---|---|
 | `npx tsx scripts/run-tests.ts` | 15 postings with full decision traces; the four required sequences are distinct | ~2 min |
 | `npx tsx scripts/conformance.ts` | 13/13 gates on the configured model | ~2 min |
+| **`npx tsx scripts/classkit-run.ts`** | **the official class kit's J001–J006, run unchanged through the real agent (6/6), writing the `outputs/` deliverables** | ~1 min |
+| **`npx tsx scripts/stability.ts`** | **the same posting + résumé scores identically every run (spread 0); `NO_MEMORY=1` shows the 12–15 point drift it removes** | ~2 min |
+| **`npx tsx scripts/category-matrix.ts`** | **16 cases across six fields — nursing, teaching, software, trades, retail, finance** | ~4 min |
 | `LLM_PROVIDER=none DEEPSEEK_API_KEY= npx tsx scripts/conformance.ts` | 11/11 gates with **no AI at all** — the app never depends on the model | ~5 s |
 | **`npx tsx scripts/stress-suite.ts`** | **64 checks across 7 dimensions — see below** | ~6 min |
 | `npx tsx scripts/verify-tests.ts` | 18 draft-verification checks, including zero false alarms on honest rewording | ~5 s |

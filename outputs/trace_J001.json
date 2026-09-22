@@ -1,0 +1,990 @@
+{
+  "state": {
+    "jobId": "J001",
+    "stage": "awaiting_approval",
+    "injectionDetected": false,
+    "injectionSnippets": [],
+    "injectionSources": [],
+    "workArrangement": "unknown",
+    "draftVerification": null,
+    "coverLetterVerification": null,
+    "rescore": null,
+    "minFit": 0.6,
+    "fitScore": 1,
+    "matchedSkills": [
+      "SQL",
+      "Excel",
+      "Tableau",
+      "Python basics",
+      "business communication",
+      "retail analytics",
+      "dashboarding"
+    ],
+    "missingSkills": [],
+    "matchedEvidence": {
+      "SQL": "Used SQL to answer recurring questions on store performance and customer purchase patterns with guidance from a senior analyst.",
+      "Excel": "Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team.",
+      "Tableau": "Built a Tableau dashboard tracking product sell-through, stockouts, and regional performance; presented findings to the merchandising manager.",
+      "Python basics": "Analyzed approximately 12,000 anonymized transaction records using Python and SQL to identify peak demand periods and product-mix differences.",
+      "business communication": "presented findings to the merchandising manager",
+      "retail analytics": "Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team.",
+      "dashboarding": "Developed a Tableau dashboard and presented three operational recommendations; separated findings supported by data from assumptions requiring further validation."
+    },
+    "fitMethod": "llm",
+    "fitReasoning": "Jordan Lee is a strong entry-level fit: the resume shows hands-on SQL, Excel, Tableau, Python, and business communication through an analytics internship and course projects, and also covers the preferred retail analytics and dashboarding experience. No required or preferred screening items are missing.",
+    "fitRationale": [
+      "SQL — resume.md: \"Used SQL to answer recurring questions on store performance and customer purchase patterns with guidance from a senior analyst.\"",
+      "Excel — resume.md: \"Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team.\"",
+      "Tableau — resume.md: \"Built a Tableau dashboard tracking product sell-through, stockouts, and regional performance; presented findings to the merchandising manager.\"",
+      "Documented experience: ~1.7 years (resume.md, \"Total professional experience\")."
+    ],
+    "hardConstraintViolations": [],
+    "redFlags": [
+      "Posting never states whether the role is remote, hybrid or on-site"
+    ],
+    "clarificationQuestion": null,
+    "approvalNote": null,
+    "draft": null,
+    "coverLetter": null,
+    "tailoredResume": null,
+    "gapNotes": [],
+    "judgmentMargin": 0.1,
+    "guidelines": "agent-guidelines.md@215582cc",
+    "missingPreferredSkills": [],
+    "matchStrength": {
+      "SQL": "full",
+      "Excel": "full",
+      "Tableau": "full",
+      "Python basics": "full",
+      "business communication": "full",
+      "retail analytics": "full",
+      "dashboarding": "full"
+    },
+    "lowConfidence": false,
+    "requirementCount": 7,
+    "unassessedRequirements": [],
+    "fitUnscoreable": false,
+    "requirementLedger": [
+      {
+        "requirement": "SQL",
+        "priority": "required"
+      },
+      {
+        "requirement": "Excel",
+        "priority": "required"
+      },
+      {
+        "requirement": "Tableau",
+        "priority": "required"
+      },
+      {
+        "requirement": "Python basics",
+        "priority": "required"
+      },
+      {
+        "requirement": "business communication",
+        "priority": "required"
+      },
+      {
+        "requirement": "retail analytics",
+        "priority": "preferred"
+      },
+      {
+        "requirement": "dashboarding",
+        "priority": "preferred"
+      }
+    ],
+    "memory": {
+      "reusedLedger": false,
+      "reusedVerdicts": false,
+      "ledgerSize": 7,
+      "previousScore": null,
+      "note": "Memory: first time this posting was read. Stored its 7-requirement list so later runs use the same yardstick."
+    },
+    "advice": {
+      "source": "model",
+      "mode": "approval",
+      "headline": "Strong match: 100% fit against a 60% bar, with every listed requirement backed by real résumé lines. Approve and draft.",
+      "recommendation": "approve",
+      "recommendationWhy": "Fit is 100% versus a 60% minimum — at or above the bar — and no requirements are missing. The résumé covers SQL, Excel, Tableau, Python, retail analytics and dashboarding with concrete examples, so there is nothing to fix before drafting.",
+      "strengths": [
+        {
+          "requirement": "SQL",
+          "evidenceQuote": "Used SQL to answer recurring questions on store performance and customer purchase patterns with guidance from a senior analyst."
+        },
+        {
+          "requirement": "Excel",
+          "evidenceQuote": "Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team."
+        },
+        {
+          "requirement": "Tableau / dashboarding",
+          "evidenceQuote": "Built a Tableau dashboard tracking product sell-through, stockouts, and regional performance; presented findings to the merchandising manager."
+        }
+      ],
+      "rankedGaps": [],
+      "draftPresets": [
+        {
+          "label": "Lead with SQL",
+          "instruction": "Open the skills or summary line with SQL, quoting the store-performance and purchase-pattern work as written.",
+          "evidenceQuote": "Used SQL to answer recurring questions on store performance and customer purchase patterns with guidance from a senior analyst."
+        },
+        {
+          "label": "Show retail data scale",
+          "instruction": "Mention the 18 retail locations and the reduction in manual reporting steps exactly as stated.",
+          "evidenceQuote": "Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team."
+        },
+        {
+          "label": "Highlight dashboarding",
+          "instruction": "Describe the Tableau dashboard and the presentation to the merchandising manager, without adding scope beyond that line.",
+          "evidenceQuote": "Built a Tableau dashboard tracking product sell-through, stockouts, and regional performance; presented findings to the merchandising manager."
+        },
+        {
+          "label": "Add the Python project",
+          "instruction": "Include the course project as evidence of Python and SQL on a real dataset, using the stated record count.",
+          "evidenceQuote": "Analyzed approximately 12,000 anonymized transaction records using Python and SQL to identify peak demand periods and product-mix differences."
+        }
+      ]
+    }
+  },
+  "trace": [
+    {
+      "step": 1,
+      "stateBefore": {
+        "jobId": "J001",
+        "stage": "start",
+        "injectionDetected": false,
+        "injectionSnippets": [],
+        "injectionSources": [],
+        "workArrangement": "unknown",
+        "draftVerification": null,
+        "coverLetterVerification": null,
+        "rescore": null,
+        "minFit": 0.6,
+        "fitScore": null,
+        "matchedSkills": [],
+        "missingSkills": [],
+        "matchedEvidence": {},
+        "fitMethod": "deterministic",
+        "fitReasoning": null,
+        "fitRationale": [],
+        "hardConstraintViolations": [],
+        "redFlags": [],
+        "clarificationQuestion": null,
+        "approvalNote": null,
+        "draft": null,
+        "coverLetter": null,
+        "tailoredResume": null,
+        "gapNotes": [],
+        "judgmentMargin": 0.1,
+        "guidelines": "agent-guidelines.md@215582cc"
+      },
+      "observation": "Raw job posting text received (397 chars). Treated as untrusted data only. Read by the AI model and the regex floor.",
+      "availableActions": [
+        "scan_for_injection"
+      ],
+      "selectedAction": "scan_for_injection",
+      "result": "No embedded instructions detected.",
+      "stateAfter": {
+        "jobId": "J001",
+        "stage": "scanned",
+        "injectionDetected": false,
+        "injectionSnippets": [],
+        "injectionSources": [],
+        "workArrangement": "unknown",
+        "draftVerification": null,
+        "coverLetterVerification": null,
+        "rescore": null,
+        "minFit": 0.6,
+        "fitScore": null,
+        "matchedSkills": [],
+        "missingSkills": [],
+        "matchedEvidence": {},
+        "fitMethod": "deterministic",
+        "fitReasoning": null,
+        "fitRationale": [],
+        "hardConstraintViolations": [],
+        "redFlags": [],
+        "clarificationQuestion": null,
+        "approvalNote": null,
+        "draft": null,
+        "coverLetter": null,
+        "tailoredResume": null,
+        "gapNotes": [],
+        "judgmentMargin": 0.1,
+        "guidelines": "agent-guidelines.md@215582cc"
+      },
+      "chosenBy": "harness",
+      "brain": "ai",
+      "thinking": "The AI reader saw: work arrangement \"unknown\"; clearance not required; 0 instruction-like passage(s) aimed at an AI. The keyword barrier then ran independently and found 0.",
+      "classAction": "CONTINUE_INVESTIGATION"
+    },
+    {
+      "step": 2,
+      "stateBefore": {
+        "jobId": "J001",
+        "stage": "scanned",
+        "injectionDetected": false,
+        "injectionSnippets": [],
+        "injectionSources": [],
+        "workArrangement": "unknown",
+        "draftVerification": null,
+        "coverLetterVerification": null,
+        "rescore": null,
+        "minFit": 0.6,
+        "fitScore": null,
+        "matchedSkills": [],
+        "missingSkills": [],
+        "matchedEvidence": {},
+        "fitMethod": "deterministic",
+        "fitReasoning": null,
+        "fitRationale": [],
+        "hardConstraintViolations": [],
+        "redFlags": [],
+        "clarificationQuestion": null,
+        "approvalNote": null,
+        "draft": null,
+        "coverLetter": null,
+        "tailoredResume": null,
+        "gapNotes": [],
+        "judgmentMargin": 0.1,
+        "guidelines": "agent-guidelines.md@215582cc"
+      },
+      "observation": "Candidate years of experience: ~1.7. Preferences hard constraints checked against posting. Work arrangement read as \"unknown\".",
+      "availableActions": [
+        "evaluate_fit",
+        "check_hard_constraints"
+      ],
+      "selectedAction": "check_hard_constraints",
+      "result": "No hard constraint violations.",
+      "stateAfter": {
+        "jobId": "J001",
+        "stage": "constraints_checked",
+        "injectionDetected": false,
+        "injectionSnippets": [],
+        "injectionSources": [],
+        "workArrangement": "unknown",
+        "draftVerification": null,
+        "coverLetterVerification": null,
+        "rescore": null,
+        "minFit": 0.6,
+        "fitScore": null,
+        "matchedSkills": [],
+        "missingSkills": [],
+        "matchedEvidence": {},
+        "fitMethod": "deterministic",
+        "fitReasoning": null,
+        "fitRationale": [],
+        "hardConstraintViolations": [],
+        "redFlags": [],
+        "clarificationQuestion": null,
+        "approvalNote": null,
+        "draft": null,
+        "coverLetter": null,
+        "tailoredResume": null,
+        "gapNotes": [],
+        "judgmentMargin": 0.1,
+        "guidelines": "agent-guidelines.md@215582cc"
+      },
+      "chosenBy": "model",
+      "modelReasoning": "Injection scan is done and clean, but hard constraints have not been checked yet; verifying them first is the cheapest way to reach a final decision, since a violation would make fit evaluation pointless.",
+      "guidelines": "agent-guidelines.md@215582cc",
+      "brain": "ai",
+      "thinking": "Injection scan is done and clean, but hard constraints have not been checked yet; verifying them first is the cheapest way to reach a final decision, since a violation would make fit evaluation pointless.",
+      "classAction": "CONTINUE_INVESTIGATION"
+    },
+    {
+      "step": 3,
+      "stateBefore": {
+        "jobId": "J001",
+        "stage": "constraints_checked",
+        "injectionDetected": false,
+        "injectionSnippets": [],
+        "injectionSources": [],
+        "workArrangement": "unknown",
+        "draftVerification": null,
+        "coverLetterVerification": null,
+        "rescore": null,
+        "minFit": 0.6,
+        "fitScore": null,
+        "matchedSkills": [],
+        "missingSkills": [],
+        "matchedEvidence": {},
+        "fitMethod": "deterministic",
+        "fitReasoning": null,
+        "fitRationale": [],
+        "hardConstraintViolations": [],
+        "redFlags": [],
+        "clarificationQuestion": null,
+        "approvalNote": null,
+        "draft": null,
+        "coverLetter": null,
+        "tailoredResume": null,
+        "gapNotes": [],
+        "judgmentMargin": 0.1,
+        "guidelines": "agent-guidelines.md@215582cc"
+      },
+      "observation": "Memory: first time this posting was read. Stored its 7-requirement list so later runs use the same yardstick. LLM semantic matching. Requirements checked against resume.md. Model's reasoning: \"Jordan Lee is a strong entry-level fit: the resume shows hands-on SQL, Excel, Tableau, Python, and business communication through an analytics internship and course projects, and also covers the preferred retail analytics and dashboarding experience. No required or preferred screening items are missing.\"",
+      "availableActions": [
+        "evaluate_fit"
+      ],
+      "selectedAction": "evaluate_fit",
+      "result": "fit_score=1, matched=[SQL, Excel, Tableau, Python basics, business communication, retail analytics, dashboarding], missing=[]",
+      "stateAfter": {
+        "jobId": "J001",
+        "stage": "evaluated",
+        "injectionDetected": false,
+        "injectionSnippets": [],
+        "injectionSources": [],
+        "workArrangement": "unknown",
+        "draftVerification": null,
+        "coverLetterVerification": null,
+        "rescore": null,
+        "minFit": 0.6,
+        "fitScore": 1,
+        "matchedSkills": [
+          "SQL",
+          "Excel",
+          "Tableau",
+          "Python basics",
+          "business communication",
+          "retail analytics",
+          "dashboarding"
+        ],
+        "missingSkills": [],
+        "matchedEvidence": {
+          "SQL": "Used SQL to answer recurring questions on store performance and customer purchase patterns with guidance from a senior analyst.",
+          "Excel": "Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team.",
+          "Tableau": "Built a Tableau dashboard tracking product sell-through, stockouts, and regional performance; presented findings to the merchandising manager.",
+          "Python basics": "Analyzed approximately 12,000 anonymized transaction records using Python and SQL to identify peak demand periods and product-mix differences.",
+          "business communication": "presented findings to the merchandising manager",
+          "retail analytics": "Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team.",
+          "dashboarding": "Developed a Tableau dashboard and presented three operational recommendations; separated findings supported by data from assumptions requiring further validation."
+        },
+        "fitMethod": "llm",
+        "fitReasoning": "Jordan Lee is a strong entry-level fit: the resume shows hands-on SQL, Excel, Tableau, Python, and business communication through an analytics internship and course projects, and also covers the preferred retail analytics and dashboarding experience. No required or preferred screening items are missing.",
+        "fitRationale": [
+          "SQL — resume.md: \"Used SQL to answer recurring questions on store performance and customer purchase patterns with guidance from a senior analyst.\"",
+          "Excel — resume.md: \"Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team.\"",
+          "Tableau — resume.md: \"Built a Tableau dashboard tracking product sell-through, stockouts, and regional performance; presented findings to the merchandising manager.\"",
+          "Documented experience: ~1.7 years (resume.md, \"Total professional experience\")."
+        ],
+        "hardConstraintViolations": [],
+        "redFlags": [],
+        "clarificationQuestion": null,
+        "approvalNote": null,
+        "draft": null,
+        "coverLetter": null,
+        "tailoredResume": null,
+        "gapNotes": [],
+        "judgmentMargin": 0.1,
+        "guidelines": "agent-guidelines.md@215582cc",
+        "missingPreferredSkills": [],
+        "matchStrength": {
+          "SQL": "full",
+          "Excel": "full",
+          "Tableau": "full",
+          "Python basics": "full",
+          "business communication": "full",
+          "retail analytics": "full",
+          "dashboarding": "full"
+        },
+        "lowConfidence": false,
+        "requirementCount": 7,
+        "unassessedRequirements": [],
+        "fitUnscoreable": false,
+        "requirementLedger": [
+          {
+            "requirement": "SQL",
+            "priority": "required"
+          },
+          {
+            "requirement": "Excel",
+            "priority": "required"
+          },
+          {
+            "requirement": "Tableau",
+            "priority": "required"
+          },
+          {
+            "requirement": "Python basics",
+            "priority": "required"
+          },
+          {
+            "requirement": "business communication",
+            "priority": "required"
+          },
+          {
+            "requirement": "retail analytics",
+            "priority": "preferred"
+          },
+          {
+            "requirement": "dashboarding",
+            "priority": "preferred"
+          }
+        ],
+        "memory": {
+          "reusedLedger": false,
+          "reusedVerdicts": false,
+          "ledgerSize": 7,
+          "previousScore": null,
+          "note": "Memory: first time this posting was read. Stored its 7-requirement list so later runs use the same yardstick."
+        }
+      },
+      "chosenBy": "harness",
+      "brain": "ai",
+      "thinking": "Jordan Lee is a strong entry-level fit: the resume shows hands-on SQL, Excel, Tableau, Python, and business communication through an analytics internship and course projects, and also covers the preferred retail analytics and dashboarding experience. No required or preferred screening items are missing.",
+      "classAction": "CONTINUE_INVESTIGATION"
+    },
+    {
+      "step": 4,
+      "stateBefore": {
+        "jobId": "J001",
+        "stage": "evaluated",
+        "injectionDetected": false,
+        "injectionSnippets": [],
+        "injectionSources": [],
+        "workArrangement": "unknown",
+        "draftVerification": null,
+        "coverLetterVerification": null,
+        "rescore": null,
+        "minFit": 0.6,
+        "fitScore": 1,
+        "matchedSkills": [
+          "SQL",
+          "Excel",
+          "Tableau",
+          "Python basics",
+          "business communication",
+          "retail analytics",
+          "dashboarding"
+        ],
+        "missingSkills": [],
+        "matchedEvidence": {
+          "SQL": "Used SQL to answer recurring questions on store performance and customer purchase patterns with guidance from a senior analyst.",
+          "Excel": "Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team.",
+          "Tableau": "Built a Tableau dashboard tracking product sell-through, stockouts, and regional performance; presented findings to the merchandising manager.",
+          "Python basics": "Analyzed approximately 12,000 anonymized transaction records using Python and SQL to identify peak demand periods and product-mix differences.",
+          "business communication": "presented findings to the merchandising manager",
+          "retail analytics": "Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team.",
+          "dashboarding": "Developed a Tableau dashboard and presented three operational recommendations; separated findings supported by data from assumptions requiring further validation."
+        },
+        "fitMethod": "llm",
+        "fitReasoning": "Jordan Lee is a strong entry-level fit: the resume shows hands-on SQL, Excel, Tableau, Python, and business communication through an analytics internship and course projects, and also covers the preferred retail analytics and dashboarding experience. No required or preferred screening items are missing.",
+        "fitRationale": [
+          "SQL — resume.md: \"Used SQL to answer recurring questions on store performance and customer purchase patterns with guidance from a senior analyst.\"",
+          "Excel — resume.md: \"Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team.\"",
+          "Tableau — resume.md: \"Built a Tableau dashboard tracking product sell-through, stockouts, and regional performance; presented findings to the merchandising manager.\"",
+          "Documented experience: ~1.7 years (resume.md, \"Total professional experience\")."
+        ],
+        "hardConstraintViolations": [],
+        "redFlags": [
+          "Posting never states whether the role is remote, hybrid or on-site"
+        ],
+        "clarificationQuestion": null,
+        "approvalNote": null,
+        "draft": null,
+        "coverLetter": null,
+        "tailoredResume": null,
+        "gapNotes": [],
+        "judgmentMargin": 0.1,
+        "guidelines": "agent-guidelines.md@215582cc",
+        "missingPreferredSkills": [],
+        "matchStrength": {
+          "SQL": "full",
+          "Excel": "full",
+          "Tableau": "full",
+          "Python basics": "full",
+          "business communication": "full",
+          "retail analytics": "full",
+          "dashboarding": "full"
+        },
+        "lowConfidence": false,
+        "requirementCount": 7,
+        "unassessedRequirements": [],
+        "fitUnscoreable": false,
+        "requirementLedger": [
+          {
+            "requirement": "SQL",
+            "priority": "required"
+          },
+          {
+            "requirement": "Excel",
+            "priority": "required"
+          },
+          {
+            "requirement": "Tableau",
+            "priority": "required"
+          },
+          {
+            "requirement": "Python basics",
+            "priority": "required"
+          },
+          {
+            "requirement": "business communication",
+            "priority": "required"
+          },
+          {
+            "requirement": "retail analytics",
+            "priority": "preferred"
+          },
+          {
+            "requirement": "dashboarding",
+            "priority": "preferred"
+          }
+        ],
+        "memory": {
+          "reusedLedger": false,
+          "reusedVerdicts": false,
+          "ledgerSize": 7,
+          "previousScore": null,
+          "note": "Memory: first time this posting was read. Stored its 7-requirement list so later runs use the same yardstick."
+        }
+      },
+      "observation": "Constraints passed. fit_score=1 >= threshold 0.6.",
+      "availableActions": [
+        "request_human_approval"
+      ],
+      "selectedAction": "request_human_approval",
+      "result": "Evaluation surfaced to human for Approve / Edit / Reject. Agent paused — no draft produced yet.",
+      "stateAfter": {
+        "jobId": "J001",
+        "stage": "awaiting_approval",
+        "injectionDetected": false,
+        "injectionSnippets": [],
+        "injectionSources": [],
+        "workArrangement": "unknown",
+        "draftVerification": null,
+        "coverLetterVerification": null,
+        "rescore": null,
+        "minFit": 0.6,
+        "fitScore": 1,
+        "matchedSkills": [
+          "SQL",
+          "Excel",
+          "Tableau",
+          "Python basics",
+          "business communication",
+          "retail analytics",
+          "dashboarding"
+        ],
+        "missingSkills": [],
+        "matchedEvidence": {
+          "SQL": "Used SQL to answer recurring questions on store performance and customer purchase patterns with guidance from a senior analyst.",
+          "Excel": "Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team.",
+          "Tableau": "Built a Tableau dashboard tracking product sell-through, stockouts, and regional performance; presented findings to the merchandising manager.",
+          "Python basics": "Analyzed approximately 12,000 anonymized transaction records using Python and SQL to identify peak demand periods and product-mix differences.",
+          "business communication": "presented findings to the merchandising manager",
+          "retail analytics": "Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team.",
+          "dashboarding": "Developed a Tableau dashboard and presented three operational recommendations; separated findings supported by data from assumptions requiring further validation."
+        },
+        "fitMethod": "llm",
+        "fitReasoning": "Jordan Lee is a strong entry-level fit: the resume shows hands-on SQL, Excel, Tableau, Python, and business communication through an analytics internship and course projects, and also covers the preferred retail analytics and dashboarding experience. No required or preferred screening items are missing.",
+        "fitRationale": [
+          "SQL — resume.md: \"Used SQL to answer recurring questions on store performance and customer purchase patterns with guidance from a senior analyst.\"",
+          "Excel — resume.md: \"Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team.\"",
+          "Tableau — resume.md: \"Built a Tableau dashboard tracking product sell-through, stockouts, and regional performance; presented findings to the merchandising manager.\"",
+          "Documented experience: ~1.7 years (resume.md, \"Total professional experience\")."
+        ],
+        "hardConstraintViolations": [],
+        "redFlags": [
+          "Posting never states whether the role is remote, hybrid or on-site"
+        ],
+        "clarificationQuestion": null,
+        "approvalNote": null,
+        "draft": null,
+        "coverLetter": null,
+        "tailoredResume": null,
+        "gapNotes": [],
+        "judgmentMargin": 0.1,
+        "guidelines": "agent-guidelines.md@215582cc",
+        "missingPreferredSkills": [],
+        "matchStrength": {
+          "SQL": "full",
+          "Excel": "full",
+          "Tableau": "full",
+          "Python basics": "full",
+          "business communication": "full",
+          "retail analytics": "full",
+          "dashboarding": "full"
+        },
+        "lowConfidence": false,
+        "requirementCount": 7,
+        "unassessedRequirements": [],
+        "fitUnscoreable": false,
+        "requirementLedger": [
+          {
+            "requirement": "SQL",
+            "priority": "required"
+          },
+          {
+            "requirement": "Excel",
+            "priority": "required"
+          },
+          {
+            "requirement": "Tableau",
+            "priority": "required"
+          },
+          {
+            "requirement": "Python basics",
+            "priority": "required"
+          },
+          {
+            "requirement": "business communication",
+            "priority": "required"
+          },
+          {
+            "requirement": "retail analytics",
+            "priority": "preferred"
+          },
+          {
+            "requirement": "dashboarding",
+            "priority": "preferred"
+          }
+        ],
+        "memory": {
+          "reusedLedger": false,
+          "reusedVerdicts": false,
+          "ledgerSize": 7,
+          "previousScore": null,
+          "note": "Memory: first time this posting was read. Stored its 7-requirement list so later runs use the same yardstick."
+        }
+      },
+      "chosenBy": "harness",
+      "brain": "code",
+      "classAction": "REQUEST_DRAFT_APPROVAL"
+    },
+    {
+      "step": 5,
+      "stateBefore": {
+        "jobId": "J001",
+        "stage": "awaiting_approval",
+        "injectionDetected": false,
+        "injectionSnippets": [],
+        "injectionSources": [],
+        "workArrangement": "unknown",
+        "draftVerification": null,
+        "coverLetterVerification": null,
+        "rescore": null,
+        "minFit": 0.6,
+        "fitScore": 1,
+        "matchedSkills": [
+          "SQL",
+          "Excel",
+          "Tableau",
+          "Python basics",
+          "business communication",
+          "retail analytics",
+          "dashboarding"
+        ],
+        "missingSkills": [],
+        "matchedEvidence": {
+          "SQL": "Used SQL to answer recurring questions on store performance and customer purchase patterns with guidance from a senior analyst.",
+          "Excel": "Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team.",
+          "Tableau": "Built a Tableau dashboard tracking product sell-through, stockouts, and regional performance; presented findings to the merchandising manager.",
+          "Python basics": "Analyzed approximately 12,000 anonymized transaction records using Python and SQL to identify peak demand periods and product-mix differences.",
+          "business communication": "presented findings to the merchandising manager",
+          "retail analytics": "Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team.",
+          "dashboarding": "Developed a Tableau dashboard and presented three operational recommendations; separated findings supported by data from assumptions requiring further validation."
+        },
+        "fitMethod": "llm",
+        "fitReasoning": "Jordan Lee is a strong entry-level fit: the resume shows hands-on SQL, Excel, Tableau, Python, and business communication through an analytics internship and course projects, and also covers the preferred retail analytics and dashboarding experience. No required or preferred screening items are missing.",
+        "fitRationale": [
+          "SQL — resume.md: \"Used SQL to answer recurring questions on store performance and customer purchase patterns with guidance from a senior analyst.\"",
+          "Excel — resume.md: \"Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team.\"",
+          "Tableau — resume.md: \"Built a Tableau dashboard tracking product sell-through, stockouts, and regional performance; presented findings to the merchandising manager.\"",
+          "Documented experience: ~1.7 years (resume.md, \"Total professional experience\")."
+        ],
+        "hardConstraintViolations": [],
+        "redFlags": [
+          "Posting never states whether the role is remote, hybrid or on-site"
+        ],
+        "clarificationQuestion": null,
+        "approvalNote": null,
+        "draft": null,
+        "coverLetter": null,
+        "tailoredResume": null,
+        "gapNotes": [],
+        "judgmentMargin": 0.1,
+        "guidelines": "agent-guidelines.md@215582cc",
+        "missingPreferredSkills": [],
+        "matchStrength": {
+          "SQL": "full",
+          "Excel": "full",
+          "Tableau": "full",
+          "Python basics": "full",
+          "business communication": "full",
+          "retail analytics": "full",
+          "dashboarding": "full"
+        },
+        "lowConfidence": false,
+        "requirementCount": 7,
+        "unassessedRequirements": [],
+        "fitUnscoreable": false,
+        "requirementLedger": [
+          {
+            "requirement": "SQL",
+            "priority": "required"
+          },
+          {
+            "requirement": "Excel",
+            "priority": "required"
+          },
+          {
+            "requirement": "Tableau",
+            "priority": "required"
+          },
+          {
+            "requirement": "Python basics",
+            "priority": "required"
+          },
+          {
+            "requirement": "business communication",
+            "priority": "required"
+          },
+          {
+            "requirement": "retail analytics",
+            "priority": "preferred"
+          },
+          {
+            "requirement": "dashboarding",
+            "priority": "preferred"
+          }
+        ],
+        "memory": {
+          "reusedLedger": false,
+          "reusedVerdicts": false,
+          "ledgerSize": 7,
+          "previousScore": null,
+          "note": "Memory: first time this posting was read. Stored its 7-requirement list so later runs use the same yardstick."
+        }
+      },
+      "observation": "The agent is stopping for a person (awaiting_approval). The advisor reads the evaluation facts and the résumé (never the posting text) and tells the person what to do next.",
+      "availableActions": [
+        "advise_human"
+      ],
+      "selectedAction": "advise_human",
+      "result": "Strong match: 100% fit against a 60% bar, with every listed requirement backed by real résumé lines. Approve and draft. Recommends: approve. 4 tailored preset(s), 0 gap(s) ranked.",
+      "stateAfter": {
+        "jobId": "J001",
+        "stage": "awaiting_approval",
+        "injectionDetected": false,
+        "injectionSnippets": [],
+        "injectionSources": [],
+        "workArrangement": "unknown",
+        "draftVerification": null,
+        "coverLetterVerification": null,
+        "rescore": null,
+        "minFit": 0.6,
+        "fitScore": 1,
+        "matchedSkills": [
+          "SQL",
+          "Excel",
+          "Tableau",
+          "Python basics",
+          "business communication",
+          "retail analytics",
+          "dashboarding"
+        ],
+        "missingSkills": [],
+        "matchedEvidence": {
+          "SQL": "Used SQL to answer recurring questions on store performance and customer purchase patterns with guidance from a senior analyst.",
+          "Excel": "Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team.",
+          "Tableau": "Built a Tableau dashboard tracking product sell-through, stockouts, and regional performance; presented findings to the merchandising manager.",
+          "Python basics": "Analyzed approximately 12,000 anonymized transaction records using Python and SQL to identify peak demand periods and product-mix differences.",
+          "business communication": "presented findings to the merchandising manager",
+          "retail analytics": "Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team.",
+          "dashboarding": "Developed a Tableau dashboard and presented three operational recommendations; separated findings supported by data from assumptions requiring further validation."
+        },
+        "fitMethod": "llm",
+        "fitReasoning": "Jordan Lee is a strong entry-level fit: the resume shows hands-on SQL, Excel, Tableau, Python, and business communication through an analytics internship and course projects, and also covers the preferred retail analytics and dashboarding experience. No required or preferred screening items are missing.",
+        "fitRationale": [
+          "SQL — resume.md: \"Used SQL to answer recurring questions on store performance and customer purchase patterns with guidance from a senior analyst.\"",
+          "Excel — resume.md: \"Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team.\"",
+          "Tableau — resume.md: \"Built a Tableau dashboard tracking product sell-through, stockouts, and regional performance; presented findings to the merchandising manager.\"",
+          "Documented experience: ~1.7 years (resume.md, \"Total professional experience\")."
+        ],
+        "hardConstraintViolations": [],
+        "redFlags": [
+          "Posting never states whether the role is remote, hybrid or on-site"
+        ],
+        "clarificationQuestion": null,
+        "approvalNote": null,
+        "draft": null,
+        "coverLetter": null,
+        "tailoredResume": null,
+        "gapNotes": [],
+        "judgmentMargin": 0.1,
+        "guidelines": "agent-guidelines.md@215582cc",
+        "missingPreferredSkills": [],
+        "matchStrength": {
+          "SQL": "full",
+          "Excel": "full",
+          "Tableau": "full",
+          "Python basics": "full",
+          "business communication": "full",
+          "retail analytics": "full",
+          "dashboarding": "full"
+        },
+        "lowConfidence": false,
+        "requirementCount": 7,
+        "unassessedRequirements": [],
+        "fitUnscoreable": false,
+        "requirementLedger": [
+          {
+            "requirement": "SQL",
+            "priority": "required"
+          },
+          {
+            "requirement": "Excel",
+            "priority": "required"
+          },
+          {
+            "requirement": "Tableau",
+            "priority": "required"
+          },
+          {
+            "requirement": "Python basics",
+            "priority": "required"
+          },
+          {
+            "requirement": "business communication",
+            "priority": "required"
+          },
+          {
+            "requirement": "retail analytics",
+            "priority": "preferred"
+          },
+          {
+            "requirement": "dashboarding",
+            "priority": "preferred"
+          }
+        ],
+        "memory": {
+          "reusedLedger": false,
+          "reusedVerdicts": false,
+          "ledgerSize": 7,
+          "previousScore": null,
+          "note": "Memory: first time this posting was read. Stored its 7-requirement list so later runs use the same yardstick."
+        },
+        "advice": {
+          "source": "model",
+          "mode": "approval",
+          "headline": "Strong match: 100% fit against a 60% bar, with every listed requirement backed by real résumé lines. Approve and draft.",
+          "recommendation": "approve",
+          "recommendationWhy": "Fit is 100% versus a 60% minimum — at or above the bar — and no requirements are missing. The résumé covers SQL, Excel, Tableau, Python, retail analytics and dashboarding with concrete examples, so there is nothing to fix before drafting.",
+          "strengths": [
+            {
+              "requirement": "SQL",
+              "evidenceQuote": "Used SQL to answer recurring questions on store performance and customer purchase patterns with guidance from a senior analyst."
+            },
+            {
+              "requirement": "Excel",
+              "evidenceQuote": "Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team."
+            },
+            {
+              "requirement": "Tableau / dashboarding",
+              "evidenceQuote": "Built a Tableau dashboard tracking product sell-through, stockouts, and regional performance; presented findings to the merchandising manager."
+            }
+          ],
+          "rankedGaps": [],
+          "draftPresets": [
+            {
+              "label": "Lead with SQL",
+              "instruction": "Open the skills or summary line with SQL, quoting the store-performance and purchase-pattern work as written.",
+              "evidenceQuote": "Used SQL to answer recurring questions on store performance and customer purchase patterns with guidance from a senior analyst."
+            },
+            {
+              "label": "Show retail data scale",
+              "instruction": "Mention the 18 retail locations and the reduction in manual reporting steps exactly as stated.",
+              "evidenceQuote": "Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team."
+            },
+            {
+              "label": "Highlight dashboarding",
+              "instruction": "Describe the Tableau dashboard and the presentation to the merchandising manager, without adding scope beyond that line.",
+              "evidenceQuote": "Built a Tableau dashboard tracking product sell-through, stockouts, and regional performance; presented findings to the merchandising manager."
+            },
+            {
+              "label": "Add the Python project",
+              "instruction": "Include the course project as evidence of Python and SQL on a real dataset, using the stated record count.",
+              "evidenceQuote": "Analyzed approximately 12,000 anonymized transaction records using Python and SQL to identify peak demand periods and product-mix differences."
+            }
+          ]
+        }
+      },
+      "chosenBy": "model",
+      "brain": "ai",
+      "thinking": "Strong match: 100% fit against a 60% bar, with every listed requirement backed by real résumé lines. Approve and draft.\nFit is 100% versus a 60% minimum — at or above the bar — and no requirements are missing. The résumé covers SQL, Excel, Tableau, Python, retail analytics and dashboarding with concrete examples, so there is nothing to fix before drafting.",
+      "guidelines": "agent-guidelines.md@215582cc",
+      "classAction": "RECOMMEND"
+    }
+  ],
+  "fit": {
+    "score": 1,
+    "matched": [
+      "SQL",
+      "Excel",
+      "Tableau",
+      "Python basics",
+      "business communication",
+      "retail analytics",
+      "dashboarding"
+    ],
+    "missing": [],
+    "missingPreferred": [],
+    "matchedEvidence": {
+      "SQL": "Used SQL to answer recurring questions on store performance and customer purchase patterns with guidance from a senior analyst.",
+      "Excel": "Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team.",
+      "Tableau": "Built a Tableau dashboard tracking product sell-through, stockouts, and regional performance; presented findings to the merchandising manager.",
+      "Python basics": "Analyzed approximately 12,000 anonymized transaction records using Python and SQL to identify peak demand periods and product-mix differences.",
+      "business communication": "presented findings to the merchandising manager",
+      "retail analytics": "Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team.",
+      "dashboarding": "Developed a Tableau dashboard and presented three operational recommendations; separated findings supported by data from assumptions requiring further validation."
+    },
+    "matchStrength": {
+      "SQL": "full",
+      "Excel": "full",
+      "Tableau": "full",
+      "Python basics": "full",
+      "business communication": "full",
+      "retail analytics": "full",
+      "dashboarding": "full"
+    },
+    "lowConfidence": false,
+    "requirementCount": 7,
+    "unassessedRequirements": [],
+    "ledger": [
+      {
+        "requirement": "SQL",
+        "priority": "required"
+      },
+      {
+        "requirement": "Excel",
+        "priority": "required"
+      },
+      {
+        "requirement": "Tableau",
+        "priority": "required"
+      },
+      {
+        "requirement": "Python basics",
+        "priority": "required"
+      },
+      {
+        "requirement": "business communication",
+        "priority": "required"
+      },
+      {
+        "requirement": "retail analytics",
+        "priority": "preferred"
+      },
+      {
+        "requirement": "dashboarding",
+        "priority": "preferred"
+      }
+    ],
+    "fromLedger": false,
+    "method": "llm",
+    "reasoning": "Jordan Lee is a strong entry-level fit: the resume shows hands-on SQL, Excel, Tableau, Python, and business communication through an analytics internship and course projects, and also covers the preferred retail analytics and dashboarding experience. No required or preferred screening items are missing.",
+    "note": "LLM semantic matching."
+  }
+}

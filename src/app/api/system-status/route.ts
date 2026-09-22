@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { ensureSchema, isTursoConfigured, testDbConnection } from "@/lib/db";
+import { ensureSchema, isDegraded, isTursoConfigured, testDbConnection } from "@/lib/db";
 import { isLlmConfigured, getModelName } from "@/lib/llmEvaluator";
 
 // Auto-run checks only — the database check is a free SELECT 1, cheap enough
@@ -13,7 +13,10 @@ export async function GET() {
   return NextResponse.json({
     database: {
       ok: db.ok,
-      mode: isTursoConfigured() ? "turso" : "local-file",
+      // "temporary" means the configured database refused us and the app fell back to
+      // in-memory storage: fully working, nothing saved (see src/lib/db.ts).
+      mode: isDegraded() ? "temporary" : isTursoConfigured() ? "turso" : "local-file",
+      degraded: isDegraded(),
       message: db.message,
     },
     llm: {

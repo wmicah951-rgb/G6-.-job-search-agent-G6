@@ -157,6 +157,20 @@ function scopeClaims(text: string): [string, string][] {
   return out;
 }
 
+/** "AWS Certified Cloud Practitioner" -> [claim text, lower-cased qualifier words]. */
+function certificationClaims(text: string): [string, string[]][] {
+  const out: [string, string[]][] = [];
+  const re = /((?:[A-Z][\w+&./-]*\s+){0,4})(certified|certification|certificate|licen[cs]ed|licen[cs]e)((?:\s+[A-Z][\w+&./-]*){0,3})/gi;
+  for (const m of text.matchAll(re)) {
+    const qualifiers = `${m[1]} ${m[3]}`
+      .split(/\s+/)
+      .filter((w) => /^[A-Z]/.test(w) && w.length > 1 && !/^(I|The|A|An|My|Active|Current|Valid|Holds?|Earned)$/.test(w))
+      .map((w) => w.toLowerCase().replace(/[.,;:]+$/, ""));
+    out.push([m[0].trim(), qualifiers]);
+  }
+  return out;
+}
+
 function isApplicationFraming(text: string): boolean {
   return /\b(writing to apply|apply(ing)? for|application for|interest(ed)? in|regarding|in response to|excited to apply|submit(ting)? my|seeking a|seeking the|targeting a|pursuing a)\b/i.test(
     text
@@ -600,6 +614,19 @@ export function verifyDraft(
           resumeCorpus.includes(stemPrefix) ||
           (noteCorpus && noteCorpus.includes(stemPrefix));
         if (!present) unsupportedFacts.push(`claims "${word}" (not in your resume or note)`);
+      }
+      // --- certifications and licences: a hard constraint in the class kit ---
+      // "Do not claim certifications the candidate does not hold." A credential is only
+      // supported when the resume (or note) itself names a certification/licence AND every
+      // qualifier in front of it ("AWS", "Cloud Practitioner") also appears there.
+      for (const [claim, qualifiers] of certificationClaims(unit.text)) {
+        hardFactCount += 1;
+        const corpus = `${resumeCorpus} ${noteCorpus ?? ""}`;
+        const hasCredential = /certif|licen[cs]/.test(corpus);
+        const qualifiersPresent = qualifiers.every((q) => corpus.includes(q));
+        if (!hasCredential || !qualifiersPresent) {
+          unsupportedFacts.push(`claims the credential "${claim}" (not in your resume or note)`);
+        }
       }
     }
 

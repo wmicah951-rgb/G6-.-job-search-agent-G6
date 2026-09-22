@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, use as usePromise } from "react";
-import { renderMarkdownPdf, type PdfKind } from "@/lib/pdfRender";
+import { renderMarkdownPdf, DOC_STYLE_LABELS, type DocStyle, type PdfKind } from "@/lib/pdfRender";
 import VerificationPanel from "@/components/VerificationPanel";
 
 type TraceStep = {
@@ -18,6 +18,8 @@ type TraceStep = {
   brain?: "ai" | "code";
   thinking?: string;
   guidelines?: string;
+  /** The same step in the class starter kit's vocabulary (ASK_USER, RECOMMEND, REJECT, ...). */
+  classAction?: string;
 };
 
 type Advice = {
@@ -57,8 +59,22 @@ type Evaluation = {
   coverLetterVerification: DraftVerification | null;
   minFit: number | null;
   lowConfidence: boolean;
+  /** True when the score carries no information at all: no AI model, and this posting's field
+   *  is outside the built-in keyword dictionary. */
+  fitUnscoreable?: boolean;
   requirementCount: number | null;
   unassessedRequirements: string[];
+  /** What the agent remembered about this posting when it scored it (src/lib/memory.ts). */
+  memory: {
+    reusedLedger: boolean;
+    reusedVerdicts: boolean;
+    ledgerSize: number;
+    previousScore: number | null;
+    note: string;
+  } | null;
+  requirementLedger: { requirement: string; priority: "required" | "preferred" }[];
+  /** Every score this posting has been given, newest first. */
+  scoreHistory: { score: number | null; profile: string | null; at: string; stage: string | null }[];
   rescore: {
     before: number;
     after: number;
@@ -182,6 +198,25 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
   const [collapsedEvidence, setCollapsedEvidence] = useState(false);
   const [collapsedCoverLetter, setCollapsedCoverLetter] = useState(false);
   const [collapsedResume, setCollapsedResume] = useState(false);
+  // How downloaded documents look. All three styles keep the same sections, order and single
+  // ATS-safe column; only the typeface and density differ. Remembered per browser.
+  const [docStyle, setDocStyle] = useState<DocStyle>("modern");
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("g6_doc_style");
+      if (saved === "modern" || saved === "classic" || saved === "compact") setDocStyle(saved);
+    } catch {
+      /* private window or blocked storage: the default style is fine */
+    }
+  }, []);
+  function chooseDocStyle(next: DocStyle) {
+    setDocStyle(next);
+    try {
+      localStorage.setItem("g6_doc_style", next);
+    } catch {
+      /* nothing to do: the choice just will not be remembered */
+    }
+  }
   const [collapsedReasoning, setCollapsedReasoning] = useState(false);
   const [collapsedRationale, setCollapsedRationale] = useState(false);
   const [collapsedTrace, setCollapsedTrace] = useState(true);
@@ -365,7 +400,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
   }
 
   function downloadAsPdf(text: string, filename: string, kind: PdfKind = "plain") {
-    renderMarkdownPdf(text, filename, kind);
+    renderMarkdownPdf(text, filename, kind, docStyle);
   }
 
   function safeFilename(base: string): string {
@@ -612,7 +647,99 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
         </div>
       </div>
 
-      {ev.lowConfidence && (
+      {/* MEMORY. The score used to move between runs because each run re-read the posting's
+          requirements. Now the first read is kept and reused, and this panel is the receipt:
+          the requirement count, whether the verdicts were recalled, and every score this
+          posting has ever been given. */}
+      {ev.memory && (
+        <div className="border border-neutral-200 bg-white rounded-2xl p-4 mb-5 shadow-xs">
+          <div className="flex flex-wrap items-center gap-2 mb-1">
+            <h2 className="font-bold text-sm text-neutral-900">What the agent remembers about this posting</h2>
+            <span
+              className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                ev.memory.reusedVerdicts
+                  ? "bg-emerald-100 text-emerald-900"
+                  : ev.memory.reusedLedger
+                    ? "bg-sky-100 text-sky-900"
+                    : "bg-neutral-200 text-neutral-800"
+              }`}
+            >
+              {ev.memory.reusedVerdicts
+                ? "recalled saved verdicts"
+                : ev.memory.reusedLedger
+                  ? "same requirement list as before"
+                  : "first reading of this posting"}
+            </span>
+          </div>
+          <p className="text-xs text-neutral-600 leading-relaxed">{ev.memory.note}</p>
+          {ev.memory.previousScore !== null && (
+            <p className="text-xs text-neutral-600 mt-1">
+              Previous score for this posting:{" "}
+              <strong>{Math.round(ev.memory.previousScore * 100)}%</strong>
+              {ev.fitScore !== null && (
+                <>
+                  {" "}
+                  → now <strong>{Math.round(ev.fitScore * 100)}%</strong>
+                  {Math.abs((ev.memory.previousScore ?? 0) - ev.fitScore) < 0.005
+                    ? " (unchanged, as it should be for the same résumé)"
+                    : " (the résumé or the prompt changed)"}
+                </>
+              )}
+            </p>
+          )}
+          {ev.scoreHistory && ev.scoreHistory.length > 1 && (
+            <details className="mt-2">
+              <summary className="text-xs font-medium text-neutral-700 cursor-pointer">
+                Evaluation history ({ev.scoreHistory.length} runs)
+              </summary>
+              <ul className="mt-1 text-xs text-neutral-600 space-y-0.5">
+                {ev.scoreHistory.map((h, i) => (
+                  <li key={i} className="break-words">
+                    {h.at} — {h.score === null ? "no score (decided before scoring)" : `${Math.round(h.score * 100)}%`}
+                    {h.profile ? ` · ${h.profile}` : ""}
+                    {h.stage ? ` · ${h.stage}` : ""}
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
+          {ev.requirementLedger && ev.requirementLedger.length > 0 && (
+            <details className="mt-2">
+              <summary className="text-xs font-medium text-neutral-700 cursor-pointer">
+                The frozen requirement list ({ev.requirementLedger.length})
+              </summary>
+              <ul className="mt-1 text-xs text-neutral-600 space-y-0.5">
+                {ev.requirementLedger.map((r) => (
+                  <li key={r.requirement} className="break-words">
+                    {r.requirement}
+                    <span className="text-neutral-400"> · {r.priority}</span>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
+        </div>
+      )}
+
+      {/* No model configured AND a posting from a field the keyword dictionary does not know.
+          The percentage is not a verdict on this job, so the agent says so plainly and hands
+          the job to the person rather than rejecting it on a number that means nothing. */}
+      {ev.fitUnscoreable && (
+        <div className="border-2 border-orange-300 bg-orange-50 rounded-2xl p-4 mb-5 shadow-xs">
+          <p className="font-bold text-sm text-orange-900">The skills match could not be assessed</p>
+          <p className="text-xs text-orange-900 mt-1 leading-relaxed">
+            No AI model is configured, so the agent fell back to its built-in keyword list — and
+            that list was written for analytics roles. None of its terms appear in this posting,
+            which is what happens for nursing, teaching, trades, retail and most other fields. So
+            the percentage below is <strong>not</strong> a judgement about this job, and the agent
+            deliberately did <strong>not</strong> reject it: hard constraints were still checked,
+            and the decision was handed to you. Configure a model (Harness &rarr; AI brain) for a
+            real skills assessment, or read the requirements yourself below.
+          </p>
+        </div>
+      )}
+
+      {ev.lowConfidence && !ev.fitUnscoreable && (
         <div className="border-2 border-orange-300 bg-orange-50 rounded-2xl p-4 mb-5 shadow-xs">
           <p className="font-bold text-sm text-orange-900">
             Treat this percentage as unreliable
@@ -1191,6 +1318,30 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
             </div>
           </div>
 
+          {/* Document style. Same sections and same single ATS-safe column in every style —
+              only the typeface and the spacing change — so everyone's documents stay uniform
+              in structure while still looking the way they want. */}
+          <div className="flex flex-wrap items-center gap-2 mb-4 text-xs">
+            <span className="text-neutral-500">Download style:</span>
+            {DOC_STYLE_LABELS.map((o) => (
+              <button
+                key={o.value}
+                onClick={() => chooseDocStyle(o.value)}
+                title={o.hint}
+                className={`px-2.5 py-1 rounded-lg border font-medium transition-colors cursor-pointer ${
+                  docStyle === o.value
+                    ? "bg-neutral-900 text-white border-neutral-900"
+                    : "bg-white text-neutral-700 border-neutral-300 hover:bg-neutral-100"
+                }`}
+              >
+                {o.label}
+              </button>
+            ))}
+            <span className="text-neutral-400 min-w-0 break-words">
+              {DOC_STYLE_LABELS.find((o) => o.value === docStyle)?.hint}
+            </span>
+          </div>
+
           {/* 1. Grounded Evidence Bullets Card */}
           {ev.draft && (
             <div className="border border-green-200 bg-green-50/70 rounded-2xl p-4 sm:p-5 mb-5 shadow-xs transition-all">
@@ -1632,8 +1783,18 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
           <div className="space-y-3 mt-4 max-h-[460px] overflow-y-auto pr-1">
             {ev.trace.map((t) => (
               <div key={t.step} className="border border-neutral-200 bg-neutral-50/70 rounded-xl p-3.5 text-xs">
-                <div className="font-mono font-bold text-neutral-900 mb-1 flex items-center justify-between">
-                  <span>Step {t.step}: {t.selectedAction}</span>
+                <div className="font-mono font-bold text-neutral-900 mb-1 flex flex-wrap items-center justify-between gap-y-1">
+                  <span className="min-w-0 break-words">
+                    Step {t.step}: {t.selectedAction}
+                    {t.classAction && (
+                      <span
+                        className="ml-2 text-[10px] font-sans font-semibold px-2 py-0.5 rounded-full bg-sky-100 text-sky-900 align-middle"
+                        title="The same action named in the class starter kit's action vocabulary"
+                      >
+                        {t.classAction}
+                      </span>
+                    )}
+                  </span>
                   {t.brain && (
                     <span
                       className={`text-[10px] font-sans font-semibold px-2 py-0.5 rounded-full mr-1 ${

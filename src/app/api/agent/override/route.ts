@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { currentWorkspace } from "@/lib/workspace";
 import { db, ensureSchema, getActiveProfile, loadHarnessOverrides } from "@/lib/db";
 import { resolveSettings } from "@/lib/harnessSettings";
 import { applyLowFitOverride, type EvaluationResult } from "@/lib/agent";
@@ -13,12 +14,17 @@ import { applyLowFitOverride, type EvaluationResult } from "@/lib/agent";
 // Guarded to stage "rejected_low_fit" only — a hard-constraint rejection (years,
 // clearance, on-site) is NOT overridable here, because those are the candidate's own
 // stated non-negotiables rather than a heuristic score.
+// Human-in-the-loop steps re-enter the agent (drafting, verifying, re-scoring): several model
+// calls, so allow more than the platform default.
+export const maxDuration = 60;
+
 export async function POST(req: NextRequest) {
   await ensureSchema();
   const body = await req.json();
   const jobId = (body.jobId ?? "").toString();
   const reason = body.reason ? body.reason.toString() : null;
 
+  const workspaceId = await currentWorkspace();
   const c = db();
   const evalRes = await c.execute({
     sql: "SELECT trace_json, state_json, resume_snapshot FROM evaluations WHERE job_id = ?",
@@ -48,7 +54,7 @@ export async function POST(req: NextRequest) {
   }
 
   const jobRes = await c.execute({ sql: "SELECT raw_text FROM jobs WHERE id = ?", args: [jobId] });
-  const activeProfile = await getActiveProfile();
+  const activeProfile = await getActiveProfile(workspaceId);
   const settings = resolveSettings(await loadHarnessOverrides(activeProfile.id));
   const result = await applyLowFitOverride(prior, reason, {
     resumeText: (evalRes.rows[0].resume_snapshot as string) || null,

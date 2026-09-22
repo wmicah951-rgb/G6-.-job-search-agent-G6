@@ -23,6 +23,35 @@ export default function UploadPage() {
   const [newName, setNewName] = useState("");
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Résumé file import (PDF / .docx / .md / .txt). The extracted text is shown in the
+  // textarea for the person to check and fix BEFORE it is saved, because the agent will only
+  // ever quote this text — so it has to be the text they actually wrote.
+  const [importing, setImporting] = useState(false);
+  const [importInfo, setImportInfo] = useState<{ filename: string; chars: number; warnings: string[] } | null>(null);
+
+  async function handleFile(file: File | null) {
+    if (!file) return;
+    setImporting(true);
+    setError(null);
+    setImportInfo(null);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch("/api/resume/extract", { method: "POST", body: form });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? "That file could not be read.");
+        return;
+      }
+      setResumeText(data.text);
+      setImportInfo({ filename: data.filename, chars: data.chars, warnings: data.warnings ?? [] });
+      setSaved(false);
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setImporting(false);
+    }
+  }
 
   async function loadProfiles(selectAfter?: string) {
     const res = await fetch("/api/profiles");
@@ -234,6 +263,43 @@ export default function UploadPage() {
       {error && <p className="text-sm text-red-600 mb-3">{error}</p>}
 
       <QuickKnobs preferencesText={preferencesText} onChange={setPreferencesText} />
+
+      <div className="border border-neutral-200 bg-white rounded-lg p-3 mb-4">
+        <label className="block text-xs font-medium text-neutral-500 mb-1">
+          Import a résumé file (PDF, Word .docx, .md, .txt)
+        </label>
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            type="file"
+            accept=".pdf,.docx,.md,.markdown,.txt,.text,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown"
+            disabled={importing || busy}
+            onChange={(e) => handleFile(e.target.files?.[0] ?? null)}
+            className="text-sm min-w-0 flex-1"
+          />
+          {importing && <span className="text-xs text-neutral-500">Reading the file…</span>}
+        </div>
+        <p className="text-xs text-neutral-500 mt-2">
+          The text is read out of the file and put in the box below for you to check. Nothing is
+          saved until you press Save, and nothing is rewritten — the agent may only quote what
+          is actually in your résumé.
+        </p>
+        {importInfo && (
+          <div className="mt-2 text-xs">
+            <p className="text-green-700">
+              Read {importInfo.chars.toLocaleString()} characters from{" "}
+              <span className="font-medium break-all">{importInfo.filename}</span>. Check it below,
+              then Save.
+            </p>
+            {importInfo.warnings.length > 0 && (
+              <ul className="mt-1 list-disc pl-5 text-amber-800">
+                {importInfo.warnings.map((w) => (
+                  <li key={w}>{w}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+      </div>
 
       <div className="mb-4">
         <label className="block text-sm font-medium mb-1">resume.md</label>

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db, ensureSchema } from "@/lib/db";
+import { currentWorkspace } from "@/lib/workspace";
+import { scoreHistory } from "@/lib/memory";
 
 export async function GET(
   _req: NextRequest,
@@ -8,9 +10,11 @@ export async function GET(
   await ensureSchema();
   const { id } = await params;
   const c = db();
+  const workspaceId = await currentWorkspace();
+  // Rows written before workspaces existed have no workspace_id; they stay readable.
   const jobRes = await c.execute({
-    sql: "SELECT id, title, raw_text, source_url, created_at FROM jobs WHERE id = ?",
-    args: [id],
+    sql: "SELECT id, title, raw_text, source_url, created_at FROM jobs WHERE id = ? AND (workspace_id = ? OR workspace_id IS NULL)",
+    args: [id, workspaceId],
   });
   if (jobRes.rows.length === 0) {
     return NextResponse.json({ error: "Job not found." }, { status: 404 });
@@ -26,6 +30,9 @@ export async function GET(
   // full state_json blob (part of AgentState), read out here for a flattened
   // field the frontend can use directly, same pattern as the other fields.
   const state = evaluation ? JSON.parse(evaluation.state_json as string) : null;
+  // Every score this posting has ever been given, so a person can see for themselves that
+  // re-running does not move the number (src/lib/memory.ts).
+  const history = await scoreHistory(job.raw_text as string);
 
   return NextResponse.json({
     job: {
@@ -67,8 +74,13 @@ export async function GET(
           minFit: state?.minFit ?? null,
           rescore: state?.rescore ?? null,
           lowConfidence: state?.lowConfidence ?? false,
+          fitUnscoreable: state?.fitUnscoreable ?? false,
           unassessedRequirements: state?.unassessedRequirements ?? [],
           requirementCount: state?.requirementCount ?? null,
+          // What the agent remembered on the run that produced this evaluation.
+          memory: state?.memory ?? null,
+          requirementLedger: state?.requirementLedger ?? [],
+          scoreHistory: history,
           profileName: evaluation.profile_name,
           trace: JSON.parse(evaluation.trace_json as string),
           state,

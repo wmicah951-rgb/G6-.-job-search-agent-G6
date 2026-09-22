@@ -67,5 +67,27 @@ the code while still claiming to be complete.
 | `assessPosting(jobText)` -> `assessPostingWithLlm` | One structured model call returning injection passages, work arrangement (+ quote) and clearance. Every quote is verified against the posting before use |
 | `regexArrangement(jobText)` / `parseLocationRule(prefs)` | Deterministic fallbacks for the work-arrangement gate and tolerant parsing of the candidate's remote/hybrid rule |
 | `makeOpenAiCompatProvider(cfg)` (`llm/openaiCompatProvider.ts`) | One implementation for every OpenAI-compatible model (DeepSeek preset, `custom` via env). Forced tool-calling with a JSON-mode fallback so any brain behaves the same |
-| `renderMarkdownPdf(text, name, kind)` (`lib/pdfRender.ts`) | Typesets the drafted résumé / cover letter into a formatted PDF |
+| `renderMarkdownPdf(text, name, kind, style)` (`lib/pdfRender.ts`) | Typesets the drafted résumé / cover letter into a formatted PDF. Three styles (Modern, Classic, Compact) share one section order and one ATS-safe column; only typeface and density differ |
+| `loadMemory` / `saveMemory` (`lib/memory.ts`) | The frozen requirement list and saved verdicts for a posting, so the same posting + résumé always scores the same (Layer 17 in `G6-AGENT.md`) |
+| `extractResumeText(bytes, name)` (`lib/resumeIngest.ts`) | Reads a PDF / .docx / .md / .txt résumé into text. Extracts and tidies only — never rewrites — and the person checks the result before it is saved |
+| `classKitPosting(id)` (`lib/classKit.ts`) | Renders one record of the official class `jobs.json` into posting text, every field verbatim (including J004's injection, which stays untrusted data) |
+| `currentWorkspace()` (`lib/workspace.ts`) | The calling browser's workspace id, so profiles, postings and evaluations never cross between visitors |
+
+## The class starter kit's action vocabulary
+
+The kit names the agent's moves `ASK_USER`, `CONTINUE_INVESTIGATION`, `RECOMMEND`, `DOWN_RANK`,
+`REJECT`, `REQUEST_DRAFT_APPROVAL`, `DRAFT`, `FINISH`. Ours are finer-grained on purpose — the
+*reason* for a rejection should be traceable — so every trace step carries the kit's name too,
+in `classAction` (`classActionFor()` in `agent.ts`), and both are shown in the UI.
+
+| Kit action | Our action(s) |
+|---|---|
+| `CONTINUE_INVESTIGATION` | `scan_for_injection`, `flag_injection_and_continue`, `evaluate_fit`, `check_hard_constraints`, `verify_draft` |
+| `ASK_USER` | `ask_user_clarification` |
+| `RECOMMEND` | `advise_human` |
+| `DOWN_RANK` | `reject_low_fit`, `keep_rejected` |
+| `REJECT` | `reject_hard_constraint` |
+| `REQUEST_DRAFT_APPROVAL` | `request_human_approval`, `human_override_low_fit` |
+| `DRAFT` | `human_approve`, `human_edit`, `draft_application` |
+| `FINISH` | `rescore_tailored_resume`, `discard` |
 

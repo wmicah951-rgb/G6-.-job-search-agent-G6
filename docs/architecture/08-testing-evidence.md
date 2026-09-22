@@ -15,7 +15,7 @@
 > The four required tests execute four distinct sequences. The order of the first checks is the
 > controller's choice, so tests assert invariants (`sequenceProblem()` in `src/lib/testCases.ts`):
 > right outcome, injection scan first, hard constraints always checked, injection refusal logged
-> iff injected, no draft without a human. The **Test Lab** runs all 19 tests (including the class-page
+> iff injected, no draft without a human. The **Test Lab** runs all 21 tests (including the official class-kit
 > scenarios K001-K004) and shows each agent's brain step by step: who chose it (AI / guardrail /
 > default policy), AI thinking versus code rule, and the Advisor's recommendation. Also passing:
 > conformance 13/13 (11/11 with no AI), stress suite 64/64, end-to-end over HTTP, hostile-model
@@ -219,3 +219,34 @@ scan_for_injection → evaluate_fit → check_hard_constraints → request_human
 
 `scripts/stress-suite.ts` now fails if any action is ever logged twice in a row, and the
 authoritative, regenerated traces are in `required-test-traces.txt`.
+
+## The official class kit (added after reading the Week 2 bundle)
+
+Everything above uses our own fixtures. `src/data/classkit/` now holds the instructor's files
+unchanged — Jordan Lee's résumé, the kit's preferences, and `jobs.json` J001–J006 — and
+`npx tsx scripts/classkit-run.ts` runs all six through the real agent, writing the deliverables
+into `outputs/`. 6/6 behave as the assignment requires, with DeepSeek and with no AI at all.
+
+Running it the first time found two real defects, both in code we thought was finished:
+
+1. The kit writes its experience rule as "No jobs requiring 5 or more years"; our parser only
+   understood "Will NOT apply to roles requiring 5+ years", so J003 was not rejected.
+2. The kit's location rule is "No relocation outside the preferred region" with a list of
+   preferred locations; we had no notion of a region at all, so J006 (New York) was not rejected.
+
+Both parsers are now written for how people actually write, including spelled-out numbers
+("at least five years") and regions that expand to the places they cover.
+
+## Score stability
+
+| Command | Result |
+|---|---|
+| `npx tsx scripts/stability.ts` | spread **0 points** across 3 runs of every posting |
+| `NO_MEMORY=1 npx tsx scripts/stability.ts` | spread **12–15 points** — the drift memory removes |
+
+## Six fields, not one
+
+`npx tsx scripts/category-matrix.ts` — nursing, teaching, software, skilled trades, retail
+management and finance, each against a posting they fit, one needing qualifications they lack,
+and one breaking a hard constraint. **16/16** with a model; **16/16** without one, where the
+out-of-dictionary postings are reported as "could not be assessed" and handed to the person.

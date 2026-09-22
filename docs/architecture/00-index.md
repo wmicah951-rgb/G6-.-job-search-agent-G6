@@ -21,6 +21,12 @@ generated output you have to re-derive from a tool; it's the primary source.
 9. [09-reflection.md](09-reflection.md) — draft reflection (½ page) — **edit this to make it your own analysis**
 10. [10-setup-and-deployment.md](10-setup-and-deployment.md) — running locally, deploying to Vercel + Turso, and why no AI API key is needed
 
+Submission-facing pages live one folder up in [`docs/submission/`](../submission/):
+
+- [DELIVERABLES.md](../submission/DELIVERABLES.md) — the ten required deliverables, each with the file or screen that holds it
+- [REFLECTION.md](../submission/REFLECTION.md) — agent vs workflow, with the runtime evidence
+- [TEACHER-QA.md](../submission/TEACHER-QA.md) — 25 likely questions, each answered with a file or a command
+
 ## One-sentence summary of the system
 
 An agent reads a job posting and a candidate's resume in a select → act → observe loop: the

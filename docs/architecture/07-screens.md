@@ -74,7 +74,7 @@ Backed by `GET /api/jobs/[id]`, `POST /api/agent/clarify`,
 
 ## `/testlab` — Test Lab (`src/app/testlab/page.tsx`)
 
-19 built-in test cases (the four the assignment requires, four rebuilt from
+21 built-in test cases (the four the assignment requires, the official class kit's six (KIT-J001..KIT-J006) rebuilt from
 the class Week 2 "Evaluate" page descriptions — K001-K004 — plus branching,
 injection-escalation and false-positive-control cases), grouped and run
 against the **real agent** via `POST /api/testlab`. Each result shows expected

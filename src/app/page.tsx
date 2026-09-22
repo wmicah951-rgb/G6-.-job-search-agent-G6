@@ -47,7 +47,7 @@ function fitScoreColor(score: number): string {
 }
 
 type SystemStatus = {
-  database: { ok: boolean; mode: "turso" | "local-file"; message: string };
+  database: { ok: boolean; mode: "turso" | "local-file" | "temporary"; degraded?: boolean; message: string };
   llm: { configured: boolean; model: string };
   scraper: { available: boolean };
 };
@@ -91,12 +91,34 @@ function SystemStatusPanel() {
   }
 
   return (
+    <>
+      {/* The configured database refused us and the app fell back to in-memory storage. The
+          agent still works end to end — but anyone using it has to know their work will not
+          still be there later, so this says it in plain words rather than hiding in a status
+          dot. */}
+      {status.database.degraded && (
+        <div className="border-2 border-amber-300 bg-amber-50 rounded-lg p-3 mb-4">
+          <p className="text-sm font-bold text-amber-900">Temporary storage — nothing is being saved</p>
+          <p className="text-xs text-amber-900 mt-1 leading-relaxed">
+            The configured database refused the request (most often a hosted plan that has hit its
+            limit), so the app is running on in-memory storage. Everything works — evaluating a
+            posting, the Test Lab, approving and drafting — but profiles, postings and evaluations
+            will disappear when the server restarts. Fix the database connection to keep work.
+          </p>
+          <p className="text-[11px] text-amber-800 mt-1 break-words">{status.database.message}</p>
+        </div>
+      )}
     <div className="border border-neutral-200 bg-white rounded-lg p-3 mb-4">
       <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
         <div className="flex items-center gap-2">
           <StatusDot color={status.database.ok ? "green" : "red"} />
           <span className="text-neutral-900">
-            Database: {status.database.mode === "turso" ? "Turso" : "Local file"}
+            Database:{" "}
+            {status.database.mode === "turso"
+              ? "Turso"
+              : status.database.mode === "temporary"
+                ? "temporary (nothing is being saved)"
+                : "Local file"}
           </span>
           <span className="text-xs text-neutral-500">({status.database.message})</span>
         </div>
@@ -128,6 +150,7 @@ function SystemStatusPanel() {
         </div>
       </div>
     </div>
+    </>
   );
 }
 

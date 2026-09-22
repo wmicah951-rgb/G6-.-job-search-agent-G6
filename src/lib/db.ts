@@ -1,4 +1,5 @@
-import { createClient, type Client } from "@libsql/client";
+import { createClient } from "@libsql/client";
+import { isPostgresConfigured, postgresClient, type SqlClient } from "./pgClient";
 import fs from "fs";
 import path from "path";
 import { nanoid } from "nanoid";
@@ -7,10 +8,34 @@ import { nanoid } from "nanoid";
 // and this connects to your real Turso database. Locally, with no env vars set,
 // it falls back to a file-based libSQL db (file:local.db) so the whole app runs
 // and can be QA'd without a Turso account.
-let client: Client | null = null;
+let client: SqlClient | null = null;
 
-export function db(): Client {
+// TEMPORARY-STORAGE MODE. A hosted database can refuse to serve: a Turso free plan that has hit
+// its limit returns BLOCKED for every statement, reads included. Before this, that turned the
+// whole site into a 500 — the agent itself was fine, but nobody could reach it. Now the first
+// failure swaps in an in-memory libSQL database (same client, same SQL, no refactor) so the app
+// keeps working: postings are evaluated, the Test Lab runs, drafts are produced. What is lost is
+// persistence — this database lives inside one server instance and disappears with it — so the
+// UI must say so plainly rather than let anyone believe their work is saved.
+let degraded = false;
+let degradedReason = "";
+
+export function isDegraded(): boolean {
+  return degraded;
+}
+export function degradedMessage(): string {
+  return degradedReason;
+}
+
+export function db(): SqlClient {
   if (client) return client;
+  // Postgres (Supabase) when a connection string is configured; otherwise libSQL — Turso in
+  // production, or a local file for development. Both are reached through the same small
+  // interface (src/lib/pgClient.ts), so nothing else in the app knows the difference.
+  if (isPostgresConfigured()) {
+    client = postgresClient();
+    return client;
+  }
   const url = process.env.TURSO_DATABASE_URL || "file:local.db";
   const authToken = process.env.TURSO_AUTH_TOKEN;
   client = createClient(
@@ -19,8 +44,29 @@ export function db(): Client {
   return client;
 }
 
+/** Swap to in-memory storage after the real database refused to serve. */
+function fallBackToMemory(err: unknown) {
+  if (degraded) return;
+  degraded = true;
+  degradedReason = String(err).slice(0, 200);
+  client = createClient({ url: ":memory:" });
+  console.error(
+    `[db] The configured database refused the request (${degradedReason}). ` +
+      `Falling back to TEMPORARY in-memory storage: the app keeps working, but nothing is saved.`
+  );
+}
+
 export async function ensureSchema() {
-  const c = db();
+  try {
+    await ensureSchemaOn(db());
+  } catch (err) {
+    // Blocked plan, bad token, network: keep the app alive on temporary storage.
+    fallBackToMemory(err);
+    await ensureSchemaOn(db());
+  }
+}
+
+async function ensureSchemaOn(c: SqlClient) {
   await c.executeMultiple(`
     CREATE TABLE IF NOT EXISTS profiles (
       id TEXT PRIMARY KEY,
@@ -75,38 +121,70 @@ export async function ensureSchema() {
     );
   `);
 
+  // Which profile each browser (workspace) is currently working as. This used to be one
+  // global profiles.is_active flag, which meant one visitor switching résumé changed what
+  // every other visitor's runs were scored against. See src/lib/workspace.ts.
+  await c.executeMultiple(`
+    CREATE TABLE IF NOT EXISTS workspace_state (
+      workspace_id      TEXT PRIMARY KEY,
+      active_profile_id TEXT,
+      created_at        TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at        TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `);
+
   // Migrations — ALTER TABLE is not idempotent, so catch "duplicate column"
   // errors silently. These columns were added after the initial schema.
   const migrations = [
     "ALTER TABLE evaluations ADD COLUMN cover_letter TEXT",
     "ALTER TABLE evaluations ADD COLUMN tailored_resume TEXT",
+    "ALTER TABLE profiles ADD COLUMN workspace_id TEXT",
+    "ALTER TABLE jobs ADD COLUMN workspace_id TEXT",
+    // Hash of the posting text: the same posting pasted twice is one job, with one evaluation
+    // and one remembered score, instead of two rows that disagree.
+    "ALTER TABLE jobs ADD COLUMN content_hash TEXT",
+    "ALTER TABLE evaluations ADD COLUMN workspace_id TEXT",
   ];
   for (const sql of migrations) {
     try { await c.execute(sql); } catch { /* column already exists — fine */ }
   }
-
-  await ensureDefaultProfile(c);
 }
 
-// Seeds exactly one profile ("Profile 1") from the starter-kit resume.md /
-// preferences.md files the first time the app runs against an empty database,
-// so there's always an active profile to evaluate jobs against. Every profile
-// created after this one is created explicitly by the user from the Resume &
-// Preferences screen.
-async function ensureDefaultProfile(c: Client) {
-  const res = await c.execute("SELECT COUNT(*) as n FROM profiles");
-  const count = Number(res.rows[0]?.n ?? 0);
-  if (count > 0) return;
+// Seeds one profile the first time a given browser (workspace) uses the app, so there is
+// always something to evaluate against. It is the OFFICIAL class starter kit — Jordan Lee's
+// résumé and the kit's preferences and hard constraints — because that is the data the
+// assignment is graded on. Any further profile (a different candidate, a different job
+// sector) is created by the user on the Resume & Preferences screen and belongs to that
+// same workspace.
+async function ensureWorkspaceProfile(c: SqlClient, workspaceId: string) {
+  const res = await c.execute({
+    sql: "SELECT COUNT(*) as n FROM profiles WHERE workspace_id = ?",
+    args: [workspaceId],
+  });
+  if (Number(res.rows[0]?.n ?? 0) > 0) return;
 
-  const resumeText = fs.readFileSync(path.join(process.cwd(), "src/data/resume.md"), "utf-8");
+  const resumeText = fs.readFileSync(path.join(process.cwd(), "src/data/classkit/resume.md"), "utf-8");
   const preferencesText = fs.readFileSync(
-    path.join(process.cwd(), "src/data/preferences.md"),
+    path.join(process.cwd(), "src/data/classkit/preferences.md"),
     "utf-8"
   );
+  const id = nanoid(10);
   await c.execute({
-    sql: `INSERT INTO profiles (id, name, resume_text, preferences_text, is_active)
-          VALUES (?, ?, ?, ?, 1)`,
-    args: [nanoid(10), "Profile 1", resumeText, preferencesText],
+    sql: `INSERT INTO profiles (id, name, resume_text, preferences_text, is_active, workspace_id)
+          VALUES (?, ?, ?, ?, 0, ?)`,
+    args: [id, "Class kit — Jordan Lee", resumeText, preferencesText, workspaceId],
+  });
+  await setActiveProfile(workspaceId, id);
+}
+
+/** Which profile this browser is working as. */
+export async function setActiveProfile(workspaceId: string, profileId: string): Promise<void> {
+  await db().execute({
+    sql: `INSERT INTO workspace_state (workspace_id, active_profile_id, updated_at)
+          VALUES (?, ?, datetime('now'))
+          ON CONFLICT(workspace_id) DO UPDATE SET active_profile_id = excluded.active_profile_id,
+                                                  updated_at = datetime('now')`,
+    args: [workspaceId, profileId],
   });
 }
 
@@ -114,37 +192,66 @@ export function isTursoConfigured(): boolean {
   return !!process.env.TURSO_DATABASE_URL;
 }
 
+/** Which database the app is actually talking to, for the status panel. */
+export function databaseKind(): "postgres" | "turso" | "local-file" {
+  if (isPostgresConfigured()) return "postgres";
+  return isTursoConfigured() ? "turso" : "local-file";
+}
+
 // A cheap (SELECT 1) live check — unlike the LLM connection test, this has no
 // meaningful cost, so the system-status panel can safely run it on every load.
 export async function testDbConnection(): Promise<{ ok: boolean; message: string }> {
   try {
     await db().execute("SELECT 1");
+    if (degraded) {
+      return {
+        ok: false,
+        message:
+          `The configured database refused the request, so the app is running on TEMPORARY ` +
+          `in-memory storage: everything works, but nothing you save will still be here later. ` +
+          `Original error: ${degradedReason}`,
+      };
+    }
     return {
       ok: true,
-      message: isTursoConfigured() ? "Connected to Turso." : "Using local file DB (local.db).",
+      message:
+        databaseKind() === "postgres"
+          ? "Connected to Postgres (Supabase)."
+          : databaseKind() === "turso"
+            ? "Connected to Turso."
+            : "Using local file DB (local.db).",
     };
   } catch (err) {
     return { ok: false, message: String(err).slice(0, 200) };
   }
 }
 
-export async function getActiveProfile(): Promise<{
+export async function getActiveProfile(workspaceId: string): Promise<{
   id: string;
   name: string;
   resumeText: string;
   preferencesText: string;
 }> {
   const c = db();
-  const res = await c.execute("SELECT id, name, resume_text, preferences_text FROM profiles WHERE is_active = 1 LIMIT 1");
+  await ensureWorkspaceProfile(c, workspaceId);
+  const res = await c.execute({
+    sql: `SELECT p.id, p.name, p.resume_text, p.preferences_text
+          FROM profiles p
+          LEFT JOIN workspace_state w ON w.active_profile_id = p.id AND w.workspace_id = ?
+          WHERE p.workspace_id = ?
+          ORDER BY (w.active_profile_id IS NULL), p.created_at ASC
+          LIMIT 1`,
+    args: [workspaceId, workspaceId],
+  });
   if (res.rows.length === 0) {
-    // Should not happen after ensureDefaultProfile(), but fall back to the
-    // starter-kit files rather than crash if the profiles table is empty.
+    // Should not happen after ensureWorkspaceProfile(), but fall back to the class kit files
+    // rather than crash if the profiles table is empty.
     return {
       id: "fallback",
-      name: "Default",
-      resumeText: fs.readFileSync(path.join(process.cwd(), "src/data/resume.md"), "utf-8"),
+      name: "Class kit — Jordan Lee",
+      resumeText: fs.readFileSync(path.join(process.cwd(), "src/data/classkit/resume.md"), "utf-8"),
       preferencesText: fs.readFileSync(
-        path.join(process.cwd(), "src/data/preferences.md"),
+        path.join(process.cwd(), "src/data/classkit/preferences.md"),
         "utf-8"
       ),
     };

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { currentWorkspace } from "@/lib/workspace";
 import { db, ensureSchema, getActiveProfile, loadHarnessOverrides } from "@/lib/db";
 import { resolveSettings } from "@/lib/harnessSettings";
 import { applyClarificationAnswer, type EvaluationResult } from "@/lib/agent";
@@ -7,6 +8,10 @@ import { applyClarificationAnswer, type EvaluationResult } from "@/lib/agent";
 // one point where the agent stops mid-evaluation to ask a clarifying question,
 // distinct from /api/agent/approve which only ever asks "proceed or not?"
 // after a full evaluation is already done.
+// Human-in-the-loop steps re-enter the agent (drafting, verifying, re-scoring): several model
+// calls, so allow more than the platform default.
+export const maxDuration = 60;
+
 export async function POST(req: NextRequest) {
   await ensureSchema();
   const body = await req.json();
@@ -20,6 +25,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const workspaceId = await currentWorkspace();
   const c = db();
   const evalRes = await c.execute({
     sql: "SELECT trace_json, state_json, resume_snapshot FROM evaluations WHERE job_id = ?",
@@ -45,7 +51,7 @@ export async function POST(req: NextRequest) {
   }
 
   const jobRes = await c.execute({ sql: "SELECT raw_text FROM jobs WHERE id = ?", args: [jobId] });
-  const activeProfile = await getActiveProfile();
+  const activeProfile = await getActiveProfile(workspaceId);
   const settings = resolveSettings(await loadHarnessOverrides(activeProfile.id));
   const result = await applyClarificationAnswer(prior, answer as "compatible" | "violation", {
     resumeText: (evalRes.rows[0].resume_snapshot as string) || null,

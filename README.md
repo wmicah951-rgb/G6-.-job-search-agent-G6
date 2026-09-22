@@ -161,3 +161,42 @@ human. Flagged lines are shown, never silently removed. See
   (J004 has the required embedded prompt injection)
 - `scripts/run-tests.ts` — runs the agent directly against all six postings
   and prints full structured traces (`npx tsx scripts/run-tests.ts`)
+
+## Running the official class starter kit
+
+The instructor's own files live unchanged in `src/data/classkit/` (Jordan Lee's résumé, the
+preferences, `jobs.json` J001–J006). To run all six through the real agent and produce the
+assignment's deliverables:
+
+```bash
+set -a && source .env.local && set +a && npx tsx scripts/classkit-run.ts
+```
+
+It writes `outputs/ranked_jobs.md`, `outputs/test_results.md`, `outputs/trace_J001.json`,
+`outputs/trace_J004.json` and `outputs/branching_evidence.md`. The same six cases are in the
+Test Lab as KIT-J001 … KIT-J006. See **Layer 20** in `G6-AGENT.md`.
+
+## The score does not move any more
+
+The same posting and résumé now always produce the same percentage: the requirement list a
+posting is judged against is stored the first time it is read and reused after that
+(`src/lib/memory.ts`). Check it yourself:
+
+```bash
+npx tsx scripts/stability.ts             # spread 0 on every posting
+NO_MEMORY=1 npx tsx scripts/stability.ts # 12-15 point drift, the old behaviour
+```
+
+## Several people at once
+
+There is no login. Each browser gets a workspace cookie, and profiles, postings and evaluations
+belong to that workspace, so two people can use the site side by side without changing each
+other's results. The profile dropdown on *Resume & preferences* is that browser's own account
+switcher. A first visit seeds the class-kit profile. Fictional résumés only — the site is
+public and the cookie is not a password.
+
+## Résumé files
+
+*Resume & preferences* reads a PDF, Word `.docx`, Markdown or plain-text résumé and shows you
+the extracted text to check before saving. Nothing is rewritten: the agent may only quote what
+your résumé actually says.

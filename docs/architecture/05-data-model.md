@@ -7,9 +7,10 @@ Schema is created automatically on first request (`ensureSchema()` in
 
 ## `profiles`
 
-One row per named candidate profile (resume + preferences pair). Exactly one
-row has `is_active = 1` at any time — that's the profile new job evaluations run
-against.
+One row per named candidate profile (resume + preferences pair), belonging to one
+**workspace** — the browser that created it (see `workspace_state` below). Which profile is
+active is per workspace, not global: before this, one visitor switching profile changed what
+every other visitor's runs were scored against.
 
 | Column | Type | Notes |
 |---|---|---|
@@ -17,12 +18,13 @@ against.
 | `name` | TEXT | e.g. "Profile 1", "Profile 2 - PM track" |
 | `resume_text` | TEXT | the full resume.md contents |
 | `preferences_text` | TEXT | the full preferences.md contents |
-| `is_active` | INTEGER | 0/1, exactly one row is 1 |
+| `is_active` | INTEGER | legacy column, no longer read — the active profile lives in `workspace_state` |
+| `workspace_id` | TEXT | which browser owns this profile |
 | `created_at`, `updated_at` | TEXT | |
 
-Seeded automatically with one profile ("Profile 1") from the starter-kit
-`src/data/resume.md` / `preferences.md` files the first time the app runs
-against an empty database.
+Seeded automatically the first time a browser uses the app, with the **official class kit's**
+profile (Jordan Lee) from `src/data/classkit/resume.md` and `preferences.md`. Any further
+profile — a different candidate, a different job sector — is created by the user.
 
 ## `jobs`
 
@@ -105,3 +107,30 @@ profiles (many, one active)          jobs (many)
                                    EVALUATION TIME, independent of the
                                    profiles table's current state)
 ```
+
+## `workspace_state`
+
+One row per browser (see [`src/lib/workspace.ts`](../../src/lib/workspace.ts)). The id is a
+random value in an http-only cookie; it is an account without a password, not a security
+boundary, which is why the app only ever holds fictional résumés.
+
+| Column | Type | Notes |
+|---|---|---|
+| `workspace_id` | TEXT PK | the cookie value |
+| `active_profile_id` | TEXT | which profile this browser is working as |
+| `created_at`, `updated_at` | TEXT | |
+
+`jobs` and `evaluations` also carry `workspace_id`, and every route filters on it. `jobs` carries
+`content_hash` as well, so pasting the same posting twice reopens the first job instead of
+creating a second one with its own (differing) answer.
+
+## Memory tables
+
+Written and read by [`src/lib/memory.ts`](../../src/lib/memory.ts). These are what stop the fit
+score drifting between runs; nothing here can change a decision.
+
+| Table | Key | Holds |
+|---|---|---|
+| `requirement_ledgers` | `job_hash` | The requirement list (text + priority) found the **first** time a posting was read. Written with `INSERT OR IGNORE` — a yardstick, not a cache |
+| `fit_cache` | `job_hash` + `fit_key` | The whole fit evaluation for one posting × résumé × matcher prompt × model. Reused outright, so a re-run returns the identical score with no model call |
+| `eval_history` | `job_hash` | Every score this posting has been given, with the profile and timestamp — shown on the job page as "Evaluation history" |

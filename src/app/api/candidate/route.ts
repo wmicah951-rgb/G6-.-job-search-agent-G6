@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { currentWorkspace } from "@/lib/workspace";
 import { db, ensureSchema, getActiveProfile } from "@/lib/db";
 
 // Convenience endpoint: always reads/writes whichever profile is currently
@@ -6,7 +7,7 @@ import { db, ensureSchema, getActiveProfile } from "@/lib/db";
 // /api/profiles.
 export async function GET() {
   await ensureSchema();
-  const active = await getActiveProfile();
+  const active = await getActiveProfile(await currentWorkspace());
   return NextResponse.json({
     profileId: active.id,
     profileName: active.name,
@@ -26,7 +27,7 @@ export async function POST(req: NextRequest) {
       { status: 400 }
     );
   }
-  const active = await getActiveProfile();
+  const active = await getActiveProfile(await currentWorkspace());
   const c = db();
   await c.execute({
     sql: `UPDATE profiles SET resume_text = ?, preferences_text = ?, updated_at = datetime('now') WHERE id = ?`,

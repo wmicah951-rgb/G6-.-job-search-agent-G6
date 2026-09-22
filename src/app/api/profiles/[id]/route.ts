@@ -1,42 +1,62 @@
+// One profile. Every query is scoped to the caller's workspace, so a profile id belonging to
+// someone else's browser simply does not exist here.
+
 import { NextRequest, NextResponse } from "next/server";
-import { db, ensureSchema } from "@/lib/db";
+import { db, ensureSchema, setActiveProfile, getActiveProfile } from "@/lib/db";
+import { currentWorkspace } from "@/lib/workspace";
+
+const MAX_RESUME_CHARS = 30_000;
+const MAX_PREFS_CHARS = 20_000;
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   await ensureSchema();
+  const workspaceId = await currentWorkspace();
   const { id } = await params;
   const c = db();
   const res = await c.execute({
-    sql: "SELECT id, name, resume_text, preferences_text, is_active, updated_at FROM profiles WHERE id = ?",
-    args: [id],
+    sql: "SELECT id, name, resume_text, preferences_text, updated_at FROM profiles WHERE id = ? AND workspace_id = ?",
+    args: [id, workspaceId],
   });
   if (res.rows.length === 0) {
     return NextResponse.json({ error: "Profile not found." }, { status: 404 });
   }
+  const active = await getActiveProfile(workspaceId);
   const row = res.rows[0];
   return NextResponse.json({
     id: row.id,
     name: row.name,
     resumeText: row.resume_text,
     preferencesText: row.preferences_text,
-    isActive: !!row.is_active,
+    isActive: row.id === active.id,
     updatedAt: row.updated_at,
   });
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   await ensureSchema();
+  const workspaceId = await currentWorkspace();
   const { id } = await params;
   const body = await req.json();
   const c = db();
 
-  const existing = await c.execute({ sql: "SELECT id FROM profiles WHERE id = ?", args: [id] });
+  const existing = await c.execute({
+    sql: "SELECT id FROM profiles WHERE id = ? AND workspace_id = ?",
+    args: [id, workspaceId],
+  });
   if (existing.rows.length === 0) {
     return NextResponse.json({ error: "Profile not found." }, { status: 404 });
   }
 
-  if (body.setActive === true) {
-    await c.execute("UPDATE profiles SET is_active = 0");
-    await c.execute({ sql: "UPDATE profiles SET is_active = 1, updated_at = datetime('now') WHERE id = ?", args: [id] });
+  if (body.setActive === true) await setActiveProfile(workspaceId, id);
+
+  if (
+    (typeof body.resumeText === "string" && body.resumeText.length > MAX_RESUME_CHARS) ||
+    (typeof body.preferencesText === "string" && body.preferencesText.length > MAX_PREFS_CHARS)
+  ) {
+    return NextResponse.json(
+      { error: `Résumé must be under ${MAX_RESUME_CHARS} characters and preferences under ${MAX_PREFS_CHARS}.` },
+      { status: 400 }
+    );
   }
 
   const fields: string[] = [];
@@ -55,8 +75,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
   if (fields.length > 0) {
     fields.push("updated_at = datetime('now')");
-    args.push(id);
-    await c.execute({ sql: `UPDATE profiles SET ${fields.join(", ")} WHERE id = ?`, args });
+    args.push(id, workspaceId);
+    await c.execute({
+      sql: `UPDATE profiles SET ${fields.join(", ")} WHERE id = ? AND workspace_id = ?`,
+      args,
+    });
   }
 
   return NextResponse.json({ ok: true });
@@ -64,10 +87,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   await ensureSchema();
+  const workspaceId = await currentWorkspace();
   const { id } = await params;
   const c = db();
 
-  const countRes = await c.execute("SELECT COUNT(*) as n FROM profiles");
+  const countRes = await c.execute({
+    sql: "SELECT COUNT(*) as n FROM profiles WHERE workspace_id = ?",
+    args: [workspaceId],
+  });
   if (Number(countRes.rows[0]?.n ?? 0) <= 1) {
     return NextResponse.json(
       { error: "Can't delete the only remaining profile — create another one first." },
@@ -75,18 +102,25 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
     );
   }
 
-  const target = await c.execute({ sql: "SELECT is_active FROM profiles WHERE id = ?", args: [id] });
+  const target = await c.execute({
+    sql: "SELECT id FROM profiles WHERE id = ? AND workspace_id = ?",
+    args: [id, workspaceId],
+  });
   if (target.rows.length === 0) {
     return NextResponse.json({ error: "Profile not found." }, { status: 404 });
   }
-  const wasActive = !!target.rows[0].is_active;
+  const active = await getActiveProfile(workspaceId);
 
-  await c.execute({ sql: "DELETE FROM profiles WHERE id = ?", args: [id] });
+  await c.execute({ sql: "DELETE FROM profiles WHERE id = ? AND workspace_id = ?", args: [id, workspaceId] });
 
-  if (wasActive) {
-    // Deleting the active profile must leave some other profile active, so job
-    // evaluation always has one to read from.
-    await c.execute("UPDATE profiles SET is_active = 1 WHERE id = (SELECT id FROM profiles ORDER BY created_at ASC LIMIT 1)");
+  if (active.id === id) {
+    // Deleting the active profile must leave another one active, so evaluating a job always
+    // has a résumé to read.
+    const next = await c.execute({
+      sql: "SELECT id FROM profiles WHERE workspace_id = ? ORDER BY created_at ASC LIMIT 1",
+      args: [workspaceId],
+    });
+    if (next.rows.length) await setActiveProfile(workspaceId, next.rows[0].id as string);
   }
 
   return NextResponse.json({ ok: true });

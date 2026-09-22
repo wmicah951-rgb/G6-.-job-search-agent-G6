@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import { currentWorkspace } from "@/lib/workspace";
 import { db, ensureSchema, getActiveProfile, loadHarnessOverrides } from "@/lib/db";
 import { resolveSettings } from "@/lib/harnessSettings";
 import { applyHumanDecision, type EvaluationResult } from "@/lib/agent";
+
+// Human-in-the-loop steps re-enter the agent (drafting, verifying, re-scoring): several model
+// calls, so allow more than the platform default.
+export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
   await ensureSchema();
@@ -17,10 +22,12 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const workspaceId = await currentWorkspace();
   const c = db();
+  // Scoped to this browser's workspace: a job id from someone else's workspace is a 404 here.
   const jobRes = await c.execute({
-    sql: "SELECT raw_text FROM jobs WHERE id = ?",
-    args: [jobId],
+    sql: "SELECT raw_text FROM jobs WHERE id = ? AND (workspace_id = ? OR workspace_id IS NULL)",
+    args: [jobId, workspaceId],
   });
   const evalRes = await c.execute({
     sql: "SELECT trace_json, state_json, resume_snapshot FROM evaluations WHERE job_id = ?",
@@ -51,7 +58,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const activeProfile = await getActiveProfile();
+  const activeProfile = await getActiveProfile(workspaceId);
   const settings = resolveSettings(await loadHarnessOverrides(activeProfile.id));
   const result = await applyHumanDecision(prior, decision as any, editNote, jobText, resumeText, settings);
 

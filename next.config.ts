@@ -11,6 +11,9 @@ const nextConfig: NextConfig = {
       "./src/data/resume.md",
       "./src/data/preferences.md",
       "./src/data/jobs/**/*.md",
+      // The official class starter kit: the seed profile, the Test Lab's KIT-J001..J006 cases
+      // and the ranked-output run all read these at run time (src/lib/classKit.ts).
+      "./src/data/classkit/**/*",
     ],
   },
 };

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { currentWorkspace } from "@/lib/workspace";
 import {
   ensureSchema,
   getActiveProfile,
@@ -18,7 +19,7 @@ import {
 
 export async function GET() {
   await ensureSchema();
-  const profile = await getActiveProfile();
+  const profile = await getActiveProfile(await currentWorkspace());
   const overrides = await loadHarnessOverrides(profile.id);
   return NextResponse.json({
     profileId: profile.id,
@@ -31,7 +32,7 @@ export async function GET() {
 
 export async function PUT(req: NextRequest) {
   await ensureSchema();
-  const profile = await getActiveProfile();
+  const profile = await getActiveProfile(await currentWorkspace());
   const body = await req.json();
 
   const { sanitized, errors, warnings } = validateSettings(body.settings);
@@ -53,7 +54,7 @@ export async function PUT(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   await ensureSchema();
-  const profile = await getActiveProfile();
+  const profile = await getActiveProfile(await currentWorkspace());
   const key = new URL(req.url).searchParams.get("key") ?? undefined;
   await resetHarnessOverride(profile.id, key);
   const overrides = await loadHarnessOverrides(profile.id);

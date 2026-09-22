@@ -295,6 +295,37 @@ P(f"Contrast: {len(RUNS['J004_full']['trace'])} steps against J003&rsquo;s {len(
   f"{pct(rs.get('before'))} &rarr; {pct(rs.get('after'))}. None of the embedded commands were obeyed.")
 story.append(PageBreak())
 
+# =========================================================== 5.3 (official class kit)
+KIT = DATA.get("classKit") or {"runs": {}}
+if KIT["runs"]:
+    P("5.3 The official class starter kit, run unchanged", h2)
+    P("Everything above uses our own fixtures. These rows are the instructor&rsquo;s own files &mdash; "
+      "Jordan Lee&rsquo;s r&eacute;sum&eacute;, the kit&rsquo;s preferences and <font face='Courier'>jobs.json</font> "
+      "J001&ndash;J006, copied byte for byte into <font face='Courier'>src/data/classkit/</font> &mdash; put through "
+      "the same agent. Reproduce with <font face='Courier'>npx tsx scripts/classkit-run.ts</font>, which also writes "
+      "the ranked output, the test results and two traces into <font face='Courier'>outputs/</font>.")
+    rows = [["Kit job", "Location", "Fit", "Outcome", "Executed action sequence"]]
+    for jid in sorted(KIT["runs"]):
+        r = KIT["runs"][jid]
+        rows.append([
+            cell(f"{jid} {r['title']}"),
+            cell(r["location"]),
+            pct(r.get("fitScore")),
+            cell(r["stage"]),
+            cell(" -> ".join(t["action"] for t in r["trace"] if t["action"] != "advise_human")),
+        ])
+    table(rows, [1.5, 0.95, 0.45, 1.25, 2.35], size=6.8)
+    distinct = KIT.get("distinctSequences", "-")
+    P(f"<b>{distinct} distinct action sequences across the six postings.</b> J003 and J006 never reach the fit "
+      "evaluation at all: a hard constraint (5+ years; a New York role for a candidate who will not relocate) "
+      "already settles them, so the controller does not spend a model call proving what cannot change the "
+      "outcome. J004&rsquo;s injection is flagged and refused, its AWS gap kept, and no message is produced for "
+      "anyone. Running the kit for the first time is also what exposed two real defects in our own code: our "
+      "constraint parsers understood only our demo wording, not the kit&rsquo;s (&ldquo;No jobs requiring 5 or "
+      "more years&rdquo;, &ldquo;No relocation outside the preferred region&rdquo;). Both are fixed and covered by "
+      "tests.")
+    story.append(PageBreak())
+
 # =========================================================== 6
 P("6. Approval evidence", h1)
 P("J001, decision = Approve, captured from the agent&rsquo;s own structured log:")

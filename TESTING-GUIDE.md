@@ -248,3 +248,17 @@ and `LLM_MODEL` for any OpenAI-compatible model, including a local Ollama.
 - **Verification checks specifics, not meaning.** It catches invented numbers, employers
   and tools. It cannot catch a sentence that overstates tone while using only words you
   wrote. Read the draft before sending it.
+
+## Class-kit and robustness suites
+
+| Command | What it proves | Time |
+|---|---|---|
+| `npx tsx scripts/classkit-run.ts` | The official kit's J001–J006 (Jordan Lee's résumé) all behave as the assignment requires, and the `outputs/` deliverables are written | ~1 min |
+| `npx tsx scripts/stability.ts` | The same posting + résumé returns the identical score on every run (spread 0) | ~2 min |
+| `NO_MEMORY=1 npx tsx scripts/stability.ts` | The 12–15 point drift that memory removes — run it to see the problem, not just the fix | ~2 min |
+| `npx tsx scripts/category-matrix.ts` | Six fields (nursing, teaching, software, trades, retail, finance) × fit / partial / hard constraint — 16 cases | ~4 min |
+| `LLM_PROVIDER=none DEEPSEEK_API_KEY= npx tsx scripts/category-matrix.ts` | With no AI the agent says it cannot assess an out-of-dictionary posting and hands it to the person instead of rejecting it on a meaningless 0% | ~10 s |
+| `npx tsx scripts/reset-data.ts` | Lists every row in the database (add `--yes` to empty it) | ~5 s |
+
+All of these run against whichever brain is configured, and the class-kit and matrix suites pass
+both with DeepSeek and with no model at all.

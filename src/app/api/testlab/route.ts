@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { currentWorkspace } from "@/lib/workspace";
 import fs from "fs";
 import path from "path";
 import { runAgent } from "@/lib/agent";
@@ -6,6 +7,11 @@ import { getActiveProfile, ensureSchema, loadHarnessOverrides } from "@/lib/db";
 import { resolveSettings } from "@/lib/harnessSettings";
 import { isLlmConfigured, getModelName } from "@/lib/llmEvaluator";
 import { TEST_CASES, sequenceProblem } from "@/lib/testCases";
+import { classKitPosting, classKitPreferences, classKitResume } from "@/lib/classKit";
+import { loadMemory, saveMemory } from "@/lib/memory";
+
+// Running the whole suite is many agent runs, each with several model calls.
+export const maxDuration = 300;
 
 // Runs a built-in test posting through the real agent and reports expected vs actual.
 //
@@ -36,7 +42,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const ids: string[] = Array.isArray(body.ids) ? body.ids : [body.id];
 
-  const profile = await getActiveProfile();
+  const profile = await getActiveProfile(await currentWorkspace());
   // Test Lab runs under the SAME harness settings the app uses, so editing a prompt
   // and re-running here actually proves whether the gates still behave.
   const settings = resolveSettings(await loadHarnessOverrides(profile.id));
@@ -78,9 +84,11 @@ export async function POST(req: NextRequest) {
 
     let jobText: string;
     try {
-      jobText = fs.readFileSync(jobFile(id), "utf-8");
+      // Class-kit cases render their posting from the kit's own jobs.json; everything else
+      // reads a fixture file under src/data/jobs/.
+      jobText = c.classKitId ? classKitPosting(c.classKitId) : fs.readFileSync(jobFile(id), "utf-8");
     } catch {
-      results.push({ id, error: `Fixture ${id}.md not found on the server.` });
+      results.push({ id, error: `Fixture for ${id} not found on the server.` });
       continue;
     }
 
@@ -89,9 +97,31 @@ export async function POST(req: NextRequest) {
       // A profile-sensitive case uses the pinned demo resume unless the caller asked
       // to score their own; everything else always uses the active profile.
       const pinned = !useActiveProfile;
-      const resumeForCase = pinned ? demoResume : profile.resumeText;
-      const prefsForCase = pinned ? demoPrefs : profile.preferencesText;
-      const r = await runAgent(`testlab-${id}`, jobText, resumeForCase, prefsForCase, settings);
+      // A class-kit case is calibrated against the KIT's candidate, so it pins Jordan Lee's
+      // résumé and the kit's hard constraints rather than our demo profile.
+      const kitCase = c.candidate === "classkit";
+      const resumeForCase = !pinned ? profile.resumeText : kitCase ? classKitResume() : demoResume;
+      const prefsForCase = !pinned ? profile.preferencesText : kitCase ? classKitPreferences() : demoPrefs;
+      // The Test Lab uses the same memory as the app: the requirement list for a fixture is
+      // frozen on the first run, so re-running the suite reproduces the same scores instead of
+      // re-extracting requirements and drifting.
+      const memory = await loadMemory({
+        jobText,
+        resumeText: resumeForCase,
+        settings,
+        model: getModelName(),
+      });
+      const r = await runAgent(`testlab-${id}`, jobText, resumeForCase, prefsForCase, settings, memory);
+      await saveMemory({
+        jobText,
+        resumeText: resumeForCase,
+        settings,
+        model: getModelName(),
+        fit: r.fit,
+        score: r.state.fitScore,
+        stage: r.state.stage,
+        profileName: pinned ? (kitCase ? "Class kit — Jordan Lee" : "demo resume") : profile.name,
+      });
       const sequence = r.trace.map((t) => t.selectedAction).join(">");
       const problems: string[] = [];
 
@@ -133,6 +163,7 @@ export async function POST(req: NextRequest) {
         ms: Date.now() - started,
         actual: {
           stage: r.state.stage,
+          memory: r.state.memory ?? null,
           sequence,
           fitScore: r.state.fitScore,
           injectionDetected: r.state.injectionDetected,
@@ -150,6 +181,8 @@ export async function POST(req: NextRequest) {
           steps: r.trace.map((t) => ({
             step: t.step,
             action: t.selectedAction,
+            // The same step named in the class starter kit's vocabulary.
+            classAction: t.classAction ?? null,
             chosenBy: t.chosenBy ?? null,
             brain: t.brain ?? null,
             thinking: t.thinking ?? t.modelReasoning ?? null,

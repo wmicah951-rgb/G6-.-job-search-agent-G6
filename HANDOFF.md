@@ -47,7 +47,7 @@ still fully functional, still passes the four required tests.
 | `npx tsx scripts/tailoring-audit.ts [--profile name] [jobs]` | Measures real tailoring: bullets rewritten vs copied, posting vocabulary picked up, facts kept, verifier flags |
 | `npx tsx scripts/gap-completeness.ts` | Every requirement bullet a posting states is matched, missing, or surfaced as "not assessed" - none silently dropped |
 | `npx tsx scripts/doc-check.ts` | The docs still match the code: every agent action is in the inventory, and no doc repeats a claim that has become false |
-| Test Lab (`/testlab`) | 19 tests including the four class-page scenarios (K001-K004). Each shows the agent's brain step by step (AI thinking vs code rule) and the advisor's recommendation. All 19 pass on DeepSeek |
+| Test Lab (`/testlab`) | 21 tests including the official class kit's six (KIT-J001..KIT-J006, on the kit's own résumé and jobs.json). Each shows the agent's brain step by step (AI thinking vs code rule) and the advisor's recommendation. All 19 pass on DeepSeek |
 | `set -a && source .env.local && set +a && npx tsx scripts/guidelines-proof.ts` | Proves the agent is driven by `src/data/agent-guidelines.md`: same postings, edited guidance, different decisions; and a file that tries to disable guardrails has no effect on them |
 | `set -a && source .env.local && set +a && npx tsx scripts/controller-demo.ts` | Prints who chose each action (AI / guardrail / default policy) and the model's reason, per posting. The runtime evidence that the model selects actions |
 | `npx tsx scripts/kit-tests.ts [kitDir]` | The four class cases judged against the Week 2 page's expectations; pass the official starter-kit folder to run the real files |

@@ -252,7 +252,7 @@ Core files: `src/lib/agent.ts` (the harness), `src/lib/draftVerifier.ts` (the ch
 | `scripts/local-e2e.mjs` | Whole app over HTTP | 48/48 |
 | `scripts/stress-draft.mjs` | Résumés are actually submittable | all pass |
 | `scripts/stress-suite.ts` | Coverage, arithmetic, monotonicity, discrimination, stability, edge cases, post-draft | 64/64 (with the advisor and controller live) |
-| Test Lab tab (19 tests, incl. K001–K004 class-page scenarios) | Every test through the real endpoint, with the agent's brain shown | 19/19 |
+| Test Lab tab (21 tests, incl. the official kit's KIT-J001..KIT-J006) | Every test through the real endpoint, with the agent's brain shown | 21/21 |
 | `scripts/hostile-model-test.mjs` | A lying Reader, Matcher, Controller, Advisor and bullet-Rewriter cannot change a decision or slip in a fabricated preset or inflated bullet | pass (3 modes) |
 | `scripts/redteam-injection.ts` | Seven steering/sabotage injections | 7/7 flagged with **no AI**, all contained |
 | `scripts/injection-falsepositive.ts` | Keyword floor over all 22 postings | 0 false positives |

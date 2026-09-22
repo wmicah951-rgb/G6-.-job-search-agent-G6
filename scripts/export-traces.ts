@@ -11,6 +11,7 @@ import fs from "fs";
 import path from "path";
 import { runAgent, applyHumanDecision, applyClarificationAnswer } from "../src/lib/agent";
 import { getModelName } from "../src/lib/llmEvaluator";
+import { classKitJobs, classKitPosting, classKitPreferences, classKitResume } from "../src/lib/classKit";
 
 const dataDir = path.join(__dirname, "..", "src", "data");
 const resume = fs.readFileSync(path.join(dataDir, "resume.md"), "utf-8");
@@ -25,6 +26,7 @@ const slim = (trace: any[]) =>
     observation: t.observation,
     result: t.result,
     stageAfter: t.stateAfter?.stage,
+    classAction: t.classAction,
     chosenBy: t.chosenBy,
     brain: t.brain,
     thinking: t.thinking,
@@ -84,6 +86,32 @@ async function main() {
   const j7 = await runAgent("J007", job("J007"), resume, prefs);
   out.runs.J007_compatible = { trace: slim((await applyClarificationAnswer(j7, "compatible", { resumeText: resume, jobText: job("J007") })).trace) };
   out.runs.J007_violation = { trace: slim((await applyClarificationAnswer(j7, "violation", { resumeText: resume, jobText: job("J007") })).trace) };
+
+  // THE OFFICIAL CLASS KIT, on the kit's own candidate. These are the traces a grader can
+  // line up against the assignment's own J001-J006 without translating anything.
+  const kitResume = classKitResume();
+  const kitPrefs = classKitPreferences();
+  out.classKit = { candidate: "Jordan Lee (src/data/classkit/resume.md)", runs: {} };
+  for (const job of classKitJobs()) {
+    const posting = classKitPosting(job.id);
+    const r = await runAgent(job.id, posting, kitResume, kitPrefs);
+    out.classKit.runs[job.id] = {
+      title: job.title,
+      company: job.company,
+      location: job.location,
+      stage: r.state.stage,
+      fitScore: r.state.fitScore,
+      matched: r.state.matchedSkills,
+      missing: r.state.missingSkills,
+      violations: r.state.hardConstraintViolations,
+      injectionSnippets: r.state.injectionSnippets,
+      trace: slim(r.trace),
+    };
+    console.log("kit", job.id, r.state.stage, r.state.fitScore, r.trace.map((t) => t.selectedAction).join(">"));
+  }
+  out.classKit.distinctSequences = new Set(
+    Object.values(out.classKit.runs).map((r: any) => r.trace.map((t: any) => t.action).join(">"))
+  ).size;
 
   const seqs = new Set(
     ["J001", "J002", "J003", "J004"].map((id) => out.runs[id].trace.map((t: any) => t.action).join(">"))
