@@ -151,7 +151,13 @@ export async function POST(req: NextRequest) {
 
       // Resume-DEPENDENT assertion: the exact sequence, including its final decision.
       // Only meaningful against the calibrated resume.
-      const seqProblem = pinned ? sequenceProblem(r.trace.map((t) => t.selectedAction), c) : null;
+      const seqProblem = pinned
+        ? sequenceProblem(r.trace.map((t) => t.selectedAction), c, {
+            fitScore: r.state.fitScore,
+            minFit: r.state.minFit ?? 0.6,
+            margin: r.state.judgmentMargin ?? 0.1,
+          })
+        : null;
       if (seqProblem) {
         problems.push(`${seqProblem} (sequence was ${sequence})`);
       }

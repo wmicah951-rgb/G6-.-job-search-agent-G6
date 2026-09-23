@@ -200,3 +200,19 @@ public and the cookie is not a password.
 *Resume & preferences* reads a PDF, Word `.docx`, Markdown or plain-text résumé and shows you
 the extracted text to check before saving. Nothing is rewritten: the agent may only quote what
 your résumé actually says.
+
+## Trying it on the live site
+
+https://g6-job-search-agent-g6.vercel.app — no login. Each browser gets its own workspace.
+
+- **Dashboard → "Try it with ready-made data"**: pick one of nine fictional candidates (the class
+  kit's Jordan Lee, the demo candidate, or someone in nursing, teaching, software, skilled
+  trades, retail, finance or marketing) and run the agent on a matching set of postings —
+  including the kit's J001–J006. Each posting goes through the real agent, so the board is real,
+  ranked agent output with a full trace per job.
+- **Assignment** (top nav): each of the ten deliverables, and where to check it on the site.
+- **Test Lab**: every test case, run live on the server.
+
+`node scripts/live-verify.mjs` checks the deployed site end to end: database saving, model
+configured, every sample candidate and posting through the agent, the class kit's expected
+outcomes, and every Test Lab case.

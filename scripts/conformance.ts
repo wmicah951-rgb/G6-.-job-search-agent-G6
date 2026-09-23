@@ -83,7 +83,11 @@ async function main() {
     // the built-in policy must reproduce the original sequence EXACTLY.
     const actual = r.trace.map((t) => t.selectedAction);
     if (!llm && seq !== c.sequence && !(c.alsoTerminal ?? []).includes(actual[actual.length - 1])) problems.push(`sequence ${seq}`);
-    const sp = sequenceProblem(actual, c);
+    const sp = sequenceProblem(actual, c, {
+      fitScore: r.state.fitScore,
+      minFit: r.state.minFit ?? 0.6,
+      margin: r.state.judgmentMargin ?? 0.1,
+    });
     if (sp) problems.push(`${sp} [${seq}]`);
     if (r.state.draft !== null) problems.push("a draft exists without a human decision");
     if (r.state.injectionDetected !== c.injection) problems.push(`injection=${r.state.injectionDetected}`);

@@ -850,9 +850,107 @@ export interface FitEvaluation {
   fromLedger?: boolean;
   /** True when the deterministic matcher could not assess this posting at all (see AgentState). */
   unscoreable?: boolean;
+  /** Proposed matches thrown out because their quote could not be found in the résumé. A verdict
+   *  with any of these is uncertain, so memory does not save it (src/lib/memory.ts). */
+  droppedMatches?: number;
   method: "llm" | "deterministic";
   reasoning: string | null;
   note: string;
+}
+
+// ---------- Recovering a near-exact résumé quote ----------
+// A model quoting a résumé often changes punctuation or an article ("Built Tableau dashboard" for
+// "Built a Tableau dashboard"). The exact-substring check then drops a match the résumé plainly
+// supports, and the score falls for no reason. This looks for ONE résumé line that contains at
+// least 80% of the quote's content words and, if it finds one, uses THAT LINE — the résumé's own
+// literal text — as the evidence. Nothing the model wrote is kept; a paraphrase that does not sit
+// almost word for word in a single line is still dropped.
+function recoverQuote(quote: string, resumeText: string): string | null {
+  const words = (s: string) =>
+    s
+      .toLowerCase()
+      .replace(/[^a-z0-9+#%$.\s]/g, " ")
+      .split(/\s+/)
+      .map((w) => w.replace(/^\.+|\.+$/g, ""))
+      .filter((w) => w.length >= 3);
+  const want = words(quote);
+  if (want.length < 4) return null;
+  let best: { line: string; share: number } | null = null;
+  for (const raw of resumeText.split(/\r?\n/)) {
+    const line = raw.replace(/^[\s\-*•]+/, "").trim();
+    if (line.length < 10) continue;
+    const have = new Set(words(line));
+    const share = want.filter((w) => have.has(w)).length / want.length;
+    if (!best || share > best.share) best = { line, share };
+  }
+  return best && best.share >= 0.8 ? best.line : null;
+}
+
+// ---------- Consensus of several fit readings ----------
+/** How many independent readings decide a verdict. FIT_CONSENSUS=1 turns consensus off; a small
+ *  local model always uses 1, because three slow readings would stall the run. */
+function fitConsensusSamples(): number {
+  if (isSmallModel()) return 1;
+  const n = Number(process.env.FIT_CONSENSUS ?? 3);
+  return Number.isFinite(n) && n >= 1 ? Math.min(5, Math.floor(n)) : 3;
+}
+
+/** The requirement list one reading found: every requirement it matched or called missing. */
+function ledgerFromReading(r: LlmFitResult): LedgerItem[] {
+  const out: LedgerItem[] = [];
+  const seen = new Set<string>();
+  const add = (requirement: string, priority: "required" | "preferred") => {
+    const k = normRequirement(requirement);
+    if (!k || seen.has(k)) return;
+    seen.add(k);
+    out.push({ requirement, priority });
+  };
+  for (const m of r.matchedRequirements) add(m.requirement, m.priority === "preferred" ? "preferred" : "required");
+  for (const m of r.missingRequirements) add(m, "required");
+  for (const m of r.missingPreferredRequirements ?? []) add(m, "preferred");
+  return out;
+}
+
+/**
+ * One verdict from several readings, requirement by requirement. A requirement is met when a
+ * majority of readings matched it AND backed it with a quote that is really in the résumé; the
+ * evidence kept is that verified quote. Strength is "full" only when most of the agreeing
+ * readings said full — a tie goes to partial, the more cautious claim.
+ */
+function consensusOfReadings(readings: LlmFitResult[], ledger: LedgerItem[], resumeText: string): LlmFitResult {
+  const need = Math.floor(readings.length / 2) + 1;
+  const resumeSquashed = squash(resumeText);
+  const verify = (q?: string) =>
+    q && q.trim().length > 3 ? (resumeSquashed.includes(squash(q)) ? q : recoverQuote(q, resumeText)) : null;
+
+  const matchedRequirements: LlmFitResult["matchedRequirements"] = [];
+  const missingRequirements: string[] = [];
+  const missingPreferredRequirements: string[] = [];
+  for (const item of ledger) {
+    const votes = readings
+      .map((r) => r.matchedRequirements.find((m) => m.requirement === item.requirement))
+      .map((m) => (m ? { m, quote: verify(m.evidenceQuote) } : null))
+      .filter((v): v is { m: LlmFitResult["matchedRequirements"][number]; quote: string } => !!v && !!v.quote);
+    if (votes.length >= need) {
+      const full = votes.filter((v) => v.m.strength !== "partial").length;
+      matchedRequirements.push({
+        requirement: item.requirement,
+        priority: item.priority,
+        evidenceQuote: votes[0].quote,
+        strength: full > votes.length / 2 ? "full" : "partial",
+      });
+    } else if (item.priority === "preferred") {
+      missingPreferredRequirements.push(item.requirement);
+    } else {
+      missingRequirements.push(item.requirement);
+    }
+  }
+  return {
+    matchedRequirements,
+    missingRequirements,
+    missingPreferredRequirements,
+    reasoning: readings.find((r) => r.reasoning)?.reasoning ?? "",
+  };
 }
 
 // ---------- Memory: judging against a frozen requirement list ----------
@@ -1064,17 +1162,58 @@ async function performFitEvaluation(
   if (isLlmConfigured()) {
     try {
       const useLedger = !!ledger && ledger.length > 0;
-      const shown = useLedger ? ledgerPosting(jobText, ledger!) : jobText;
-      const raw = isSmallModel()
-        ? await smallModelFit(resumeText, shown, settings)
-        : await evaluateFitWithLlm(resumeText, shown, {
-            systemPrompt: settings.prompts.fit,
-            timeoutMs: settings.llmTimeoutMs,
-            maxInputChars: settings.llmMaxInputChars,
-          });
-      const llmResult = useLedger ? alignToLedger(raw, ledger!) : raw;
+      const readFit = (posting: string): Promise<LlmFitResult> =>
+        isSmallModel()
+          ? smallModelFit(resumeText, posting, settings)
+          : evaluateFitWithLlm(resumeText, posting, {
+              systemPrompt: settings.prompts.fit,
+              timeoutMs: settings.llmTimeoutMs,
+              maxInputChars: settings.llmMaxInputChars,
+            });
+
+      // CONSENSUS, NOT ONE ROLL OF THE DICE. A single model reading of the same résumé against
+      // the same fixed requirement list still varies run to run (one kit posting read 67%, 84%
+      // and 100% on three consecutive runs). Memory then froze whichever came first — including
+      // a 36% for an obvious fit. So the verdict is decided by several independent readings, run
+      // in parallel against the same list, and each requirement counts as met only when a
+      // MAJORITY of readings matched it with a quote verified in the résumé. That consensus is
+      // what memory saves; later runs reuse it and make no model call at all.
+      const samples = fitConsensusSamples();
+      let effectiveLedger: LedgerItem[] | null = useLedger ? ledger! : null;
+      let raw: LlmFitResult;
+      let consensusNote = "";
+      if (samples <= 1) {
+        raw = await readFit(effectiveLedger ? ledgerPosting(jobText, effectiveLedger) : jobText);
+      } else {
+        // First sight of this posting: one reading extracts the requirement list, which becomes the
+        // fixed list every other reading (and every later run) is judged against.
+        let first: LlmFitResult | null = null;
+        if (!effectiveLedger) {
+          first = await readFit(jobText);
+          effectiveLedger = ledgerFromReading(first);
+        }
+        const listPosting = ledgerPosting(jobText, effectiveLedger);
+        const extra = await Promise.allSettled(
+          Array.from({ length: first ? samples - 1 : samples }, () => readFit(listPosting))
+        );
+        const readings = [
+          ...(first ? [alignToLedger(first, effectiveLedger)] : []),
+          ...extra
+            .filter((r): r is PromiseFulfilledResult<LlmFitResult> => r.status === "fulfilled")
+            .map((r) => alignToLedger(r.value, effectiveLedger!)),
+        ];
+        if (readings.length === 0) throw new Error("every fit reading failed");
+        raw = consensusOfReadings(readings, effectiveLedger, resumeText);
+        consensusNote = `Consensus of ${readings.length} independent readings: a requirement counts as met only when a majority matched it with a quote verified in the résumé.`;
+      }
+      const llmResult = effectiveLedger ? alignToLedger(raw, effectiveLedger) : raw;
       const ledgerOut: LedgerItem[] = [];
-      const lowerResume = resumeText.toLowerCase();
+      // Whitespace-insensitive, words-exact. Résumé bullets wrap onto a second line (and PDF
+      // extraction wraps them constantly), while a model quotes the bullet as one line. A raw
+      // substring check treated a bullet split across two lines ("cutting a" / "6-hour ...") and
+      // the same words on one line as different text, and silently threw away real matches — Python (pandas) on a résumé that plainly lists it.
+      // Only runs of whitespace are collapsed; every word still has to appear, in order.
+      const resumeSquashed = squash(resumeText);
       const matchedEvidence: Record<string, string> = {};
       const matched: string[] = [];
       const matchStrength: Record<string, "full" | "partial"> = {};
@@ -1095,10 +1234,16 @@ async function performFitEvaluation(
         if (seenMatched.has(normRequirement(m.requirement))) continue;
         seenMatched.add(normRequirement(m.requirement));
         ledgerOut.push({ requirement: m.requirement, priority: m.priority === "preferred" ? "preferred" : "required" });
-        if (m.evidenceQuote && lowerResume.includes(m.evidenceQuote.toLowerCase())) {
+        const verifiedQuote =
+          m.evidenceQuote && m.evidenceQuote.trim().length > 3
+            ? resumeSquashed.includes(squash(m.evidenceQuote))
+              ? m.evidenceQuote
+              : recoverQuote(m.evidenceQuote, resumeText)
+            : null;
+        if (verifiedQuote) {
           const strength = m.strength === "partial" ? "partial" : "full";
           matched.push(m.requirement);
-          matchedEvidence[m.requirement] = m.evidenceQuote;
+          matchedEvidence[m.requirement] = verifiedQuote;
           matchStrength[m.requirement] = strength;
           // Weight table: required+full 1.0, required+partial 0.5,
           // preferred+full 0.5, preferred+partial 0.25. Partial experience
@@ -1171,6 +1316,7 @@ async function performFitEvaluation(
           ? `LLM semantic matching against the stored requirement list for this posting (${ledger!.length} requirements, same list and weights as the first evaluation).`
           : "LLM semantic matching.",
       ];
+      if (consensusNote) notes.push(consensusNote);
       if (lowConfidence) {
         notes.push(
           requirementCount < 3
@@ -1204,8 +1350,9 @@ async function performFitEvaluation(
         lowConfidence,
         requirementCount,
         unassessedRequirements,
-        ledger: useLedger ? ledger! : ledgerOut,
+        ledger: effectiveLedger ?? ledgerOut,
         fromLedger: useLedger,
+        droppedMatches: droppedCount,
         method: "llm",
         reasoning: llmResult.reasoning,
         note: notes.join(" "),
