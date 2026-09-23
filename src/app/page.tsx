@@ -47,7 +47,7 @@ function fitScoreColor(score: number): string {
 }
 
 type SystemStatus = {
-  database: { ok: boolean; mode: "turso" | "local-file" | "temporary"; degraded?: boolean; message: string };
+  database: { ok: boolean; mode: "postgres" | "turso" | "local-file" | "temporary"; degraded?: boolean; message: string };
   llm: { configured: boolean; model: string };
   scraper: { available: boolean };
 };
@@ -114,7 +114,9 @@ function SystemStatusPanel() {
           <StatusDot color={status.database.ok ? "green" : "red"} />
           <span className="text-neutral-900">
             Database:{" "}
-            {status.database.mode === "turso"
+            {status.database.mode === "postgres"
+              ? "Supabase (Postgres)"
+              : status.database.mode === "turso"
               ? "Turso"
               : status.database.mode === "temporary"
                 ? "temporary (nothing is being saved)"
