@@ -3,6 +3,7 @@
 import { useEffect, useState, use as usePromise } from "react";
 import { renderMarkdownPdf, DOC_STYLE_LABELS, type DocStyle, type PdfKind } from "@/lib/pdfRender";
 import VerificationPanel from "@/components/VerificationPanel";
+import ClassTrace from "@/components/ClassTrace";
 
 type TraceStep = {
   step: number;
@@ -15,7 +16,7 @@ type TraceStep = {
   chosenBy?: "model" | "harness" | "policy";
   modelReasoning?: string;
   overruled?: string;
-  brain?: "ai" | "code";
+  brain?: "ai" | "code" | "memory";
   thinking?: string;
   guidelines?: string;
   /** The same step in the class starter kit's vocabulary (ASK_USER, RECOMMEND, REJECT, ...). */
@@ -219,7 +220,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
   }
   const [collapsedReasoning, setCollapsedReasoning] = useState(false);
   const [collapsedRationale, setCollapsedRationale] = useState(false);
-  const [collapsedTrace, setCollapsedTrace] = useState(true);
+  const [collapsedTrace, setCollapsedTrace] = useState(false); // open by default: the trace is the assignment's evidence
   const [collapsedRawText, setCollapsedRawText] = useState(true);
 
   // Full-height vs internal scroll toggle for long boxes
@@ -1780,79 +1781,9 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
         </div>
 
         {!collapsedTrace && (
-          <div className="space-y-3 mt-4 max-h-[460px] overflow-y-auto pr-1">
-            {ev.trace.map((t) => (
-              <div key={t.step} className="border border-neutral-200 bg-neutral-50/70 rounded-xl p-3.5 text-xs">
-                <div className="font-mono font-bold text-neutral-900 mb-1 flex flex-wrap items-center justify-between gap-y-1">
-                  <span className="min-w-0 break-words">
-                    Step {t.step}: {t.selectedAction}
-                    {t.classAction && (
-                      <span
-                        className="ml-2 text-[10px] font-sans font-semibold px-2 py-0.5 rounded-full bg-sky-100 text-sky-900 align-middle"
-                        title="The same action named in the class starter kit's action vocabulary"
-                      >
-                        {t.classAction}
-                      </span>
-                    )}
-                  </span>
-                  {t.brain && (
-                    <span
-                      className={`text-[10px] font-sans font-semibold px-2 py-0.5 rounded-full mr-1 ${
-                        t.brain === "ai" ? "bg-indigo-600 text-white" : "bg-neutral-300 text-neutral-800"
-                      }`}
-                      title={t.brain === "ai" ? "An AI produced this step's output" : "A deterministic code rule produced this step (no AI)"}
-                    >
-                      {t.brain === "ai" ? "🧠 AI thinking" : "⚙ code rule"}
-                    </span>
-                  )}
-                  {t.chosenBy && (
-                    <span
-                      className={`text-[10px] font-sans font-semibold px-2 py-0.5 rounded-full ${
-                        t.chosenBy === "model"
-                          ? "bg-indigo-100 text-indigo-800"
-                          : t.chosenBy === "harness"
-                          ? "bg-neutral-200 text-neutral-700"
-                          : "bg-amber-100 text-amber-800"
-                      }`}
-                      title={
-                        t.chosenBy === "model"
-                          ? "The AI controller chose this from the actions the harness permitted"
-                          : t.chosenBy === "harness"
-                          ? "Only one action was permitted here, so a guardrail decided"
-                          : "The built-in policy chose (no AI controller, or it failed / proposed a forbidden action)"
-                      }
-                    >
-                      {t.chosenBy === "model" ? "AI chose" : t.chosenBy === "harness" ? "guardrail" : "default policy"}
-                    </span>
-                  )}
-                </div>
-                {t.availableActions.length > 1 && (
-                  <div className="text-neutral-500 mb-1">
-                    <span className="text-neutral-400 font-mono">permitted:</span> {t.availableActions.join(" | ")}
-                  </div>
-                )}
-                {(t.thinking || t.modelReasoning) && (
-                  <div className="text-indigo-900 bg-indigo-50 border border-indigo-200 rounded-lg px-2.5 py-1.5 mb-1.5 whitespace-pre-line">
-                    <span className="text-indigo-500 font-mono">agent&apos;s thinking:</span> {t.thinking || t.modelReasoning}
-                  </div>
-                )}
-                {t.overruled && (
-                  <div className="text-red-700 mb-1">
-                    <span className="font-mono">harness overruled:</span> {t.overruled}
-                  </div>
-                )}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 mb-1 text-neutral-600">
-                  <div><span className="text-neutral-400">Before:</span> {t.stateBefore.stage}</div>
-                  <div><span className="text-neutral-400">After:</span> {t.stateAfter.stage}</div>
-                </div>
-                <div className="mt-1 text-neutral-700">
-                  <span className="text-neutral-400 font-mono">observation:</span> {t.observation}
-                </div>
-                <div className="mt-1 text-neutral-700">
-                  <span className="text-neutral-400 font-mono">result:</span> {t.result}
-                </div>
-              </div>
-            ))}
+          <div className="mt-4 max-h-[640px] overflow-y-auto pr-1">
+            {/* Laid out in the class's own trace format and loop vocabulary (src/components/ClassTrace.tsx). */}
+            <ClassTrace trace={ev.trace} />
           </div>
         )}
       </div>

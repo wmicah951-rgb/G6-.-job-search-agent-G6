@@ -262,3 +262,23 @@ and `LLM_MODEL` for any OpenAI-compatible model, including a local Ollama.
 
 All of these run against whichever brain is configured, and the class-kit and matrix suites pass
 both with DeepSeek and with no model at all.
+
+## Every class requirement, in one command
+
+`npx tsx scripts/class-requirements-check.ts` quotes each requirement from the Week 2 lesson and
+proves it on the official kit data by running the real agent — no documentation involved:
+
+- the agency test (different postings → different executed sequences)
+- decision points with two or more materially different permitted actions
+- every trace step recording state before, observation, available actions, selected action,
+  result and state after, plus the kit's action name
+- the pause before any application material, and Approve / Edit / Reject each continuing correctly
+- ASK_USER as a real action, with the person's answer used to continue
+- every matched requirement backed by a literal résumé quote
+- hard constraints overriding a strong skill match (J003, J006)
+- J004 failing safely: injection flagged, AWS gap kept, nothing approved or drafted
+- no action and no library that could send, submit, post or contact anyone
+- the four required cases on the kit's own data
+
+Run it with no AI (`LLM_PROVIDER=none DEEPSEEK_API_KEY=`) for a free check of the loop and the
+guardrails, or with a model to also confirm the AI controller made the choices.

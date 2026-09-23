@@ -135,6 +135,28 @@ export default function AssignmentPage() {
         </table>
       </div>
 
+      <h2 className="text-base font-semibold mt-8 mb-2">The lesson&apos;s agent loop, where you can see it</h2>
+      <ul className="text-sm text-neutral-700 space-y-1.5 list-disc pl-5 leading-relaxed [&_a]:underline [&_a]:text-sky-800">
+        <li>
+          Open any job: its <strong>Agent Decision Trace</strong> is laid out in the lesson&apos;s exact order — state
+          before → observation → available actions → selected action → result → state after → next decision — with
+          each row labelled OBSERVE, DECIDE, ACT, RECORD or UPDATE STATE.
+        </li>
+        <li>
+          Each step says who made the call: the <strong>AI</strong> choosing among several permitted actions, a{" "}
+          <strong>guardrail</strong> when only one action was allowed, or a result <strong>recalled from memory</strong>{" "}
+          (the lesson&apos;s &ldquo;prior results&rdquo;).
+        </li>
+        <li>
+          Each step also carries the starter kit&apos;s action name: ASK_USER, CONTINUE_INVESTIGATION, RECOMMEND,
+          DOWN_RANK, REJECT, REQUEST_DRAFT_APPROVAL, DRAFT, FINISH.
+        </li>
+        <li>
+          Every requirement in the lesson is also checked in code, on the kit&apos;s own data, by{" "}
+          <a href={`${REPO}/scripts/class-requirements-check.ts`}>scripts/class-requirements-check.ts</a>.
+        </li>
+      </ul>
+
       <h2 className="text-base font-semibold mt-8 mb-2">Using it yourself</h2>
       <ul className="text-sm text-neutral-700 space-y-1.5 list-disc pl-5 leading-relaxed [&_a]:underline [&_a]:text-sky-800">
         <li>

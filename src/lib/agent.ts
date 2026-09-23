@@ -206,15 +206,16 @@ export interface StepMeta {
   overruled?: string;
   // Which version of agent-guidelines.md the controller was reading when it chose.
   guidelines?: string;
-  // "ai" = an AI produced this step's output; "code" = a deterministic rule did.
-  brain?: "ai" | "code";
+  // "ai" = an AI produced this step's output; "code" = a deterministic rule did; "memory" = the
+  // agent recalled a judgment an AI made on an earlier run (the class's "prior results").
+  brain?: "ai" | "code" | "memory";
   // The agent's own explanation for the step, in words (the AI's reasoning, or what it read).
   thinking?: string;
 }
 
 export interface TraceStep {
   guidelines?: string;
-  brain?: "ai" | "code";
+  brain?: "ai" | "code" | "memory";
   thinking?: string;
   chosenBy?: ChosenBy;
   modelReasoning?: string;
@@ -2253,7 +2254,7 @@ export async function runAgent(
       state,
       {
         ...meta,
-        brain: cached ? "code" : fit.method === "llm" ? "ai" : "code",
+        brain: cached ? "memory" : fit.method === "llm" ? "ai" : "code",
         thinking: cached
           ? `Recalled from memory (the AI model scored this posting against this résumé on an earlier run): ${fit.reasoning ?? ""}`
           : fit.reasoning ?? "Keyword matcher (no AI): counted the skills named in both the posting and the résumé.",

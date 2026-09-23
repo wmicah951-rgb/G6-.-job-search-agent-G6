@@ -39,3 +39,17 @@ actions → selected action → result → state after — plus three things the
 | HITL + guardrails | 15 | Approve / Edit / Reject before any draft; injection refusal; hard constraints in code; the draft verifier; nothing is ever sent |
 | Evaluation / testing | 15 | The kit's six cases, the Test Lab's 21, and eleven command-line suites (`TESTING-GUIDE.md`) |
 | Demo / explanation | 10 | `G6-AGENT.md` (plain-language, layer by layer), the Harness screen, and `docs/submission/TEACHER-QA.md` |
+
+## One command for the whole lesson
+
+`npx tsx scripts/class-requirements-check.ts` checks every requirement from the Week 2 lesson
+against the running code on the official kit data — see `TESTING-GUIDE.md`.
+
+## Where the class's trace format is visible in the app
+
+Every job page opens with the **Agent Decision Trace** laid out in the lesson's own order and
+words: STATE before → OBSERVE → DECIDE (available actions, selected action and why) → ACT →
+RECORD (result) → UPDATE STATE (what changed) → NEXT decision. Above the steps: the loop as taught
+(OBSERVE → DECIDE → ACT → RECORD → UPDATE STATE), this posting's path in the kit's action names,
+and how many steps the AI chose versus a guardrail. A score recalled from an earlier run is
+labelled "recalled from memory" — the lesson's "prior results" — not "code".

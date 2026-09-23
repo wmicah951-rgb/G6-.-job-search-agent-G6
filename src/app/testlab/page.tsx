@@ -51,7 +51,7 @@ type Result = {
       action: string;
       classAction?: string | null;
       chosenBy: "model" | "harness" | "policy" | null;
-      brain: "ai" | "code" | null;
+      brain: "ai" | "code" | "memory" | null;
       thinking: string | null;
       permitted: string[];
       result: string;
@@ -394,8 +394,8 @@ export default function TestLabPage() {
                                             {st.classAction}
                                           </span>
                                         )}
-                                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${st.brain === "ai" ? "bg-indigo-600 text-white" : "bg-neutral-300 text-neutral-800"}`}>
-                                          {st.brain === "ai" ? "🧠 AI thinking" : "⚙ code rule"}
+                                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${st.brain === "ai" ? "bg-indigo-600 text-white" : st.brain === "memory" ? "bg-emerald-100 text-emerald-900" : "bg-neutral-300 text-neutral-800"}`}>
+                                          {st.brain === "ai" ? "🧠 AI thinking" : st.brain === "memory" ? "🗂 recalled from memory" : "⚙ code rule"}
                                         </span>
                                         {st.chosenBy && (
                                           <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${st.chosenBy === "model" ? "bg-indigo-100 text-indigo-800" : st.chosenBy === "harness" ? "bg-neutral-200 text-neutral-700" : "bg-amber-100 text-amber-800"}`}>
