@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import SamplesPanel from "@/components/SamplesPanel";
 
 type JobRow = {
   id: string;
@@ -176,11 +177,15 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [activeProfileName, setActiveProfileName] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetch("/api/jobs")
+  function loadJobs() {
+    return fetch("/api/jobs")
       .then((r) => r.json())
       .then((d) => setJobs(d.jobs ?? []))
       .finally(() => setLoading(false));
+  }
+
+  useEffect(() => {
+    loadJobs();
     fetch("/api/profiles")
       .then((r) => r.json())
       .then((d) => setActiveProfileName(d.profiles?.find((p: { isActive: boolean; name: string }) => p.isActive)?.name ?? null));
@@ -258,11 +263,19 @@ export default function Dashboard() {
         (<a href="/upload" className="underline hover:text-neutral-900">change profile</a>)
       </p>
 
+      {!loading && (
+        <SamplesPanel
+          prominent={jobs.length === 0}
+          onProfileChanged={(name) => setActiveProfileName(name)}
+          onPostingsLoaded={() => loadJobs()}
+        />
+      )}
+
       {loading && <p className="text-sm text-neutral-500">Loading postings…</p>}
 
       {!loading && jobs.length === 0 && (
         <div className="border border-dashed border-neutral-300 rounded-2xl p-12 text-center text-neutral-500 bg-white">
-          No postings evaluated yet. Click "+ Add a Posting" to see the agent run.
+          No postings evaluated yet. Run the class kit above, or click &ldquo;+ Add a Posting&rdquo; to paste your own.
         </div>
       )}
 

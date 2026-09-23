@@ -55,6 +55,7 @@ for (const [name, sql, expected] of cases) {
 const files = [
   path.join("src", "lib", "db.ts"),
   path.join("src", "lib", "memory.ts"),
+  path.join("src", "lib", "evaluateJob.ts"),
   ...fs
     .readdirSync(path.join(__dirname, "..", "src", "app", "api"), { recursive: true, encoding: "utf-8" })
     .filter((f) => f.endsWith("route.ts"))

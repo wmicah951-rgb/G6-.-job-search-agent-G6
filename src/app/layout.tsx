@@ -28,6 +28,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               <a href="/upload" className="shrink-0 text-sm text-neutral-600 hover:text-neutral-900 font-medium">Resume &amp; Preferences</a>
               <a href="/testlab" className="shrink-0 text-sm text-neutral-600 hover:text-neutral-900 font-medium">Test Lab</a>
               <a href="/harness" className="shrink-0 text-sm text-neutral-600 hover:text-neutral-900 font-medium">Harness</a>
+              <a href="/assignment" className="shrink-0 text-sm text-neutral-600 hover:text-neutral-900 font-medium">Assignment</a>
             </div>
           </div>
         </nav>
