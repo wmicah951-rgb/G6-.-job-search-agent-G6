@@ -36,6 +36,12 @@ or a SQLite-only function.
    SUPABASE_DB_URL=postgresql://postgres.<project-ref>:<password>@aws-0-<region>.pooler.supabase.com:6543/postgres
    ```
 
+   Use the **pooler** host, not the direct `db.<project-ref>.supabase.co` one. The direct host is
+   IPv6-only on current Supabase projects and Vercel's functions are IPv4, so the live site failed
+   with `getaddrinfo ENOTFOUND` even though it worked from a laptop. This project's pooler is
+   `aws-0-ca-central-1`, on port **6543** (transaction mode — the right one for serverless, where
+   many short-lived instances would exhaust session-mode connections).
+
 3. TLS is verified against Supabase's own CA, committed at `certs/supabase-prod-ca.crt`
    (their direct host is not signed by a CA in the system store, so plain verification fails
    with "self-signed certificate in certificate chain"). The file ships with the deploy via

@@ -186,3 +186,25 @@ Read that carefully, because it is the architecture working as designed:
 
 So a small local model gives you a working agent with weaker early warnings. For the
 demo, use DeepSeek (13/13); for "it runs fully offline", Ollama is genuinely usable.
+
+## A backup brain, for emergencies only
+
+DeepSeek is the agent's brain. Twice during development it stopped answering — once out of credit
+mid-session — and every model call failed, so the agent quietly fell back to its keyword matcher.
+Safe, but the AI was gone.
+
+`src/lib/llmEvaluator.ts` now stands a second provider behind the first. It is used **only** for a
+call that has actually failed on the primary: never on a healthy run, never as a second opinion.
+Because it is meant to run rarely, it is a small, cheap model — Claude Haiku 4.5
+(`ANTHROPIC_MODEL=claude-haiku-4-5-20251001`) with no extended thinking. Its answers go through
+exactly the same verification as the primary's.
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `LLM_BACKUP_PROVIDER` | `anthropic` | which provider stands behind the primary |
+| `LLM_BACKUP` | on | set to `off` to disable the backup |
+
+`npx tsx scripts/backup-brain-test.ts` proves both halves: with DeepSeek healthy the backup is
+called zero times; with DeepSeek broken (a bad key forced for that process only) the backup
+handles every call and the agent reaches the same decision on AI output rather than keywords.
+`/api/system-status` reports the backup model and how many times it has stepped in.

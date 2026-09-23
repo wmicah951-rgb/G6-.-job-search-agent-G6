@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { ensureSchema, isDegraded, isTursoConfigured, testDbConnection } from "@/lib/db";
-import { isLlmConfigured, getModelName } from "@/lib/llmEvaluator";
+import { isLlmConfigured, getModelName, backupStatus } from "@/lib/llmEvaluator";
 
 // Auto-run checks only — the database check is a free SELECT 1, cheap enough
 // to run on every dashboard load. The LLM check is deliberately NOT run here:
@@ -22,6 +22,8 @@ export async function GET() {
     llm: {
       configured: isLlmConfigured(),
       model: getModelName(),
+      // The last-resort backup brain, and how often it has had to step in (see llmEvaluator.ts).
+      backup: backupStatus(),
     },
     scraper: {
       // No API key or external account needed — always available, best-effort

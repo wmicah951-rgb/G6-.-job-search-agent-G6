@@ -47,6 +47,56 @@ function selectProvider(): LlmProvider | null {
   return null;
 }
 
+// ---------- LAST-RESORT BACKUP BRAIN ----------
+// The primary brain (DeepSeek) has gone down twice in practice: once out of credit mid-session,
+// once returning errors. Each time every model call failed and the agent quietly dropped to the
+// keyword matcher — still safe, but the demo lost its AI. So a SECOND provider stands behind the
+// first, used only for the one call that failed and only when the primary actually errors:
+// never on a normal run, never to "double-check", never for a second opinion. It is meant to be
+// used rarely, so it is a small, cheap model (ANTHROPIC_MODEL, Haiku by default) with no
+// extended thinking. The guardrails do not change: whatever answers, its output goes through
+// exactly the same verification as the primary's.
+//
+//   LLM_BACKUP_PROVIDER=anthropic   (default) which provider stands behind the primary
+//   LLM_BACKUP=off                  disable the backup entirely
+let backupUses = 0;
+let lastBackupReason = "";
+
+function backupProvider(primary: LlmProvider): LlmProvider | null {
+  if ((process.env.LLM_BACKUP ?? "").toLowerCase() === "off") return null;
+  const name = (process.env.LLM_BACKUP_PROVIDER ?? "anthropic").toLowerCase();
+  const backup = PROVIDERS[name];
+  if (!backup || backup === primary || !backup.isConfigured()) return null;
+  return backup;
+}
+
+/** Runs a model call on the primary provider, and on the backup only if the primary fails. */
+async function withBackup<T>(what: string, run: (p: LlmProvider) => Promise<T>): Promise<T> {
+  const primary = selectProvider();
+  if (!primary) throw new Error("No LLM provider configured.");
+  try {
+    return await run(primary);
+  } catch (err) {
+    const backup = backupProvider(primary);
+    if (!backup) throw err;
+    backupUses += 1;
+    lastBackupReason = `${primary.name} failed on ${what}: ${String(err).slice(0, 140)}`;
+    console.warn(`[llm] ${lastBackupReason} — using backup ${backup.name}:${backup.model} for this call only.`);
+    return run(backup);
+  }
+}
+
+/** How often the backup has stepped in since this server instance started, and why. */
+export function backupStatus(): { provider: string | null; uses: number; lastReason: string } {
+  const primary = selectProvider();
+  const backup = primary ? backupProvider(primary) : null;
+  return {
+    provider: backup ? `${backup.name}:${backup.model}` : null,
+    uses: backupUses,
+    lastReason: lastBackupReason,
+  };
+}
+
 // SMALL-MODEL MODE. A local model (Ollama, LM Studio, llama.cpp) is slower and much less
 // reliable at structured output than a hosted one, so the agent asks it easier questions:
 // pick a number from a menu, rank a short list, choose from presets the harness built from the
@@ -66,9 +116,10 @@ export async function completeJsonWithLlm(
   maxTokens: number,
   timeoutMs: number
 ): Promise<unknown> {
-  const provider = selectProvider();
-  if (!provider?.completeJson) throw new Error("This provider does not support small-model JSON mode.");
-  return provider.completeJson(system, user, maxTokens, timeoutMs);
+  return withBackup("small-model JSON", (p) => {
+    if (!p.completeJson) throw new Error("This provider does not support small-model JSON mode.");
+    return p.completeJson(system, user, maxTokens, timeoutMs);
+  });
 }
 
 export function isLlmConfigured(): boolean {
@@ -88,9 +139,7 @@ export async function assessPostingWithLlm(
   jobText: string,
   opts?: LlmCallOptions
 ): Promise<LlmPostingAssessment> {
-  const provider = selectProvider();
-  if (!provider) throw new Error("No LLM provider configured.");
-  return provider.assessPosting(jobText, opts);
+  return withBackup("reading the posting", (p) => p.assessPosting(jobText, opts));
 }
 
 // The controller step: pick the next action from a harness-supplied permitted list.
@@ -100,17 +149,13 @@ export async function chooseActionWithLlm(
   situation: string,
   opts?: LlmCallOptions
 ): Promise<LlmActionChoice> {
-  const provider = selectProvider();
-  if (!provider) throw new Error("No LLM provider configured.");
-  return provider.chooseAction(situation, opts);
+  return withBackup("choosing the next action", (p) => p.chooseAction(situation, opts));
 }
 
 // The advisor: the agent's recommendation to the human. Throws on no provider / failure so
 // the caller can fall back to a deterministic recommendation.
 export async function adviseHumanWithLlm(situation: string, opts?: LlmCallOptions): Promise<LlmAdvice> {
-  const provider = selectProvider();
-  if (!provider) throw new Error("No LLM provider configured.");
-  return provider.adviseHuman(situation, opts);
+  return withBackup("advising the human", (p) => p.adviseHuman(situation, opts));
 }
 
 // Second tailoring pass: rewrite bullets the drafter copied through verbatim. Throws on no
@@ -121,9 +166,7 @@ export async function rewriteBulletsWithLlm(
   mirror: string[],
   opts?: LlmCallOptions
 ): Promise<LlmBulletRewrite> {
-  const provider = selectProvider();
-  if (!provider) throw new Error("No LLM provider configured.");
-  return provider.rewriteBullets(bullets, jobTitle, mirror, opts);
+  return withBackup("rewriting bullets", (p) => p.rewriteBullets(bullets, jobTitle, mirror, opts));
 }
 
 export async function evaluateFitWithLlm(
@@ -131,9 +174,7 @@ export async function evaluateFitWithLlm(
   jobText: string,
   opts?: LlmCallOptions
 ): Promise<LlmFitResult> {
-  const provider = selectProvider();
-  if (!provider) throw new Error("No LLM provider configured.");
-  return provider.evaluateFit(resumeText, jobText, opts);
+  return withBackup("scoring the fit", (p) => p.evaluateFit(resumeText, jobText, opts));
 }
 
 // A minimal call used ONLY when a human explicitly clicks "Test connection" on
@@ -157,10 +198,11 @@ export async function draftApplicationMaterials(
   editNote: string | null,
   opts?: LlmCallOptions
 ): Promise<import("./llm/types").LlmDraftResult | null> {
-  const provider = selectProvider();
-  if (!provider) return null;
+  if (!selectProvider()) return null;
   try {
-    return await provider.draftApplicationMaterials(matchedEvidence, missingSkills, jobText, resumeText, editNote, opts);
+    return await withBackup("drafting", (p) =>
+      p.draftApplicationMaterials(matchedEvidence, missingSkills, jobText, resumeText, editNote, opts)
+    );
   } catch (err) {
     console.error("[LLM Draft] Failed, falling back to deterministic draft:", err);
     return null;
