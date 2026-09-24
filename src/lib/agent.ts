@@ -168,6 +168,14 @@ export interface AgentState {
     droppedFromDraft?: string[];
     /** The affirmative gap answers read out of the note and used as evidence. */
     confirmedFromNote?: string[];
+    /** Original résumé lines the draft left out, put back verbatim before scoring. */
+    restoredLines?: string[];
+    /** Requirements whose confirmed YES answer was added to the document in the person's words. */
+    addedFromNote?: string[];
+    /** Requirements answered NO that the scorer still read as covered from another line. */
+    inferredDespiteNo?: string[];
+    /** True when `after` is the score of the tailored document alone (what a re-upload gets). */
+    scoredDocument?: boolean;
   } | null;
   // MEMORY FOR THIS POSTING. The requirement list the first evaluation of this exact posting
   // extracted, frozen so that every later evaluation (a re-run, another résumé version, the
@@ -189,6 +197,8 @@ export interface AgentMemory {
   ledger?: LedgerItem[] | null;
   /** A saved verdict for this exact posting + résumé + matcher prompt, if one exists. */
   cachedFit?: FitEvaluation | null;
+  /** Résumé sentences already judged to prove this posting's requirements (any earlier verdict). */
+  knownEvidence?: KnownEvidence[];
   /** Earlier scores for this posting, newest first. */
   history?: { score: number | null; profile: string | null; at: string }[];
 }
@@ -927,6 +937,8 @@ export interface FitEvaluation {
   /** True when the backup brain answered some of the readings because the primary failed. Such a
    *  verdict is used for this run but never saved: memory holds only the primary brain's judgments. */
   viaBackup?: boolean;
+  /** Requirements credited from evidence already judged for this posting (see mergeKnownEvidence). */
+  keptFromMemory?: string[];
   method: "llm" | "deterministic";
   reasoning: string | null;
   note: string;
@@ -1065,6 +1077,151 @@ function recoverQuote(quote: string, resumeText: string): string | null {
     if (!best || share > best.share) best = { line, share };
   }
   return best && best.share >= 0.8 ? best.line : null;
+}
+
+// ---------- Keeping the tailored résumé whole ----------
+// A tailored résumé is also the résumé the person uploads next and sends to OTHER employers. A
+// draft that trims a bullet about database work for a statistics job quietly costs them the next
+// job that asks for databases (a real posting fell from 100% to 70% that way). These helpers put
+// the original's own lines back, and add the person's confirmed answers, without inventing a word.
+
+/** A dropped original line worth restoring: real content, not a disclaimer, contact line or label. */
+export function keepWorthyLine(line: string): boolean {
+  const l = line.trim();
+  if (/^\*[^*\s]/.test(l) && /\*$/.test(l)) return false; // "*Fictional résumé created for…*"
+  if (/@|\(\d{3}\)|linkedin\.com|^#/.test(l)) return false;
+  return l.replace(/[^a-z]/gi, "").length >= 15;
+}
+
+const headingKey = (l: string) => l.replace(/^#+\s*/, "").toLowerCase().replace(/[^a-z]+/g, " ").trim();
+const isBullet = (l: string) => /^\s*[-•]\s|^\s*\*\s/.test(l);
+const isEntry = (l: string) => /^\s*\*\*[^*]{3,}\*\*/.test(l);
+const isHeading = (l: string) => /^\s*#{1,6}\s/.test(l);
+
+/**
+ * Puts original résumé lines back into a tailored résumé that dropped them: under the same
+ * employer/project entry when the draft still has it, otherwise at the end of the same section,
+ * otherwise in an "Additional experience" section. The lines go back verbatim.
+ */
+export function restoreOriginalLines(tailored: string, original: string, lines: string[]): string {
+  const out = tailored.replace(/\s+$/, "").split(/\r?\n/);
+  const orig = original.split(/\r?\n/);
+  const leftovers: string[] = [];
+  const present = () => squash(out.join("\n"));
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line || present().includes(squash(line.replace(/^[-*•]\s*/, "")))) continue;
+    const idx = orig.findIndex((l) => squash(l) === squash(line) || squash(l).includes(squash(line)));
+    let section = "";
+    let entry = "";
+    for (let i = idx - 1; i >= 0; i--) {
+      const l = orig[i].trim();
+      if (!entry && isEntry(l) && !isEntry(line)) entry = (l.match(/^\*\*([^*]+)\*\*/) ?? ["", ""])[1];
+      if (isHeading(l)) {
+        section = headingKey(l);
+        break;
+      }
+    }
+    const text = isEntry(line) || isBullet(line) ? line : `- ${line}`;
+    let at = -1;
+    const entryKey = squash(entry.split(/\s[—–|-]\s/)[0] ?? "");
+    if (idx >= 0 && entryKey.length >= 4) {
+      const e = out.findIndex((l) => isEntry(l) && squash(l).includes(entryKey));
+      if (e >= 0) {
+        at = e + 1;
+        while (at < out.length && out[at].trim() && !isHeading(out[at]) && !isEntry(out[at])) at++;
+      }
+    }
+    if (at < 0 && idx >= 0 && section) {
+      const h = out.findIndex((l) => isHeading(l) && headingKey(l) === section);
+      if (h >= 0) {
+        at = h + 1;
+        while (at < out.length && !isHeading(out[at])) at++;
+        while (at > h + 1 && !out[at - 1].trim()) at--;
+      }
+    }
+    if (at < 0) {
+      leftovers.push(text);
+      continue;
+    }
+    out.splice(at, 0, text);
+  }
+  if (leftovers.length) out.push("", "## Additional Experience", ...leftovers);
+  return out.join("\n") + "\n";
+}
+
+/** Adds the person's confirmed answers as their own labelled lines. */
+export function addQualifications(tailored: string, lines: string[]): string {
+  const out = tailored.replace(/\s+$/, "").split(/\r?\n/);
+  const fresh = lines.filter((l) => !squash(out.join("\n")).includes(squash(l.replace(/^-\s*/, ""))));
+  if (!fresh.length) return tailored;
+  const h = out.findIndex((l) => isHeading(l) && headingKey(l) === "additional qualifications");
+  if (h < 0) return [...out, "", "## Additional Qualifications", ...fresh].join("\n") + "\n";
+  let at = h + 1;
+  while (at < out.length && !isHeading(out[at])) at++;
+  while (at > h + 1 && !out[at - 1].trim()) at--;
+  out.splice(at, 0, ...fresh);
+  return out.join("\n") + "\n";
+}
+
+/** A résumé line that has already been judged to prove one requirement of a posting. */
+export interface KnownEvidence {
+  requirement: string;
+  quote: string;
+  strength: "full" | "partial";
+}
+
+/**
+ * EVIDENCE ALREADY JUDGED STAYS JUDGED. Every verified match is "this posting's requirement R is
+ * proved by the résumé sentence Q". When a later résumé still contains Q (word for word, or reworded
+ * so that one of its sentences keeps 80% of Q's words), R is proved there too, whatever one sampled
+ * reading happens to say this time. Without this, a tailored résumé that kept the SQL bullet and the
+ * degree line scored 100% -> 70% on another posting, because the readings simply voted differently.
+ * The evidence recorded is always the document's own text, never the remembered quote.
+ * Score recomputed on the fixed list with the usual weights (required 1, preferred 0.5, partial half).
+ */
+export function mergeKnownEvidence(fit: FitEvaluation, document: string, known: KnownEvidence[], ledger: LedgerItem[]): FitEvaluation {
+  if (!known.length || !ledger.length || fit.method !== "llm") return fit;
+  const doc = squash(document);
+  const found: Record<string, { quote: string; strength: "full" | "partial" }> = {};
+  for (const k of known) {
+    const item = ledger.find((l) => l.requirement === k.requirement);
+    if (!item || fit.matched.includes(item.requirement) || !k.quote || k.quote.trim().length < 8) continue;
+    const here = doc.includes(squash(k.quote)) ? k.quote : recoverQuote(k.quote, document);
+    if (!here) continue;
+    const had = found[item.requirement];
+    if (!had || (had.strength === "partial" && k.strength === "full")) found[item.requirement] = { quote: here, strength: k.strength };
+  }
+  const add = Object.keys(found);
+  if (!add.length) return fit;
+  const matched = [...fit.matched, ...add];
+  const matchedEvidence = { ...fit.matchedEvidence };
+  const matchStrength = { ...(fit.matchStrength ?? {}) };
+  for (const m of add) {
+    matchedEvidence[m] = found[m].quote;
+    matchStrength[m] = found[m].strength;
+  }
+  const weight = (r: string) => (ledger.find((l) => l.requirement === r)?.priority === "preferred" ? 0.5 : 1);
+  const total = ledger.reduce((s, l) => s + weight(l.requirement), 0);
+  const got = matched
+    .filter((m) => ledger.some((l) => l.requirement === m))
+    .reduce((s, m) => s + weight(m) * (matchStrength[m] === "partial" ? 0.5 : 1), 0);
+  return {
+    ...fit,
+    matched,
+    missing: fit.missing.filter((m) => !add.includes(m)),
+    missingPreferred: (fit.missingPreferred ?? []).filter((m) => !add.includes(m)),
+    matchedEvidence,
+    matchStrength,
+    score: total === 0 ? 0 : Math.round((Math.min(got, total) / total) * 100) / 100,
+    keptFromMemory: add,
+    note: `${fit.note} Kept ${add.length} requirement(s) (${add.join("; ")}) proved by résumé sentence(s) already judged for this posting that this résumé still contains.`,
+  };
+}
+
+/** The verified matches of a fit, as evidence later résumés can be held to. */
+export function evidenceOf(matched: string[], evidence: Record<string, string>, strength: Record<string, "full" | "partial"> = {}): KnownEvidence[] {
+  return matched.filter((m) => evidence[m]).map((m) => ({ requirement: m, quote: evidence[m], strength: strength[m] ?? "full" }));
 }
 
 // ---------- Consensus of several fit readings ----------
@@ -2389,7 +2546,12 @@ export async function runAgent(
     // runs. Otherwise judge against the stored requirement list when there is one, so only the
     // résumé side can move the score. A first look extracts the list and it is stored after.
     const cached = memory.cachedFit && memory.cachedFit.method === "llm" && isLlmConfigured() ? memory.cachedFit : null;
-    const fit = cached ?? (await performFitEvaluation(resumeText, jobText, settings, memory.ledger ?? null));
+    let fit = cached ?? (await performFitEvaluation(resumeText, jobText, settings, memory.ledger ?? null));
+    // A fresh verdict is held to what earlier verdicts on this posting already proved (see
+    // mergeKnownEvidence). A saved verdict for this exact résumé is reused exactly as it was.
+    if (!cached && fit.ledger?.length && memory.knownEvidence?.length) {
+      fit = mergeKnownEvidence(fit, resumeText, memory.knownEvidence, fit.ledger);
+    }
     lastFit = fit;
     const previous = memory.history?.find((h) => h.score !== null)?.score ?? null;
     const memoryNote: AgentMemoryNote = {
@@ -2680,6 +2842,8 @@ export async function applyHumanDecision(
   const trace = [...prior.trace];
   let step = trace.length;
   let state = { ...prior.state };
+  // The document verdict the re-score reached, returned so the caller can save it as memory.
+  let rescoreFit: FitEvaluation | null = null;
   settings = withGuidelines(settings, loadGuidelines());
   if (isSmallModel()) settings = smallModelSettings(settings);
 
@@ -2858,105 +3022,103 @@ export async function applyHumanDecision(
             ];
       const originalRequirements = ledger.map((l) => l.requirement);
 
-      // WHAT THE PERSON TOLD US COUNTS. When someone answers a gap with "YES — I build PowerPoint
-      // decks every week", the drafter uses it, but the re-score used to read ONLY the rewritten
-      // résumé, so the answer never reached the number and the person saw no credit for it. Their
-      // confirmed experience is now part of the evidence the re-score reads, as its own clearly
-      // labelled section; a "no / can learn" answer is excluded, because it is not experience.
+      // THE NUMBER ON SCREEN IS THE NUMBER THE FILE GETS. The re-score used to read the tailored
+      // résumé PLUS the person's note, credit every YES answer directly, and keep every earlier match
+      // even when the draft had dropped its evidence. So the app could show 77% for a file that, once
+      // downloaded and uploaded as the résumé, scored 46%: a YES to "Master's degree" was counted
+      // although the draft (rightly) never wrote a degree, and a dropped bullet was counted although
+      // it was gone. Now the agent checks the document itself, repairs it, and re-checks it:
+      //   1. anything the draft left out of the original résumé is put back, in the résumé's own
+      //      words, so the tailored version still works for OTHER postings too;
+      //   2. the document alone is scored against the same requirement list;
+      //   3. evidence the rewrite lost, and YES answers the draft did not carry, are added to the
+      //      document (the person's own words, labelled as theirs) and it is scored again.
+      // What gets scored is exactly what the person downloads, and that verdict is saved to memory
+      // so uploading the file later reopens the very same score.
       const confirmed = confirmedExperienceFromNote(editNote);
-      const evidence =
-        tailoredResume +
-        (confirmed.length
-          ? `\n\n## Experience the candidate confirmed in their own note\n${confirmed.map((c) => `- ${c}`).join("\n")}\n`
-          : "");
+      const denied = deniedFromNote(editNote)
+        .map((d) => ledgerItemFor(d, ledger)?.requirement)
+        .filter((r): r is string => !!r);
+      const yesAnswers = confirmedAnswers(editNote)
+        .map((a) => ({ ...a, item: ledgerItemFor(a.requirement, ledger) }))
+        .filter((a): a is typeof a & { item: LedgerItem } => !!a.item && !denied.includes(a.item.requirement));
 
-      const reread = await performFitEvaluation(evidence, jobText, settings, ledger);
-
-      // NEVER LOSE WHAT THE RÉSUMÉ ALREADY PROVED. The re-score used to judge everything from
-      // scratch, so a borderline match could flip (a degree matched at 60%, "missing" at 54%) and
-      // the score fell even though the person only added true information. The candidate still has
-      // every fact the original evaluation verified; the rewrite only rewords them. So a requirement
-      // matched before stays matched (at the stronger of the two strengths), and the re-score
-      // measures what the rewrite and the person's answers ADDED. If the rewrite genuinely dropped
-      // the evidence for something, that is reported as a defect in the draft to fix — not hidden in
-      // a lower number.
-      const weightOf = (req: string) => (ledger.find((l) => l.requirement === req)?.priority === "preferred" ? 0.5 : 1);
-      const strengthAfter: Record<string, "full" | "partial"> = {};
-      for (const m of reread.matched) strengthAfter[m] = reread.matchStrength?.[m] ?? "full";
-      // A requirement the person answered "NO" to is a gap they told us about. Whatever the draft
-      // says, it cannot become a match on the re-score (a replay counted HIPAA from a sentence the
-      // drafter wrote after the person said they had never done it). Only the original résumé can
-      // override that, and it is handled just below.
-      for (const denied of deniedFromNote(editNote)) {
-        const item = ledgerItemFor(denied, ledger);
-        if (item) delete strengthAfter[item.requirement];
+      let document = tailoredResume;
+      const restored: string[] = [];
+      const addedFromNote: string[] = [];
+      // 1. Lines of the original résumé the draft did not carry over at all.
+      const leftOut = (state.draftVerification?.droppedFromOriginal ?? []).filter(keepWorthyLine);
+      if (resumeText && leftOut.length) {
+        document = restoreOriginalLines(document, resumeText, leftOut);
+        restored.push(...leftOut);
       }
-      // A YES answer is credited directly: it is the person's own statement about their own
-      // experience, so it should not depend on whether a model happens to agree on this run (a bare
-      // "YES EASY I DO AND CAN" was credited on one replay and not the next). Described in a few
-      // words it counts as full experience; a bare "yes" counts as partial.
-      const creditedFromAnswers: string[] = [];
-      for (const a of confirmedAnswers(editNote)) {
-        const item = ledgerItemFor(a.requirement, ledger);
-        if (!item) continue;
-        const strength = a.detailed ? "full" : "partial";
-        const had = strengthAfter[item.requirement];
-        strengthAfter[item.requirement] = had === "full" || strength === "full" ? "full" : "partial";
-        creditedFromAnswers.push(item.requirement);
-      }
-      for (const m of state.matchedSkills) {
-        const was = state.matchStrength?.[m] ?? "full";
-        const now = strengthAfter[m];
-        strengthAfter[m] = now === "full" || was === "full" ? "full" : "partial";
-      }
-      const afterMatched = originalRequirements.filter((r) => strengthAfter[r]);
-      const afterMissing = originalRequirements.filter((r) => !strengthAfter[r]);
-      const scoreOf = (strength: Record<string, "full" | "partial">) => {
-        const total = originalRequirements.reduce((s, r) => s + weightOf(r), 0);
-        const got = originalRequirements.reduce(
-          (s, r) => s + (strength[r] ? weightOf(r) * (strength[r] === "partial" ? 0.5 : 1) : 0),
-          0
-        );
-        return total === 0 ? 0 : Math.round((got / total) * 100) / 100;
-      };
-      const beforeStrength: Record<string, "full" | "partial"> = {};
-      for (const m of state.matchedSkills) beforeStrength[m] = state.matchStrength?.[m] ?? "full";
-      // "Before" is the score the person SAW on the job. The gain is measured on the fixed ledger and
-      // added to it, so the two numbers always line up with what is on screen.
-      const scoreBeforeOnLedger = scoreBefore;
-      const gain = Math.max(0, scoreOf(strengthAfter) - scoreOf(beforeStrength));
-      const after = {
-        score: Math.min(1, Math.round((scoreBefore + gain) * 100) / 100),
-        matched: afterMatched,
-        missing: afterMissing,
-        matchedEvidence: { ...state.matchedEvidence, ...reread.matchedEvidence },
-        method: reread.method,
-      };
-
-      // Evidence the rewrite dropped: matched on the original résumé, not findable in the draft.
-      const tailoredSquashed = squash(tailoredResume);
-      // Only when BOTH are true: the re-reading could not find it in the draft, and the original
-      // quote is gone. A rewrite that regroups a skills line keeps the evidence (the re-reading still
-      // matches it), and that is not a defect worth warning about.
-      const rereadFound = new Set(reread.matched);
-      const droppedFromDraft = state.matchedSkills.filter((m) => {
+      // 2. Score the document alone.
+      let docFit = await performFitEvaluation(document, jobText, settings, ledger);
+      // 3. One repair pass for what is still not evidenced in the document.
+      const lostEvidence = state.matchedSkills.filter((m) => {
         const q = state.matchedEvidence[m];
-        return !!q && !rereadFound.has(m) && !tailoredSquashed.includes(squash(q)) && !recoverQuote(q, tailoredResume);
+        return !!q && !docFit.matched.includes(m) && !squash(document).includes(squash(q)) && !recoverQuote(q, document);
       });
+      const lostLines = resumeText
+        ? lostEvidence
+            .map((m) => resumeText.split(/\r?\n/).find((l) => squash(l).includes(squash(state.matchedEvidence[m]))) ?? state.matchedEvidence[m])
+            .filter((l, i, a) => a.indexOf(l) === i)
+        : [];
+      const unsaid = yesAnswers.filter((a) => !docFit.matched.includes(a.item.requirement));
+      if (lostLines.length || unsaid.length) {
+        if (resumeText && lostLines.length) {
+          document = restoreOriginalLines(document, resumeText, lostLines);
+          restored.push(...lostLines);
+        }
+        if (unsaid.length) {
+          const lines = unsaid.map((a) => `- ${a.item.requirement}: ${a.answer.replace(/\s+/g, " ").trim()}`);
+          document = addQualifications(document, lines);
+          addedFromNote.push(...unsaid.map((a) => a.item.requirement));
+        }
+        docFit = await performFitEvaluation(document, jobText, settings, ledger);
+      }
+      // Whatever the original résumé proved and the document still says (word for word or lightly
+      // reworded) stays proved: the same sentence cannot be evidence on one reading and not the next.
+      docFit = mergeKnownEvidence(docFit, document, evidenceOf(state.matchedSkills, state.matchedEvidence, state.matchStrength ?? {}), ledger);
+      rescoreFit = docFit;
 
-      // The requirement list is fixed (the ledger), so the comparison is always sound now.
-      const afterCount = after.matched.length + after.missing.length;
-      const comparable = originalRequirements.length > 0 && afterCount === originalRequirements.length;
+      if (document !== tailoredResume) {
+        state = { ...state, tailoredResume: document };
+        if (settings.draftVerificationEnabled && resumeText) {
+          const titleLine = jobText.match(/^#?\s*(.+)$/m);
+          state = {
+            ...state,
+            draftVerification: verifyDraft(document, resumeText, noteForVerification(state.approvalNote), {
+              jobTitle: titleLine ? titleLine[1].trim() : "",
+              highThreshold: settings.verifyHighThreshold,
+              lowThreshold: settings.verifyLowThreshold,
+              kind: "resume",
+            }),
+          };
+        }
+      }
 
-      // Which previously-missing requirements now count as met?
+      const after = {
+        score: docFit.score,
+        matched: docFit.matched,
+        missing: originalRequirements.filter((r) => !docFit.matched.includes(r)),
+        matchedEvidence: docFit.matchedEvidence,
+        method: docFit.method,
+      };
+      const scoreBeforeOnLedger = scoreBefore;
+      const droppedFromDraft = state.matchedSkills.filter((m) => !docFit.matched.includes(m));
+      const comparable = originalRequirements.length > 0 && after.matched.length + after.missing.length === originalRequirements.length;
       const newlyMatched = after.matched.filter((m) => missingBefore.has(m.toLowerCase()));
+      const noteLines = squash(confirmed.join(" \n "));
       const fromNote = newlyMatched.filter((m) => {
-        if (creditedFromAnswers.includes(m)) return true;
-        const q = squash(reread.matchedEvidence[m] ?? "");
-        return q.length > 0 && confirmed.some((c) => squash(c).includes(q) || q.includes(squash(c)));
+        if (addedFromNote.includes(m)) return true;
+        const q = squash(after.matchedEvidence[m] ?? "");
+        return q.length > 0 && (noteLines.includes(q) || confirmed.some((c) => q.includes(squash(c))));
       });
+      // The person said NO, the document does not claim it, and the scorer still inferred it from
+      // another line. Kept in the score (it is how the document reads) but named, so it is visible.
+      const inferredDespiteNo = denied.filter((d) => after.matched.includes(d));
 
-      // Any of those resting on a claim the verifier could not source?
       const unsupportedText = (state.draftVerification?.claims ?? [])
         .filter((c) => c.verdict === "unsupported")
         .map((c) => c.text.toLowerCase())
@@ -2980,16 +3142,20 @@ export async function applyHumanDecision(
           fromNote,
           droppedFromDraft,
           confirmedFromNote: confirmed,
+          restoredLines: restored,
+          addedFromNote,
+          inferredDespiteNo,
+          scoredDocument: true,
         },
       };
 
       const delta = Math.round((after.score - scoreBeforeOnLedger) * 100);
       log(
-        `Re-scoring against the SAME ${originalRequirements.length} requirement(s) the original evaluation found, reading the tailored résumé plus the ${confirmed.length} piece(s) of experience the person confirmed in their note. Everything the original résumé already proved stays counted, so the difference shows only what the rewrite and the person's answers added.`,
+        `Re-scoring the tailored résumé ITSELF (the file the person downloads) against the SAME ${originalRequirements.length} requirement(s) the original evaluation found. ${restored.length} original line(s) the draft left out were put back, ${addedFromNote.length} confirmed answer(s) the draft did not carry were added in the person's own words, and the result was scored again.`,
         ["rescore_tailored_resume"],
         "rescore_tailored_resume",
         (!comparable
-          ? `Re-check could not reproduce the original requirement list (${originalRequirements.length} -> ${afterCount}); the before/after comparison is NOT reliable and is being withheld. `
+          ? `Re-check could not reproduce the original requirement list (${originalRequirements.length} -> ${after.matched.length + after.missing.length}); the before/after comparison is NOT reliable and is being withheld. `
           : "") +
         `Fit ${Math.round(scoreBeforeOnLedger * 100)}% -> ${Math.round(after.score * 100)}% (${
           delta >= 0 ? "+" : ""
@@ -3002,8 +3168,9 @@ export async function applyHumanDecision(
             ? ` WARNING: ${unearned.join(", ")} only count because of sentence(s) the verifier could NOT trace to the resume. Treat that gain as unearned.`
             : "") +
           (droppedFromDraft.length
-            ? ` NOTE: the tailored résumé no longer shows your evidence for ${droppedFromDraft.join(", ")} — still counted (it is on your résumé), but put it back before you send the draft.`
+            ? ` NOTE: even after repair the tailored résumé does not show evidence for ${droppedFromDraft.join(", ")}, so it is not counted.`
             : "") +
+          (inferredDespiteNo.length ? ` Read as covered although you answered NO (inferred from another line, not claimed): ${inferredDespiteNo.join(", ")}.` : "") +
           (after.missing.length ? ` Still missing: ${after.missing.join(", ")}.` : ""),
         rescoreBefore,
         state
@@ -3021,7 +3188,7 @@ export async function applyHumanDecision(
     }
   }
 
-  return { state, trace: withClassActions(trace) };
+  return { state, trace: withClassActions(trace), fit: rescoreFit };
 }
 
 async function draftApplication(

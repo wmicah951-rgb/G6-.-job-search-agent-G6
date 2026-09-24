@@ -25,7 +25,7 @@
 
 import crypto from "crypto";
 import { db, ensureSchema } from "./db";
-import type { AgentMemory, FitEvaluation, LedgerItem } from "./agent";
+import type { AgentMemory, FitEvaluation, KnownEvidence, LedgerItem } from "./agent";
 import type { HarnessSettings } from "./harnessSettings";
 
 export function hashText(text: string): string {
@@ -114,7 +114,7 @@ export async function loadMemory(opts: {
     const c = db();
     const jh = jobHash(opts.jobText);
     const key = fitKey(opts.resumeText, opts.settings, opts.model);
-    const [ledgerRow, cacheRow, history] = await Promise.all([
+    const [ledgerRow, cacheRow, history, verdicts] = await Promise.all([
       c.execute({ sql: "SELECT ledger_json FROM requirement_ledgers WHERE job_hash = ?", args: [jh] }),
       c.execute({
         sql: "SELECT fit_json FROM fit_cache WHERE job_hash = ? AND fit_key = ?",
@@ -124,7 +124,28 @@ export async function loadMemory(opts: {
         sql: "SELECT score, profile_name, at FROM eval_history WHERE job_hash = ? ORDER BY at DESC LIMIT 5",
         args: [jh],
       }),
+      // Every saved verdict on this posting: which résumé sentences proved which requirement.
+      c.execute({
+        sql: "SELECT fit_json FROM fit_cache WHERE job_hash = ? ORDER BY created_at DESC LIMIT 50",
+        args: [jh],
+      }),
     ]);
+    const knownEvidence: KnownEvidence[] = [];
+    const seen = new Set<string>();
+    for (const row of verdicts.rows) {
+      try {
+        const f = JSON.parse(row.fit_json as string) as FitEvaluation;
+        for (const m of f.matched ?? []) {
+          const quote = f.matchedEvidence?.[m];
+          const key = `${m}\u0000${quote}`;
+          if (!quote || seen.has(key)) continue;
+          seen.add(key);
+          knownEvidence.push({ requirement: m, quote, strength: f.matchStrength?.[m] ?? "full" });
+        }
+      } catch {
+        // one unreadable row is not a reason to lose the rest
+      }
+    }
     const ledger = ledgerRow.rows.length
       ? (JSON.parse(ledgerRow.rows[0].ledger_json as string) as LedgerItem[])
       : null;
@@ -134,6 +155,7 @@ export async function loadMemory(opts: {
     return {
       ledger,
       cachedFit,
+      knownEvidence,
       history: history.rows.map((r) => ({
         score: r.score === null ? null : Number(r.score),
         profile: (r.profile_name as string) ?? null,

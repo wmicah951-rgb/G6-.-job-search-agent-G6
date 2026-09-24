@@ -3,6 +3,8 @@ import { currentWorkspace } from "@/lib/workspace";
 import { db, ensureSchema, getActiveProfile, loadHarnessOverrides } from "@/lib/db";
 import { resolveSettings } from "@/lib/harnessSettings";
 import { applyHumanDecision, type EvaluationResult } from "@/lib/agent";
+import { getModelName } from "@/lib/llmEvaluator";
+import { saveMemory } from "@/lib/memory";
 
 // Human-in-the-loop steps re-enter the agent (drafting, verifying, re-scoring): several model
 // calls, so allow more than the platform default.
@@ -89,6 +91,24 @@ export async function POST(req: NextRequest) {
       { error: "This job was already decided in another request. Reload to see the result." },
       { status: 409 }
     );
+  }
+
+  // The re-score judged the tailored résumé itself. Remember that verdict for this posting and that
+  // exact text, so when the person downloads it and uploads it as their résumé, the posting reopens
+  // with the score they were shown here instead of rolling the dice again.
+  if (result.fit && result.state.tailoredResume) {
+    await saveMemory({
+      jobText,
+      resumeText: result.state.tailoredResume,
+      settings,
+      model: getModelName(),
+      fit: result.fit,
+      score: result.state.rescore?.after ?? null,
+      stage: "tailored_rescore",
+      workspaceId,
+      profileId: activeProfile.id,
+      profileName: activeProfile.name,
+    });
   }
 
   return NextResponse.json({ evaluation: result });
