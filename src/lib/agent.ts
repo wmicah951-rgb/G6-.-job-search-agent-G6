@@ -2542,7 +2542,16 @@ export function classActionFor(action: string): string {
   return CLASS_ACTIONS[action] ?? (action.startsWith("human_reject") ? "FINISH" : "CONTINUE_INVESTIGATION");
 }
 export function withClassActions(trace: TraceStep[]): TraceStep[] {
-  return trace.map((t) => ({ ...t, classAction: classActionFor(t.selectedAction) }));
+  return trace.map((t) => ({
+    ...t,
+    // The advisor also explains a down-rank or a rejection; calling that step RECOMMEND made a
+    // down-ranked job's path read "DOWN_RANK → RECOMMEND". It only recommends when the job is
+    // going on to the approval gate; otherwise it closes the run with its explanation.
+    classAction:
+      t.selectedAction === "advise_human" && t.stateAfter?.stage !== "awaiting_approval"
+        ? "FINISH"
+        : classActionFor(t.selectedAction),
+  }));
 }
 
 // ---------- Called after a human resolves an ASK_USER clarification ----------
