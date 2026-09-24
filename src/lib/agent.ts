@@ -461,21 +461,62 @@ function relocationRuledOut(preferencesText: string): boolean {
 
 /** The posting's stated place of work, or null when it never says. */
 function parsePostingLocation(jobText: string): string | null {
-  const labelled = jobText.match(/^[-*\s]*(?:job\s+|work\s+|office\s+)?location\s*:?\s*[:\-–]?\s*(.+)$/im);
-  if (labelled) return labelled[1].trim();
+  return parsePostingLocations(jobText)[0] ?? null;
+}
+
+// Words that start an organisation's name, not a place — "ACCEL Schools Marion, OH" is Marion.
+const NOT_A_PLACE =
+  /^(?:schools?|health|healthcare|services?|group|inc|llc|center|centre|hospital|university|college|academy|company|corporation|solutions|systems|partners|network|clinic|bank|labs?|technologies|media|care)$/i;
+
+/**
+ * Every place the posting names near its top: a labelled "Location:" line first, then "in our X
+ * office", then each "City, ST" in the header area. Job boards put the company, the job's city and
+ * sometimes the headquarters next to each other, so taking only the first "City, ST" once read a
+ * company name as a town ("Schools Marion, OH") and could pick the headquarters over the job.
+ */
+function parsePostingLocations(jobText: string): string[] {
+  const out: string[] = [];
+  const add = (loc: string) => {
+    const clean = loc.trim().replace(/\s+/g, " ");
+    if (clean && !out.some((o) => o.toLowerCase() === clean.toLowerCase())) out.push(clean);
+  };
+  for (const m of jobText.matchAll(/^[-*\s]*(?:job\s+|work\s+|office\s+)?location\s*:?\s*[:\-–]?\s*(.+)$/gim)) add(m[1]);
   const inOffice = jobText.match(
     /\bin\s+(?:our\s+|the\s+)?([A-Z][a-zA-Z.]+(?:\s+[A-Z][a-zA-Z.]+)?)(?:,\s*([A-Z]{2}))?\s+(?:office|headquarters|hq)\b/
   );
-  if (inOffice) return [inOffice[1], inOffice[2]].filter(Boolean).join(", ");
-  const cityState = jobText.match(/\b([A-Z][a-zA-Z.]+(?:\s+[A-Z][a-zA-Z.]+)?),\s*([A-Z]{2})\b/);
-  if (cityState) return `${cityState[1]}, ${cityState[2]}`;
-  return null;
+  if (inOffice) add([inOffice[1], inOffice[2]].filter(Boolean).join(", "));
+  const head = jobText.slice(0, 1500);
+  for (const m of head.matchAll(/\b([A-Z][a-zA-Z.]+)(?:\s+([A-Z][a-zA-Z.]+))?,\s*([A-Z]{2})\b/g)) {
+    const [first, second, st] = [m[1], m[2], m[3]];
+    if (second) {
+      if (NOT_A_PLACE.test(first)) add(`${second}, ${st}`);
+      else {
+        add(`${first} ${second}, ${st}`);
+        add(`${second}, ${st}`);
+      }
+    } else add(`${first}, ${st}`);
+  }
+  return out;
+}
+
+/** Does a place the posting names fall inside the candidate's preferred places? Whole words only:
+ *  as a bare substring "Portland, OR" contained "la" (Louisiana) and counted as the Southeast. */
+function placeMatches(location: string, preferred: string[]): boolean {
+  const low = location.toLowerCase();
+  const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return preferred.some((place) => {
+    if (!place || place.length < 2) return false;
+    if (place.length === 2) return new RegExp(`(?:^|,\\s*)${esc(place)}(?:\\b|$)`).test(low);
+    return new RegExp(`\\b${esc(place)}\\b`).test(low);
+  });
 }
 
 /**
  * Would taking this job mean moving somewhere the candidate ruled out? Only asked when the
  * candidate actually listed preferred locations and ruled out relocation. A remote role is
- * never a relocation, and a posting whose location matches any preferred place is fine.
+ * never a relocation. If ANY place the posting names is one the candidate works in, it is not a
+ * violation: a wrong rejection loses the candidate a job silently, while a wrong pass still
+ * reaches a person who reads the posting.
  */
 function outsidePreferredRegion(
   jobText: string,
@@ -486,14 +527,12 @@ function outsidePreferredRegion(
   const preferred = parsePreferredLocations(preferencesText);
   if (preferred.length === 0) return null;
   if (arrangement === "remote") return null;
-  const location = parsePostingLocation(jobText);
-  if (!location) return null;
-  const low = location.toLowerCase();
-  if (/\bremote\b|\banywhere\b/.test(low)) return null;
-  const matched = preferred.some((place) => place.length > 1 && low.includes(place));
-  if (matched) return null;
+  const locations = parsePostingLocations(jobText);
+  if (locations.length === 0) return null;
+  if (locations.some((l) => /\bremote\b|\banywhere\b/i.test(l))) return null;
+  if (locations.some((l) => placeMatches(l, preferred))) return null;
   return (
-    `Role is in ${location}, outside your preferred locations ` +
+    `Role is in ${locations[0]}, outside your preferred locations ` +
     `(${statedPreferredLocations(preferencesText).join(", ")}) and your preferences rule out relocating`
   );
 }
@@ -1294,7 +1333,7 @@ function findUnassessedRequirements(jobText: string, reported: string[]): string
 // substring of resumeText. Anything the model invents or paraphrases is
 // silently dropped rather than trusted — this is what keeps "never fabricate"
 // mechanically true even with an LLM in the loop.
-async function performFitEvaluation(
+export async function performFitEvaluation(
   resumeText: string,
   jobText: string,
   settings: HarnessSettings = DEFAULT_SETTINGS,

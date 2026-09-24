@@ -18,6 +18,9 @@ type Link = {
   stage: string;
   band: string;
   afterTailoring: number | null;
+  afterVia?: string | null;
+  afterNote?: string | null;
+  fitIfAllowed?: number | null;
   violations: string[];
   gaps: string[];
   featured: boolean;

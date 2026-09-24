@@ -44,6 +44,12 @@ type DemoLink = {
   stage: string;
   band: "high" | "mid" | "low" | "rejected" | "asks";
   afterTailoring: number | null;
+  // How the "after" number was reached: approve the draft, override a down-rank first, or answer
+  // the agent's question first (scripts/fill-demo-outcomes.ts).
+  afterVia?: "approve" | "override" | "answer" | null;
+  afterNote?: string | null;
+  // Hard-rule rejects: the skills match the agent measured, even though the rule stops the job.
+  fitIfAllowed?: number | null;
   violations: string[];
   gaps: string[];
   featured: boolean;
@@ -445,25 +451,49 @@ export default function DemoPage() {
               </span>
             </div>
             <div className="text-[11px] text-neutral-700 mt-1.5">
-              {l.band === "rejected" ? (
+              {l.stage === "rejected_hard_constraint" ? (
                 <>
                   Expected: <strong>rejected</strong> — {l.violations[0] ?? "a hard rule"}
                 </>
-              ) : l.band === "asks" ? (
+              ) : l.stage === "awaiting_clarification" ? (
                 <>
-                  Expected: the agent <strong>asks you a question</strong>
+                  Expected: the agent <strong>asks you a question</strong> first
+                </>
+              ) : l.stage === "rejected_low_fit" ? (
+                <>
+                  Expected: <strong>down-ranked</strong> (below the candidate&apos;s fit bar)
                 </>
               ) : (
                 <>
-                  Expected score <strong>{pct(l.score)}</strong>
-                  {l.afterTailoring !== null && (
-                    <>
-                      {" "}→ <strong>{pct(l.afterTailoring)}</strong> after tailoring
-                    </>
-                  )}
-                  {l.stage === "rejected_low_fit" ? " · down-ranked" : l.stage === "awaiting_approval" ? " · recommended" : ""}
+                  Expected: <strong>recommended</strong>
                 </>
               )}
+            </div>
+            <div className="grid grid-cols-2 gap-1.5 mt-1.5 text-[11px]">
+              <div className="border border-neutral-200 rounded-md px-2 py-1">
+                <div className="text-neutral-500">Fit score</div>
+                <div className="font-semibold">
+                  {l.score !== null ? pct(l.score) : l.fitIfAllowed != null ? `${pct(l.fitIfAllowed)} skills` : "—"}
+                </div>
+              </div>
+              <div className="border border-neutral-200 rounded-md px-2 py-1">
+                <div className="text-neutral-500">After tailoring</div>
+                <div className="font-semibold">
+                  {l.afterTailoring !== null ? pct(l.afterTailoring) : "not drafted"}
+                </div>
+              </div>
+            </div>
+            <div className="text-[10px] text-neutral-500 mt-1 leading-snug">
+              {l.stage === "rejected_hard_constraint"
+                ? "The skills match is shown, but the agent never drafts for a job that breaks a hard rule."
+                : l.afterVia === "override"
+                  ? "After tailoring = you click Override, then Approve."
+                  : l.afterVia === "answer"
+                    ? "After tailoring = you answer its question, then Approve."
+                    : "After tailoring = you click Approve."}
+              {l.afterTailoring !== null && l.score !== null && l.afterTailoring === l.score
+                ? " No change: the remaining gaps are skills the résumé doesn't show, and tailoring never invents them."
+                : ""}
             </div>
             {l.gaps.length > 0 && l.band !== "rejected" && (
               <div className="text-[10px] text-neutral-500 mt-0.5 break-words">gaps: {l.gaps.slice(0, 3).join(" · ")}</div>

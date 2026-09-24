@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { nanoid } from "nanoid";
 import { db, ensureSchema, setActiveProfile, getActiveProfile } from "@/lib/db";
 import { currentWorkspace } from "@/lib/workspace";
+import { SAMPLE_PROFILES } from "@/lib/samples";
 
 const MAX_RESUME_CHARS = 30_000;
 const MAX_PREFS_CHARS = 20_000;
@@ -43,6 +44,14 @@ export async function POST(req: NextRequest) {
 
   if (!name) {
     return NextResponse.json({ error: "A profile name is required." }, { status: 400 });
+  }
+  // A new profile cannot take a sample candidate's exact name: that name is how a sample is
+  // recognised (and protected), so a personal résumé under it would be mistaken for the sample.
+  if (SAMPLE_PROFILES.some((s) => s.name.toLowerCase() === name.toLowerCase())) {
+    return NextResponse.json(
+      { error: `"${name}" is the name of a sample candidate. Choose a different name for your own profile.` },
+      { status: 400 }
+    );
   }
   if (resumeText.length > MAX_RESUME_CHARS || preferencesText.length > MAX_PREFS_CHARS) {
     return NextResponse.json(

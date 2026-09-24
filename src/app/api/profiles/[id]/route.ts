@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db, ensureSchema, setActiveProfile, getActiveProfile } from "@/lib/db";
 import { currentWorkspace } from "@/lib/workspace";
+import { SAMPLE_PROFILES, sampleProfileText } from "@/lib/samples";
 
 const MAX_RESUME_CHARS = 30_000;
 const MAX_PREFS_CHARS = 20_000;
@@ -40,11 +41,33 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const c = db();
 
   const existing = await c.execute({
-    sql: "SELECT id FROM profiles WHERE id = ? AND workspace_id = ?",
+    sql: "SELECT id, name FROM profiles WHERE id = ? AND workspace_id = ?",
     args: [id, workspaceId],
   });
   if (existing.rows.length === 0) {
     return NextResponse.json({ error: "Profile not found." }, { status: 404 });
+  }
+
+  // A SAMPLE CANDIDATE'S RÉSUMÉ IS REFERENCE DATA. A real résumé was once imported while "Class kit —
+  // Jordan Lee" was selected and saved over it, so every "Jordan Lee" run in that browser was really
+  // scoring someone else — and nothing said so. The résumé (and the name) of a sample can no longer
+  // be changed; its preferences can, so a demo can still move the fit bar. The page offers to save
+  // the new résumé as the person's own profile instead.
+  const sample = SAMPLE_PROFILES.find((s) => s.name === existing.rows[0].name);
+  if (sample) {
+    const official = sampleProfileText(sample.key);
+    const norm = (t: string) => t.replace(/\r\n?/g, "\n").trim();
+    const resumeChanged = typeof body.resumeText === "string" && official && norm(body.resumeText) !== norm(official.resumeText);
+    const renamed = typeof body.name === "string" && body.name.trim() && body.name.trim() !== sample.name;
+    if (resumeChanged || renamed) {
+      return NextResponse.json(
+        {
+          error: `"${sample.name}" is a sample candidate that the tests and the demo run against, so its résumé can't be replaced. Save this résumé as your own profile instead.`,
+          sampleLocked: true,
+        },
+        { status: 409 }
+      );
+    }
   }
 
   if (body.setActive === true) await setActiveProfile(workspaceId, id);

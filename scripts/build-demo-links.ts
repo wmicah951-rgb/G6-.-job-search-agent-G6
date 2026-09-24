@@ -12,7 +12,8 @@
 //   3. for a posting that reaches approval, approves it and records the re-score after tailoring;
 //   4. keeps a copy of the posting text, so the demo still works if LinkedIn takes the job down.
 // Then it picks one high, one middle and one low link per candidate and writes
-// src/data/demo-links.json.
+// src/data/demo-links.json. Then run scripts/fill-demo-outcomes.ts so every link also has its
+// after-tailoring number (down-ranked and question-asking jobs included).
 
 import fs from "fs";
 import path from "path";

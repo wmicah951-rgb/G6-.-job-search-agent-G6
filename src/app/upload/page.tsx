@@ -23,6 +23,9 @@ export default function UploadPage() {
   const [newName, setNewName] = useState("");
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Set when the person tried to save a different résumé over a sample candidate (the server
+  // refuses: samples are what the tests and the demo run against). Offers to save it as theirs.
+  const [sampleLocked, setSampleLocked] = useState(false);
   // Résumé file import (PDF / .docx / .md / .txt). The extracted text is shown in the
   // textarea for the person to check and fix BEFORE it is saved, because the agent will only
   // ever quote this text — so it has to be the text they actually wrote.
@@ -100,10 +103,12 @@ export default function UploadPage() {
       });
       if (res.ok) {
         setSaved(true);
+        setSampleLocked(false);
         await loadProfiles(selectedId);
       } else {
         const data = await res.json();
         setError(data.error ?? "Save failed.");
+        setSampleLocked(!!data.sampleLocked);
       }
     } finally {
       setSaving(false);
@@ -260,7 +265,35 @@ export default function UploadPage() {
         </div>
       </div>
 
-      {error && <p className="text-sm text-red-600 mb-3">{error}</p>}
+      {error && (
+        <div className="mb-3">
+          <p className="text-sm text-red-600">{error}</p>
+          {sampleLocked && (
+            <button
+              onClick={async () => {
+                const name = (newName.trim() || "My résumé").slice(0, 80);
+                const res = await fetch("/api/profiles", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ name, resumeText, preferencesText, setActive: true }),
+                });
+                const d = await res.json();
+                if (res.ok && d.id) {
+                  setError(null);
+                  setSampleLocked(false);
+                  setSaved(true);
+                  await loadProfiles(d.id);
+                } else {
+                  setError(d.error ?? "Could not create the profile.");
+                }
+              }}
+              className="mt-2 text-sm bg-emerald-700 text-white px-3 py-1.5 rounded-md"
+            >
+              Save it as my own profile{newName.trim() ? ` ("${newName.trim()}")` : ' ("My résumé")'}
+            </button>
+          )}
+        </div>
+      )}
 
       <QuickKnobs preferencesText={preferencesText} onChange={setPreferencesText} />
 
