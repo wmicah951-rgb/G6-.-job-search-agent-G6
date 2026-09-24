@@ -18,7 +18,10 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   await ensureSchema();
-  const body = await req.json();
+  const body = await req.json().catch(() => null);
+  if (!body || typeof body !== "object") {
+    return NextResponse.json({ error: "Request body must be JSON." }, { status: 400 });
+  }
   const resumeText = (body.resumeText ?? "").toString();
   const preferencesText = (body.preferencesText ?? "").toString();
   if (!resumeText.trim() || !preferencesText.trim()) {

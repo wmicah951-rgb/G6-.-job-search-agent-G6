@@ -95,7 +95,10 @@ export async function PATCH(
 ) {
   await ensureSchema();
   const { id } = await params;
-  const body = await req.json();
+  const body = await req.json().catch(() => null);
+  if (!body || typeof body !== "object") {
+    return NextResponse.json({ error: "Request body must be JSON." }, { status: 400 });
+  }
   const { coverLetter, tailoredResume, draft } = body;
 
   const c = db();

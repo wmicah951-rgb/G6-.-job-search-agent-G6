@@ -14,7 +14,10 @@ export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
   await ensureSchema();
-  const body = await req.json();
+  const body = await req.json().catch(() => null);
+  if (!body || typeof body !== "object") {
+    return NextResponse.json({ error: "Request body must be JSON." }, { status: 400 });
+  }
   const jobId = (body.jobId ?? "").toString();
   const answer = (body.answer ?? "").toString();
 

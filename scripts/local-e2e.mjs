@@ -1,9 +1,11 @@
 // End-to-end check against a running local server (default http://localhost:3200).
 import fs from "fs";
 const base = process.env.BASE || "http://localhost:3200";
+// Every browser gets its own workspace (src/lib/workspace.ts); one fixed cookie keeps this run in one.
+const WORKSPACE = `g6_workspace=${process.env.WORKSPACE ?? "e2e" + Date.now()}`;
 const dir = "src/data/jobs/";
 const j = async (u, o) => {
-  const r = await fetch(base + u, o);
+  const r = await fetch(base + u, { ...o, headers: { ...(o?.headers ?? {}), cookie: WORKSPACE } });
   return { s: r.status, b: await r.json() };
 };
 const post = (title, rawText) =>
@@ -16,6 +18,10 @@ const check = (name, ok, extra = "") => {
 
 const t = (t) => "E2E " + t;
 const ids = [];
+
+// These cases are written for Jordan Ellis (src/data/resume.md). A new workspace starts on the
+// class kit's Jordan Lee, so switch first.
+await j("/api/samples", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "profile", key: "demo" }) });
 
 // 1. injection gates
 const j008 = await post(t("J008 hidden injection"), fs.readFileSync(dir + "J008.md", "utf-8"));
@@ -106,7 +112,8 @@ const tab = gpMissing.find((m) => /tableau/i.test(m));
 const gd = await post2({ jobId: gp.b.id, decision: "edit", editNote: `- For ${tab} requirement: I built Tableau dashboards for a university capstone project` });
 const gn = (gd.b.evaluation.state.gapNotes || []).find((g) => g.skill === tab);
 check("Tableau bridge note honoured (bridged_from_note)", !!gn && gn.status === "bridged_from_note", "status=" + (gn && gn.status));
-const gd2 = await post("x", `# Data Analyst
+// Different text on purpose: the same posting twice now reopens the first job instead of re-scoring.
+const gd2 = await post("x", `# Data Analyst (second team)
 Remote. Requirements: SQL, Python (pandas), Excel, Power BI, Tableau. 1-3 years of experience.`);
 ids.push(gd2.b.id);
 const gd3 = await post2({ jobId: gd2.b.id, decision: "approve" });

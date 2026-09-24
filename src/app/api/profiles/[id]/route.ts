@@ -37,7 +37,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   await ensureSchema();
   const workspaceId = await currentWorkspace();
   const { id } = await params;
-  const body = await req.json();
+  const body = await req.json().catch(() => null);
+  if (!body || typeof body !== "object") {
+    return NextResponse.json({ error: "Request body must be JSON." }, { status: 400 });
+  }
   const c = db();
 
   const existing = await c.execute({

@@ -8,7 +8,10 @@ import * as cheerio from "cheerio";
 // returns something that isn't real posting text, the UI falls back to "paste the
 // text yourself" rather than silently feeding garbage into the agent.
 export async function POST(req: NextRequest) {
-  const body = await req.json();
+  const body = await req.json().catch(() => null);
+  if (!body || typeof body !== "object") {
+    return NextResponse.json({ error: "Request body must be JSON." }, { status: 400 });
+  }
   const url = (body.url ?? "").toString();
 
   if (!url || !/^https?:\/\//i.test(url)) {
@@ -54,12 +57,31 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const finalUrl = resp.url || url;
+  const html = await resp.text();
+
+  // SIGN-IN WALLS. The class rule is explicit: do not scrape login-protected job boards. This
+  // agent never signs in anywhere. LinkedIn (and others) often answer a logged-out visitor with a
+  // sign-in page instead of the job; when that happens we say so plainly and ask for the text,
+  // rather than feeding a login form to the agent as if it were a posting. Checked before the
+  // dead-posting redirect below: LinkedIn sends a logged-out visitor from /jobs/view/<id> to
+  // /authwall, which would otherwise be reported as a removed posting.
+  if (looksLikeSignInWall(finalUrl, html)) {
+    return NextResponse.json(
+      {
+        error:
+          "That site asked for a sign-in before showing the job. This agent never logs in to job boards (a class rule), so it cannot read this link. Open the posting yourself and paste its text instead.",
+        signInWall: true,
+      },
+      { status: 403 }
+    );
+  }
+
   // Some boards (e.g. Greenhouse) respond 200 but silently redirect a dead/filled
   // job-posting URL to a generic "all openings" board page instead of erroring.
   // Detect that: the original URL pointed at a specific posting (has /job(s)/<id>),
   // but after following redirects we landed somewhere that dropped that id, or the
   // final URL carries an explicit error/not-found signal.
-  const finalUrl = resp.url || url;
   try {
     const originalPath = new URL(url).pathname;
     const finalPath = new URL(finalUrl).pathname;
@@ -77,23 +99,6 @@ export async function POST(req: NextRequest) {
     }
   } catch {
     // If URL parsing fails for some reason, fall through to normal extraction.
-  }
-
-  const html = await resp.text();
-
-  // SIGN-IN WALLS. The class rule is explicit: do not scrape login-protected job boards. This
-  // agent never signs in anywhere. LinkedIn (and others) often answer a logged-out visitor with a
-  // sign-in page instead of the job; when that happens we say so plainly and ask for the text,
-  // rather than feeding a login form to the agent as if it were a posting.
-  if (looksLikeSignInWall(finalUrl, html)) {
-    return NextResponse.json(
-      {
-        error:
-          "That site asked for a sign-in before showing the job. This agent never logs in to job boards (a class rule), so it cannot read this link. Open the posting yourself and paste its text instead.",
-        signInWall: true,
-      },
-      { status: 403 }
-    );
   }
 
   const $ = cheerio.load(html);

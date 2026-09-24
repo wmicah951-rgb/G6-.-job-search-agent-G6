@@ -33,7 +33,10 @@ export async function GET() {
 export async function PUT(req: NextRequest) {
   await ensureSchema();
   const profile = await getActiveProfile(await currentWorkspace());
-  const body = await req.json();
+  const body = await req.json().catch(() => null);
+  if (!body || typeof body !== "object") {
+    return NextResponse.json({ error: "Request body must be JSON." }, { status: 400 });
+  }
 
   const { sanitized, errors, warnings } = validateSettings(body.settings);
   if (errors.length > 0) {

@@ -2,9 +2,11 @@
 // reaches the agent. Needs the server running.
 //   node scripts/harness-tests.mjs
 const base = process.env.BASE || "http://localhost:3200";
+// Every browser gets its own workspace (src/lib/workspace.ts); one fixed cookie keeps this run in one.
+const WORKSPACE = `g6_workspace=${process.env.WORKSPACE ?? "e2e" + Date.now()}`;
 const H = { "Content-Type": "application/json" };
 const j = async (u, o) => {
-  const r = await fetch(base + u, o);
+  const r = await fetch(base + u, { ...o, headers: { ...(o?.headers ?? {}), cookie: WORKSPACE } });
   return { s: r.status, b: await r.json() };
 };
 let fail = 0;
