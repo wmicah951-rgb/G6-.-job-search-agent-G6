@@ -307,8 +307,10 @@ export function userPrompt(resume: string, job: string): string {
 
 // Keeps token usage (and therefore cost) low and bounded regardless of how
 // long a scraped posting or resume is. Shared by every provider.
-export const MAX_INPUT_CHARS = 16000;
-export const TIMEOUT_MS = 15000;
+// The whole posting the site accepts (MAX_POSTING_CHARS in evaluateJob.ts), so the AI never
+// judges a posting it only saw the first part of.
+export const MAX_INPUT_CHARS = 40000;
+export const TIMEOUT_MS = 45000;
 
 // ---------- Drafting prompt/schema (used after human approval) ----------
 export const DRAFT_SYSTEM_PROMPT =

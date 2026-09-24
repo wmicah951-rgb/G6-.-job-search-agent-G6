@@ -29,14 +29,30 @@ export async function POST(req: NextRequest) {
   }
 
   let resp: Response;
+  let finalUrlAfterRedirects = url;
   try {
-    resp = await fetch(url, {
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (compatible; JobSearchAgentBot/1.0; educational project; +https://example.edu)",
-      },
-      redirect: "follow",
-    });
+    // Redirects are followed by hand so every hop gets the same public-address check: with
+    // redirect "follow", a public link that redirects to an internal address would be fetched.
+    let target = url;
+    for (let hop = 0; ; hop++) {
+      resp = await fetch(target, {
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (compatible; JobSearchAgentBot/1.0; educational project; +https://example.edu)",
+        },
+        redirect: "manual",
+      });
+      const next = resp.status >= 300 && resp.status < 400 ? resp.headers.get("location") : null;
+      if (!next) break;
+      target = new URL(next, target).toString();
+      if (hop >= 5 || !/^https?:\/\//i.test(target) || isPrivateAddress(target)) {
+        return NextResponse.json(
+          { error: "That link redirects somewhere that is not a public job posting. Paste the posting text instead." },
+          { status: 400 }
+        );
+      }
+    }
+    finalUrlAfterRedirects = target;
   } catch (err) {
     return NextResponse.json(
       {
@@ -57,7 +73,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const finalUrl = resp.url || url;
+  const finalUrl = finalUrlAfterRedirects;
   const html = await resp.text();
 
   // SIGN-IN WALLS. The class rule is explicit: do not scrape login-protected job boards. This

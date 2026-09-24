@@ -1254,7 +1254,7 @@ async function smallModelFit(resumeText: string, jobText: string, settings: Harn
     matchedRequirements: matched,
     missingRequirements,
     missingPreferredRequirements,
-    reasoning: String(raw.summary ?? "").slice(0, 400) || "Small-model matcher: pointed at résumé lines for each requirement.",
+    reasoning: String(raw.summary ?? "").slice(0, 2000) || "Small-model matcher: pointed at résumé lines for each requirement.",
   };
 }
 
@@ -1936,7 +1936,7 @@ async function produceAdviceSmall(state: AgentState, mode: AdviceMode, fallback:
   try {
     const raw = (await completeJsonWithLlm(
       withRole("You are an advisor helping a job seeker decide what to do next. Be direct and short. Only use the numbers you were given.", guide.roles.advisor).slice(0, 3000),
-      user, 300, 240000)) as Record<string, unknown>;
+      user, 1500, 240000)) as Record<string, unknown>;
     const num = (v: unknown) => (typeof v === "number" ? v : parseInt(String(v), 10));
     const rec = opts[num(raw.recommendation) - 1];
     const order = (Array.isArray(raw.gapOrder) ? raw.gapOrder : []).map(num).filter((n) => n >= 1 && n <= gaps.length);
@@ -1960,9 +1960,9 @@ async function produceAdviceSmall(state: AgentState, mode: AdviceMode, fallback:
     return {
       ...fallback,
       source: "model",
-      headline: String(raw.headline ?? "").slice(0, 300) || fallback.headline,
+      headline: String(raw.headline ?? "").slice(0, 2000) || fallback.headline,
       recommendation: rec ?? fallback.recommendation,
-      recommendationWhy: String(raw.why ?? "").slice(0, 300),
+      recommendationWhy: String(raw.why ?? "").slice(0, 2000),
       rankedGaps,
       draftPresets,
       ...(rec ? {} : { overruled: "the small model's recommendation number was not valid; default used" }),
@@ -2037,7 +2037,7 @@ async function produceAdvice(
       .slice(0, 4)
       .map((x) => ({
         label: String(x.label).slice(0, 40),
-        instruction: String(x.instruction).slice(0, 300),
+        instruction: String(x.instruction).slice(0, 1000),
         evidenceQuote: String(x.evidenceQuote),
       }));
     if (droppedPresets) notes.push(`${droppedPresets} preset(s) dropped: their résumé quote was not found in the résumé`);
@@ -2055,8 +2055,8 @@ async function produceAdvice(
       ranked.push({
         gap: real,
         importance: imp,
-        why: String(g.why ?? "").slice(0, 200),
-        bridgeQuestion: String(g.bridgeQuestion ?? "").slice(0, 200) || `Do you have real experience with "${real}"?`,
+        why: String(g.why ?? "").slice(0, 1000),
+        bridgeQuestion: String(g.bridgeQuestion ?? "").slice(0, 1000) || `Do you have real experience with "${real}"?`,
       });
     }
     for (const g of fallback.rankedGaps) if (!ranked.some((x) => x.gap === g.gap)) ranked.push(g);

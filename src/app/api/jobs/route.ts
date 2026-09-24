@@ -5,7 +5,7 @@ import { evaluateAndStore, MAX_POSTING_CHARS } from "@/lib/evaluateJob";
 
 // An agent run makes several model calls (read the posting, score the fit, choose the action,
 // advise the human). On a cold serverless function that can pass the platform default.
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 
 export async function GET() {

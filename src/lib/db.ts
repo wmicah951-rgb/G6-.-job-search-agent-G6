@@ -10,6 +10,14 @@ import { nanoid } from "nanoid";
 // and can be QA'd without a Turso account.
 let client: SqlClient | null = null;
 
+// DB_PROVIDER=turso forces Turso even when a Postgres URL is also configured (Vercel still holds
+// the Supabase one). G6_TURSO_URL / G6_TURSO_TOKEN come first so the current Turso database wins
+// over any older TURSO_* values left in the Vercel dashboard.
+const forceTurso = () => process.env.DB_PROVIDER === "turso";
+const usePostgres = () => !forceTurso() && isPostgresConfigured();
+const tursoUrl = () => process.env.G6_TURSO_URL || process.env.TURSO_DATABASE_URL;
+const tursoToken = () => (process.env.G6_TURSO_URL ? process.env.G6_TURSO_TOKEN : process.env.TURSO_AUTH_TOKEN);
+
 // TEMPORARY-STORAGE MODE. A hosted database can refuse to serve: a Turso free plan that has hit
 // its limit returns BLOCKED for every statement, reads included. Before this, that turned the
 // whole site into a 500 — the agent itself was fine, but nobody could reach it. Now the first
@@ -32,12 +40,12 @@ export function db(): SqlClient {
   // Postgres (Supabase) when a connection string is configured; otherwise libSQL — Turso in
   // production, or a local file for development. Both are reached through the same small
   // interface (src/lib/pgClient.ts), so nothing else in the app knows the difference.
-  if (isPostgresConfigured()) {
+  if (usePostgres()) {
     client = postgresClient();
     return client;
   }
-  const url = process.env.TURSO_DATABASE_URL || "file:local.db";
-  const authToken = process.env.TURSO_AUTH_TOKEN;
+  const url = tursoUrl() || "file:local.db";
+  const authToken = tursoToken();
   client = createClient(
     authToken ? { url, authToken } : { url }
   );
@@ -189,12 +197,12 @@ export async function setActiveProfile(workspaceId: string, profileId: string): 
 }
 
 export function isTursoConfigured(): boolean {
-  return !!process.env.TURSO_DATABASE_URL;
+  return !!tursoUrl();
 }
 
 /** Which database the app is actually talking to, for the status panel. */
 export function databaseKind(): "postgres" | "turso" | "local-file" {
-  if (isPostgresConfigured()) return "postgres";
+  if (usePostgres()) return "postgres";
   return isTursoConfigured() ? "turso" : "local-file";
 }
 

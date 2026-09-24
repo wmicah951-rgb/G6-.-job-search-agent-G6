@@ -149,7 +149,7 @@ export function makeOpenAiCompatProvider(cfg: CompatConfig): LlmProvider {
         ASSESS_TOOL_NAME,
         ASSESS_TOOL_DESCRIPTION,
         ASSESS_JSON_SCHEMA,
-        600,
+        2000,
         opts?.timeoutMs ?? TIMEOUT_MS
       );
     },
@@ -162,7 +162,9 @@ export function makeOpenAiCompatProvider(cfg: CompatConfig): LlmProvider {
         FIT_TOOL_NAME,
         FIT_TOOL_DESCRIPTION,
         FIT_JSON_SCHEMA,
-        1200,
+        // Room for every requirement, its quote and the reasoning: at 1200 a long posting's verdict
+        // was cut off mid-sentence and fell back to keyword matching.
+        4000,
         opts?.timeoutMs ?? TIMEOUT_MS
       );
     },
@@ -174,7 +176,7 @@ export function makeOpenAiCompatProvider(cfg: CompatConfig): LlmProvider {
         REWRITE_TOOL_NAME,
         REWRITE_TOOL_DESCRIPTION,
         REWRITE_JSON_SCHEMA,
-        1500,
+        3000,
         opts?.timeoutMs ?? 30000,
         // A little sampling here only: at temperature 0 this model returns near-copies. Facts
         // stay protected by the harness's numbers check and the draft verifier, not by 0.
@@ -189,7 +191,7 @@ export function makeOpenAiCompatProvider(cfg: CompatConfig): LlmProvider {
         ADVISE_TOOL_NAME,
         ADVISE_TOOL_DESCRIPTION,
         ADVISE_JSON_SCHEMA,
-        1400,
+        3000,
         opts?.timeoutMs ?? 30000
       );
     },

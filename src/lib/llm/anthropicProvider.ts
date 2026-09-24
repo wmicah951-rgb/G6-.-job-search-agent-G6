@@ -73,7 +73,7 @@ export const anthropicProvider: LlmProvider = {
       const response = await getClient().messages.create(
         {
           model: MODEL,
-          max_tokens: 600,
+          max_tokens: 2000,
           temperature: 0,
           system: opts?.systemPrompt ?? ASSESS_SYSTEM_PROMPT,
           tools: [
@@ -101,7 +101,7 @@ export const anthropicProvider: LlmProvider = {
       const response = await getClient().messages.create(
         {
           model: MODEL,
-          max_tokens: 1500,
+          max_tokens: 4000,
           temperature: 0.6,
           system: opts?.systemPrompt ?? REWRITE_SYSTEM_PROMPT,
           tools: [{ name: REWRITE_TOOL_NAME, description: REWRITE_TOOL_DESCRIPTION, input_schema: REWRITE_JSON_SCHEMA }],
@@ -125,7 +125,7 @@ export const anthropicProvider: LlmProvider = {
       const response = await getClient().messages.create(
         {
           model: MODEL,
-          max_tokens: 1400,
+          max_tokens: 3000,
           temperature: 0,
           system: opts?.systemPrompt ?? ADVISE_SYSTEM_PROMPT,
           tools: [{ name: ADVISE_TOOL_NAME, description: ADVISE_TOOL_DESCRIPTION, input_schema: ADVISE_JSON_SCHEMA }],
@@ -181,7 +181,7 @@ export const anthropicProvider: LlmProvider = {
       const response = await getClient().messages.create(
         {
           model: MODEL,
-          max_tokens: 700,
+          max_tokens: 2000,
           system: opts?.systemPrompt ?? FIT_SYSTEM_PROMPT,
           tools: [
             {
@@ -213,7 +213,7 @@ export const anthropicProvider: LlmProvider = {
       const response = await getClient().messages.create(
         {
           model: MODEL,
-          max_tokens: 2500,
+          max_tokens: 4000,
           system: opts?.systemPrompt ?? DRAFT_SYSTEM_PROMPT,
           tools: [
             {

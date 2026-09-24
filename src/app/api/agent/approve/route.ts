@@ -6,7 +6,7 @@ import { applyHumanDecision, type EvaluationResult } from "@/lib/agent";
 
 // Human-in-the-loop steps re-enter the agent (drafting, verifying, re-scoring): several model
 // calls, so allow more than the platform default.
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 export async function POST(req: NextRequest) {
   await ensureSchema();
