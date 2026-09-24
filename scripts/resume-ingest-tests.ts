@@ -71,6 +71,16 @@ async function main() {
         share >= 0.9,
         `${Math.round(share * 100)}% of content words recovered, ${text.length} chars`
       );
+      // Structure, not just words: an earlier tidy() fused the name, contact line and headings
+      // into one long line and still passed the word check above.
+      const originalLines = resume.split("\n").filter((l) => l.trim()).length;
+      const gotLines = text.split("\n").filter((l) => l.trim()).length;
+      const longest = Math.max(...text.split("\n").map((l) => l.length));
+      check(
+        `${label} keeps its structure (${style})`,
+        gotLines >= originalLines * 0.8 && longest < 250,
+        `${gotLines} lines back from ${originalLines}, longest ${longest} chars`
+      );
     }
   }
 

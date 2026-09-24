@@ -381,6 +381,13 @@ export const DRAFT_SYSTEM_PROMPT =
   "'Dear Hiring Manager,' and ending with a sign-off and the candidate's name. " +
   "No tables, no code fences, no HTML.\n" +
   "• If the user provided an edit note, incorporate that guidance into both documents.\n" +
+  "• GAP ANSWERS in the edit note look like '- <requirement>: YES — <their words>' or " +
+  "'- <requirement>: NO — <their words>'. A YES line is the candidate's own confirmed " +
+  "experience: it IS a fact you may use. Put it in the tailored resume where it belongs — a " +
+  "SKILLS entry and, when their words describe where or how, a bullet under the matching role " +
+  "or project — using the requirement's own wording so a reader (and the re-score) can see it " +
+  "is met. Stay within what they wrote: a few words mean a short claim, never an inflated one. " +
+  "A NO line is a real gap: never claim it; at most mention willingness to learn in the letter.\n" +
   "• For EVERY skill listed under SKILLS THE CANDIDATE IS MISSING, report back in " +
   "`addressedGaps` exactly how you handled it - one entry per missing skill, reusing " +
   "the skill's exact wording. status is one of:\n" +

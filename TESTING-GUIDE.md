@@ -282,3 +282,17 @@ proves it on the official kit data by running the real agent — no documentatio
 
 Run it with no AI (`LLM_PROVIDER=none DEEPSEEK_API_KEY=`) for a free check of the loop and the
 guardrails, or with a model to also confirm the AI controller made the choices.
+
+## Your answers to the agent's gap questions
+
+`npx tsx scripts/note-answers-tests.ts` checks how the agent reads the answers a person gives on
+the job page ("Yes, I have this" / "Not yet", plus the older note formats):
+
+- a YES answer is read as the person's own experience — used in the draft, and credited in the
+  re-score (fully when described in a few words, partially for a bare "yes")
+- a NO answer is never credited, and is removed from what the draft checker treats as a source,
+  so "HIPAA: NO — never did" cannot make a claimed HIPAA background look sourced
+- drafting instructions ("open the summary with…") are not mistaken for experience
+
+The re-score also never drops a requirement the original résumé already proved: it measures only
+what the rewrite and the person's answers added, and warns if the draft genuinely lost evidence.

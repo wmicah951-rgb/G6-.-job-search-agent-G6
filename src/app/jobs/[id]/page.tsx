@@ -85,6 +85,9 @@ type Evaluation = {
     method: string;
     comparable?: boolean;
     requirementsCompared?: number;
+    fromNote?: string[];
+    droppedFromDraft?: string[];
+    confirmedFromNote?: string[];
   } | null;
   state?: { matchedEvidence?: Record<string, string>; advice?: Advice | null; guidelines?: string } | null;
   profileName: string | null;
@@ -181,6 +184,9 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
   // Which gaps the human has already pushed into the draft instructions, so the
   // button can grey out instead of silently adding the same line twice.
   const [addedSkills, setAddedSkills] = useState<string[]>([]);
+  // The gap whose answer box is open, and what the person has typed in it.
+  const [openGap, setOpenGap] = useState<string | null>(null);
+  const [gapWords, setGapWords] = useState("");
 
   // In-place editing states
   const [evidenceText, setEvidenceText] = useState("");
@@ -414,16 +420,25 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
     setCollapsedResume(!expand);
   }
 
-  function addMissingSkillToDraft(skill: string, bridgeQuestion?: string) {
+  // Answering a gap. The person's answer goes into the draft instructions as one clean line,
+  //   "- <requirement>: YES — <their words>"   or   "- <requirement>: NO — <their words>"
+  // which the drafter uses to write the application and the re-score reads as the person's own
+  // evidence (confirmedExperienceFromNote() in agent.ts). The question is shown as a label and is
+  // never pasted into the note, so an answer cannot get mixed up with the question it answers.
+  function openGapAnswer(skill: string) {
+    setOpenGap(openGap === skill ? null : skill);
+    setGapWords("");
+  }
+  function saveGapAnswer(skill: string, has: boolean) {
+    const words = gapWords.trim().replace(/\s+/g, " ");
+    const line = has
+      ? `- ${skill}: YES — ${words || "I have this"}`
+      : `- ${skill}: NO — ${words || "not yet; willing to learn"}`;
+    setEditNote((prev) => (prev ? `${prev}\n${line}` : line));
     setAddedSkills((prev) => (prev.includes(skill) ? prev : [...prev, skill]));
-    const addition = `- Experience with ${skill} (or equivalent): [answer honestly, then delete these brackets — ${bridgeQuestion ?? "describe your hands-on work or similar tool/project"}]`;
-    setEditNote((prev) => (prev ? `${prev}\n${addition}` : addition));
-    triggerToast(`Added "${skill}" to draft instructions!`);
-    const el = document.getElementById("draft-instructions-box");
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "center" });
-      el.focus();
-    }
+    setOpenGap(null);
+    setGapWords("");
+    triggerToast(has ? `Added your experience with "${skill}"` : `Noted: not yet for "${skill}"`);
   }
 
   function addCustomBridgeToDraft(skill: string, customExp: string) {
@@ -890,7 +905,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                 );
                 const added = addedSkills.includes(skill);
                 return (
-                  <li key={idx} className="py-2 flex items-start justify-between gap-3">
+                  <li key={idx} className="py-2 flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
                       <span
                         className={`inline-block w-1.5 h-1.5 rounded-full mr-2 align-middle ${
@@ -941,7 +956,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                       <button
                         type="button"
                         disabled={added}
-                        onClick={() => addMissingSkillToDraft(skill, advised?.bridgeQuestion)}
+                        onClick={() => openGapAnswer(skill)}
                         className={`text-xs whitespace-nowrap shrink-0 px-2 py-1 rounded-lg border ${
                           added
                             ? "bg-neutral-100 text-neutral-400 border-neutral-200 cursor-not-allowed"
@@ -953,8 +968,45 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                             : "Add to draft instructions to explain equivalent experience"
                         }
                       >
-                        {added ? "✓ Added" : "+ I have this or similar"}
+                        {added ? "✓ Added" : openGap === skill ? "Close" : "+ I have this or similar"}
                       </button>
+                    )}
+                    {openGap === skill && !added && (
+                      <div className="basis-full w-full border border-amber-200 bg-amber-50/60 rounded-lg p-2.5">
+                        <label className="block text-xs font-medium text-amber-950 mb-1">
+                          {advised?.bridgeQuestion || `Do you have experience with ${skill}, or something close to it?`}
+                        </label>
+                        <input
+                          autoFocus
+                          value={gapWords}
+                          onChange={(e) => setGapWords(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") saveGapAnswer(skill, true);
+                          }}
+                          placeholder="A few words is enough — e.g. built weekly PowerPoint decks for leadership at my internship"
+                          className="w-full border border-neutral-300 rounded-md px-2.5 py-1.5 text-xs bg-white text-neutral-900"
+                        />
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          <button
+                            type="button"
+                            onClick={() => saveGapAnswer(skill, true)}
+                            className="text-xs bg-emerald-700 text-white px-2.5 py-1 rounded-md"
+                          >
+                            Yes, I have this
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => saveGapAnswer(skill, false)}
+                            className="text-xs bg-white text-neutral-700 border border-neutral-300 px-2.5 py-1 rounded-md"
+                          >
+                            Not yet
+                          </button>
+                        </div>
+                        <p className="text-[11px] text-neutral-500 mt-1.5">
+                          Only say yes to things you have really done. Your answer is used to write the draft and counts
+                          toward the re-score as your own evidence; &ldquo;Not yet&rdquo; is kept honest in the letter.
+                        </p>
+                      </div>
                     )}
                   </li>
                 );
@@ -1636,6 +1688,22 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                 </div>
               )}
 
+              {(ev.rescore.fromNote?.length ?? 0) > 0 && (
+                <p className="text-xs text-emerald-800 mb-1">
+                  <span className="font-semibold">Credited from what you told it: </span>
+                  {ev.rescore.fromNote!.join(" · ")}
+                </p>
+              )}
+
+              {(ev.rescore.droppedFromDraft?.length ?? 0) > 0 && (
+                <div className="text-xs bg-amber-50 border border-amber-300 rounded-lg px-2.5 py-1.5 mb-1 text-amber-950">
+                  <span className="font-semibold">Put this back before you send it: </span>
+                  the tailored résumé no longer shows your evidence for{" "}
+                  <strong>{ev.rescore.droppedFromDraft!.join(", ")}</strong>. It still counts in the score (it is on
+                  your real résumé), but the draft should show it too.
+                </div>
+              )}
+
               {ev.rescore.stillMissing.length > 0 && (
                 <p className="text-xs text-neutral-600">
                   <span className="font-semibold">Still missing: </span>
@@ -1647,9 +1715,10 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                 Both numbers are scored against the same{" "}
                 {ev.rescore.requirementsCompared ?? 0} requirement
                 {(ev.rescore.requirementsCompared ?? 0) === 1 ? "" : "s"} the original
-                evaluation found, so the difference can only come from the rewrite.
-                Rewriting cannot invent experience, so no change at all is a normal and
-                honest result.
+                evaluation found. Everything your résumé already proved stays counted, so the score
+                can only go up from what the rewrite and your own answers add — it never drops
+                because a match was re-judged. Rewriting cannot invent experience, so no change at
+                all is a normal and honest result.
               </p>
             </div>
           )}

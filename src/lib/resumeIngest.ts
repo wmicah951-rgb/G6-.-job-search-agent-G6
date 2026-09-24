@@ -33,25 +33,46 @@ export function kindFor(filename: string, mimeType?: string): ResumeFileKind | n
 
 /** Mechanical clean-up of extracted text. Nothing here changes wording. */
 export function tidy(raw: string): string {
-  return (
-    raw
-      .replace(/\r\n?/g, "\n")
-      .replace(/ /g, " ")
-      // Common bullet glyphs become "- " so the résumé reads like the markdown the rest of the
-      // app expects. The words are untouched.
-      .replace(/^[\s]*[•▪◦·‣∙]\s*/gm, "- ")
-      // A word split across a line break by a hyphen ("analy-\nsis") is one word.
-      .replace(/(\w)-\n(\w)/g, "$1$2")
-      // Extraction often leaves a single hard break inside a sentence; join it, but keep real
-      // paragraph breaks (two newlines) and list items.
-      .replace(/([^\n.:;!?•\-])\n(?![\n\-*#•]|\s*$)/g, "$1 ")
-      .replace(/[ \t]+/g, " ")
-      .replace(/\n{3,}/g, "\n\n")
-      .split("\n")
-      .map((l) => l.trimEnd())
-      .join("\n")
-      .trim()
-  );
+  const cleaned = raw
+    .replace(/\r\n?/g, "\n")
+    .replace(/ /g, " ")
+    // Common bullet glyphs become "- " so the résumé reads like the markdown the rest of the app
+    // expects. The words are untouched.
+    .replace(/^[ \t]*[•▪◦·‣∙]\s*/gm, "- ")
+    // A word split across a line break by a hyphen ("analy-\nsis") is one word.
+    .replace(/([a-z])-\n([a-z])/g, "$1$2")
+    .replace(/[ \t]+/g, " ");
+
+  // STRUCTURE FIRST. A résumé's line breaks carry meaning: the name, the contact line, each
+  // heading, each role, each bullet. An earlier version joined every line that did not end in
+  // punctuation onto the next, to repair sentences a PDF had wrapped — and it fused a real
+  // résumé's name, contact line and summary into one line and buried the degree inside the skills
+  // section, so the matcher could no longer find the education section. Now a line is joined to the
+  // one before it ONLY when it is plainly the rest of a wrapped sentence.
+  const isHeading = (l: string) => /^[A-Z][A-Z &/+,'-]{2,40}:?$/.test(l) || /^#{1,3}\s/.test(l);
+  const isBullet = (l: string) => /^[-*]\s/.test(l);
+  const looksLikeRoleOrContact = (l: string) => /\||@|\b(19|20)\d{2}\b|\bpresent\b/i.test(l);
+  const out: string[] = [];
+  for (const rawLine of cleaned.split("\n")) {
+    const line = rawLine.trim();
+    const prev = out.length ? out[out.length - 1] : "";
+    const continues =
+      !!line &&
+      !!prev &&
+      !/[.;:!?]$/.test(prev) &&
+      !isHeading(prev) &&
+      !isHeading(line) &&
+      !isBullet(line) &&
+      !looksLikeRoleOrContact(line) &&
+      // the rest of a sentence starts in lower case, or it continues a bullet that has not ended
+      (/^[a-z(]/.test(line) || (isBullet(prev) && prev.length > 60));
+    if (continues) out[out.length - 1] = `${prev} ${line}`;
+    else out.push(line);
+  }
+  return out
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }
 
 /** Signs that an extraction went wrong, in plain words for the person to check. */
@@ -71,6 +92,12 @@ export function warnings(text: string): string[] {
     out.push("No usual résumé headings (Experience, Education, Skills) were found — check that the right file was picked.");
   }
   if (/\f/.test(text)) out.push("Page breaks were left in the text; they are harmless but you can delete them.");
+  const longest = Math.max(0, ...text.split("\n").map((l) => l.length));
+  if (longest > 400) {
+    out.push(
+      "Some sections seem to have run together into one very long line. Check that your name, each heading and each job start on their own line before saving — the agent reads the résumé's structure."
+    );
+  }
   return out;
 }
 

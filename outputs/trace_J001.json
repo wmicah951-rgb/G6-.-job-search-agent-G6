@@ -12,6 +12,7 @@
     "minFit": 0.6,
     "fitScore": 1,
     "matchedSkills": [
+      "Data analysis and business analytics experience",
       "SQL",
       "Excel",
       "Tableau",
@@ -22,20 +23,21 @@
     ],
     "missingSkills": [],
     "matchedEvidence": {
+      "Data analysis and business analytics experience": "Peachtree Retail Group — Business Analytics Intern, Atlanta, GA",
       "SQL": "Used SQL to answer recurring questions on store performance and customer purchase patterns with guidance from a senior analyst.",
       "Excel": "Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team.",
       "Tableau": "Built a Tableau dashboard tracking product sell-through, stockouts, and regional performance; presented findings to the merchandising manager.",
       "Python basics": "Python (pandas)",
       "business communication": "presented findings to the merchandising manager",
-      "retail analytics": "Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations",
+      "retail analytics": "Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team.",
       "dashboarding": "Developed a Tableau dashboard and presented three operational recommendations; separated findings supported by data from assumptions requiring further validation."
     },
     "fitMethod": "llm",
-    "fitReasoning": "The candidate is a CIS student with internship and coursework experience directly in data analysis, matching every required item (SQL, Excel, Tableau, Python basics, business communication) and both preferred items (retail analytics, dashboarding) with verbatim evidence. The role is explicitly entry-level with no prior professional experience required, so the internship and course projects are sufficient for a full match.",
+    "fitReasoning": "Jordan Lee is a current CIS student with an analytics internship and coursework that directly cover the posting's core tools (SQL, Excel, Tableau, Python) and retail analytics/dashboarding nice-to-haves, though the data analysis experience and SQL/Python depth are at intern/coursework level rather than full professional depth.",
     "fitRationale": [
+      "Data analysis and business analytics experience — resume.md: \"Peachtree Retail Group — Business Analytics Intern, Atlanta, GA\"",
       "SQL — resume.md: \"Used SQL to answer recurring questions on store performance and customer purchase patterns with guidance from a senior analyst.\"",
       "Excel — resume.md: \"Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team.\"",
-      "Tableau — resume.md: \"Built a Tableau dashboard tracking product sell-through, stockouts, and regional performance; presented findings to the merchandising manager.\"",
       "Documented experience: ~1.7 years (resume.md, \"Total professional experience\")."
     ],
     "hardConstraintViolations": [],
@@ -52,19 +54,24 @@
     "guidelines": "agent-guidelines.md@215582cc",
     "missingPreferredSkills": [],
     "matchStrength": {
-      "SQL": "full",
+      "Data analysis and business analytics experience": "partial",
+      "SQL": "partial",
       "Excel": "full",
       "Tableau": "full",
-      "Python basics": "full",
+      "Python basics": "partial",
       "business communication": "full",
       "retail analytics": "full",
       "dashboarding": "full"
     },
     "lowConfidence": false,
-    "requirementCount": 7,
+    "requirementCount": 8,
     "unassessedRequirements": [],
     "fitUnscoreable": false,
     "requirementLedger": [
+      {
+        "requirement": "Data analysis and business analytics experience",
+        "priority": "required"
+      },
       {
         "requirement": "SQL",
         "priority": "required"
@@ -95,23 +102,19 @@
       }
     ],
     "memory": {
-      "reusedLedger": false,
+      "reusedLedger": true,
       "reusedVerdicts": false,
-      "ledgerSize": 7,
+      "ledgerSize": 8,
       "previousScore": 1,
-      "note": "Memory: first time this posting was read. Stored its 7-requirement list so later runs use the same yardstick."
+      "note": "Memory: judged against the requirement list stored the first time this posting was read (8 requirements), so the list and weights did not change."
     },
     "advice": {
       "source": "model",
       "mode": "approval",
-      "headline": "Strong match: 100% fit against a 60% bar, with every listed requirement backed by real résumé lines. Approve and draft.",
+      "headline": "Strong match — 100% against a 60% bar, no missing requirements. Approve and draft the application.",
       "recommendation": "approve",
-      "recommendationWhy": "Fit is 100% versus a 60% minimum — at or above the bar — and no requirements are missing. The résumé shows SQL, Excel, Tableau, Python (pandas), retail analytics and presenting findings, all in the same retail context as this role. Nothing needs fixing before drafting.",
+      "recommendationWhy": "Every listed requirement is covered, most of them fully, and the fit score sits at or above the bar. Nothing to fix before drafting.",
       "strengths": [
-        {
-          "requirement": "SQL",
-          "evidenceQuote": "Used SQL to answer recurring questions on store performance and customer purchase patterns with guidance from a senior analyst."
-        },
         {
           "requirement": "Excel",
           "evidenceQuote": "Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team."
@@ -119,28 +122,32 @@
         {
           "requirement": "Tableau / dashboarding",
           "evidenceQuote": "Built a Tableau dashboard tracking product sell-through, stockouts, and regional performance; presented findings to the merchandising manager."
+        },
+        {
+          "requirement": "SQL",
+          "evidenceQuote": "Used SQL to answer recurring questions on store performance and customer purchase patterns with guidance from a senior analyst."
         }
       ],
       "rankedGaps": [],
       "draftPresets": [
         {
-          "label": "Lead with SQL",
-          "instruction": "Open the summary by naming SQL as a tool used to answer recurring store-performance and customer-purchase questions, exactly as stated.",
-          "evidenceQuote": "Used SQL to answer recurring questions on store performance and customer purchase patterns with guidance from a senior analyst."
-        },
-        {
-          "label": "Retail data at scale",
-          "instruction": "State that you cleaned and combined weekly sales and inventory files in Excel and Python across 18 retail locations and cut manual reporting steps.",
+          "label": "Lead with retail analytics work",
+          "instruction": "Open the summary with the retail sales and inventory reporting work and the 18-location scope.",
           "evidenceQuote": "Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team."
         },
         {
-          "label": "Dashboard + audience",
-          "instruction": "Mention the Tableau dashboard on sell-through, stockouts and regional performance, and that you presented the findings to the merchandising manager.",
+          "label": "Show dashboarding",
+          "instruction": "Name the Tableau dashboard and what it tracked, and note that findings were presented to the merchandising manager.",
           "evidenceQuote": "Built a Tableau dashboard tracking product sell-through, stockouts, and regional performance; presented findings to the merchandising manager."
         },
         {
-          "label": "Honest analysis framing",
-          "instruction": "Note that you separate data-supported findings from assumptions needing validation — useful for a junior analyst role.",
+          "label": "Show SQL in use",
+          "instruction": "Describe the SQL work as answering recurring store-performance and purchase-pattern questions, with guidance from a senior analyst.",
+          "evidenceQuote": "Used SQL to answer recurring questions on store performance and customer purchase patterns with guidance from a senior analyst."
+        },
+        {
+          "label": "Show analytical judgment",
+          "instruction": "Mention separating data-supported findings from assumptions needing validation in the campus dining project.",
           "evidenceQuote": "Developed a Tableau dashboard and presented three operational recommendations; separated findings supported by data from assumptions requiring further validation."
         }
       ]
@@ -286,10 +293,10 @@
         "guidelines": "agent-guidelines.md@215582cc"
       },
       "chosenBy": "model",
-      "modelReasoning": "Injection scan is done and clean, but hard constraints have not been checked yet; verifying them first is the cheapest way to reach a final decision before spending a model call on fit evaluation.",
+      "modelReasoning": "Injection scan is done and clean, but hard constraints have not been checked yet; verifying them first is the cheapest way to reach a final decision, since a violation would make fit evaluation pointless.",
       "guidelines": "agent-guidelines.md@215582cc",
       "brain": "ai",
-      "thinking": "Injection scan is done and clean, but hard constraints have not been checked yet; verifying them first is the cheapest way to reach a final decision before spending a model call on fit evaluation.",
+      "thinking": "Injection scan is done and clean, but hard constraints have not been checked yet; verifying them first is the cheapest way to reach a final decision, since a violation would make fit evaluation pointless.",
       "classAction": "CONTINUE_INVESTIGATION"
     },
     {
@@ -323,12 +330,12 @@
         "judgmentMargin": 0.1,
         "guidelines": "agent-guidelines.md@215582cc"
       },
-      "observation": "Memory: first time this posting was read. Stored its 7-requirement list so later runs use the same yardstick. LLM semantic matching. Requirements checked against resume.md. Previous score for this posting: 100%. Model's reasoning: \"The candidate is a CIS student with internship and coursework experience directly in data analysis, matching every required item (SQL, Excel, Tableau, Python basics, business communication) and both preferred items (retail analytics, dashboarding) with verbatim evidence. The role is explicitly entry-level with no prior professional experience required, so the internship and course projects are sufficient for a full match.\"",
+      "observation": "Memory: judged against the requirement list stored the first time this posting was read (8 requirements), so the list and weights did not change. LLM semantic matching against the stored requirement list for this posting (8 requirements, same list and weights as the first evaluation). Consensus of 3 independent readings: a requirement counts as met only when a majority matched it with a quote verified in the résumé. 3 requirement(s) matched at PARTIAL strength (internship/coursework/basics level) and scored at half credit. Requirements checked against resume.md. Previous score for this posting: 100%. Model's reasoning: \"Jordan Lee is a current CIS student with an analytics internship and coursework that directly cover the posting's core tools (SQL, Excel, Tableau, Python) and retail analytics/dashboarding nice-to-haves, though the data analysis experience and SQL/Python depth are at intern/coursework level rather than full professional depth.\"",
       "availableActions": [
         "evaluate_fit"
       ],
       "selectedAction": "evaluate_fit",
-      "result": "fit_score=1, matched=[SQL, Excel, Tableau, Python basics, business communication, retail analytics, dashboarding], missing=[]",
+      "result": "fit_score=1, matched=[Data analysis and business analytics experience, SQL, Excel, Tableau, Python basics, business communication, retail analytics, dashboarding], missing=[]",
       "stateAfter": {
         "jobId": "J001",
         "stage": "evaluated",
@@ -342,6 +349,7 @@
         "minFit": 0.6,
         "fitScore": 1,
         "matchedSkills": [
+          "Data analysis and business analytics experience",
           "SQL",
           "Excel",
           "Tableau",
@@ -352,20 +360,21 @@
         ],
         "missingSkills": [],
         "matchedEvidence": {
+          "Data analysis and business analytics experience": "Peachtree Retail Group — Business Analytics Intern, Atlanta, GA",
           "SQL": "Used SQL to answer recurring questions on store performance and customer purchase patterns with guidance from a senior analyst.",
           "Excel": "Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team.",
           "Tableau": "Built a Tableau dashboard tracking product sell-through, stockouts, and regional performance; presented findings to the merchandising manager.",
           "Python basics": "Python (pandas)",
           "business communication": "presented findings to the merchandising manager",
-          "retail analytics": "Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations",
+          "retail analytics": "Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team.",
           "dashboarding": "Developed a Tableau dashboard and presented three operational recommendations; separated findings supported by data from assumptions requiring further validation."
         },
         "fitMethod": "llm",
-        "fitReasoning": "The candidate is a CIS student with internship and coursework experience directly in data analysis, matching every required item (SQL, Excel, Tableau, Python basics, business communication) and both preferred items (retail analytics, dashboarding) with verbatim evidence. The role is explicitly entry-level with no prior professional experience required, so the internship and course projects are sufficient for a full match.",
+        "fitReasoning": "Jordan Lee is a current CIS student with an analytics internship and coursework that directly cover the posting's core tools (SQL, Excel, Tableau, Python) and retail analytics/dashboarding nice-to-haves, though the data analysis experience and SQL/Python depth are at intern/coursework level rather than full professional depth.",
         "fitRationale": [
+          "Data analysis and business analytics experience — resume.md: \"Peachtree Retail Group — Business Analytics Intern, Atlanta, GA\"",
           "SQL — resume.md: \"Used SQL to answer recurring questions on store performance and customer purchase patterns with guidance from a senior analyst.\"",
           "Excel — resume.md: \"Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team.\"",
-          "Tableau — resume.md: \"Built a Tableau dashboard tracking product sell-through, stockouts, and regional performance; presented findings to the merchandising manager.\"",
           "Documented experience: ~1.7 years (resume.md, \"Total professional experience\")."
         ],
         "hardConstraintViolations": [],
@@ -380,19 +389,24 @@
         "guidelines": "agent-guidelines.md@215582cc",
         "missingPreferredSkills": [],
         "matchStrength": {
-          "SQL": "full",
+          "Data analysis and business analytics experience": "partial",
+          "SQL": "partial",
           "Excel": "full",
           "Tableau": "full",
-          "Python basics": "full",
+          "Python basics": "partial",
           "business communication": "full",
           "retail analytics": "full",
           "dashboarding": "full"
         },
         "lowConfidence": false,
-        "requirementCount": 7,
+        "requirementCount": 8,
         "unassessedRequirements": [],
         "fitUnscoreable": false,
         "requirementLedger": [
+          {
+            "requirement": "Data analysis and business analytics experience",
+            "priority": "required"
+          },
           {
             "requirement": "SQL",
             "priority": "required"
@@ -423,16 +437,16 @@
           }
         ],
         "memory": {
-          "reusedLedger": false,
+          "reusedLedger": true,
           "reusedVerdicts": false,
-          "ledgerSize": 7,
+          "ledgerSize": 8,
           "previousScore": 1,
-          "note": "Memory: first time this posting was read. Stored its 7-requirement list so later runs use the same yardstick."
+          "note": "Memory: judged against the requirement list stored the first time this posting was read (8 requirements), so the list and weights did not change."
         }
       },
       "chosenBy": "harness",
       "brain": "ai",
-      "thinking": "The candidate is a CIS student with internship and coursework experience directly in data analysis, matching every required item (SQL, Excel, Tableau, Python basics, business communication) and both preferred items (retail analytics, dashboarding) with verbatim evidence. The role is explicitly entry-level with no prior professional experience required, so the internship and course projects are sufficient for a full match.",
+      "thinking": "Jordan Lee is a current CIS student with an analytics internship and coursework that directly cover the posting's core tools (SQL, Excel, Tableau, Python) and retail analytics/dashboarding nice-to-haves, though the data analysis experience and SQL/Python depth are at intern/coursework level rather than full professional depth.",
       "classAction": "CONTINUE_INVESTIGATION"
     },
     {
@@ -450,6 +464,7 @@
         "minFit": 0.6,
         "fitScore": 1,
         "matchedSkills": [
+          "Data analysis and business analytics experience",
           "SQL",
           "Excel",
           "Tableau",
@@ -460,20 +475,21 @@
         ],
         "missingSkills": [],
         "matchedEvidence": {
+          "Data analysis and business analytics experience": "Peachtree Retail Group — Business Analytics Intern, Atlanta, GA",
           "SQL": "Used SQL to answer recurring questions on store performance and customer purchase patterns with guidance from a senior analyst.",
           "Excel": "Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team.",
           "Tableau": "Built a Tableau dashboard tracking product sell-through, stockouts, and regional performance; presented findings to the merchandising manager.",
           "Python basics": "Python (pandas)",
           "business communication": "presented findings to the merchandising manager",
-          "retail analytics": "Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations",
+          "retail analytics": "Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team.",
           "dashboarding": "Developed a Tableau dashboard and presented three operational recommendations; separated findings supported by data from assumptions requiring further validation."
         },
         "fitMethod": "llm",
-        "fitReasoning": "The candidate is a CIS student with internship and coursework experience directly in data analysis, matching every required item (SQL, Excel, Tableau, Python basics, business communication) and both preferred items (retail analytics, dashboarding) with verbatim evidence. The role is explicitly entry-level with no prior professional experience required, so the internship and course projects are sufficient for a full match.",
+        "fitReasoning": "Jordan Lee is a current CIS student with an analytics internship and coursework that directly cover the posting's core tools (SQL, Excel, Tableau, Python) and retail analytics/dashboarding nice-to-haves, though the data analysis experience and SQL/Python depth are at intern/coursework level rather than full professional depth.",
         "fitRationale": [
+          "Data analysis and business analytics experience — resume.md: \"Peachtree Retail Group — Business Analytics Intern, Atlanta, GA\"",
           "SQL — resume.md: \"Used SQL to answer recurring questions on store performance and customer purchase patterns with guidance from a senior analyst.\"",
           "Excel — resume.md: \"Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team.\"",
-          "Tableau — resume.md: \"Built a Tableau dashboard tracking product sell-through, stockouts, and regional performance; presented findings to the merchandising manager.\"",
           "Documented experience: ~1.7 years (resume.md, \"Total professional experience\")."
         ],
         "hardConstraintViolations": [],
@@ -490,19 +506,24 @@
         "guidelines": "agent-guidelines.md@215582cc",
         "missingPreferredSkills": [],
         "matchStrength": {
-          "SQL": "full",
+          "Data analysis and business analytics experience": "partial",
+          "SQL": "partial",
           "Excel": "full",
           "Tableau": "full",
-          "Python basics": "full",
+          "Python basics": "partial",
           "business communication": "full",
           "retail analytics": "full",
           "dashboarding": "full"
         },
         "lowConfidence": false,
-        "requirementCount": 7,
+        "requirementCount": 8,
         "unassessedRequirements": [],
         "fitUnscoreable": false,
         "requirementLedger": [
+          {
+            "requirement": "Data analysis and business analytics experience",
+            "priority": "required"
+          },
           {
             "requirement": "SQL",
             "priority": "required"
@@ -533,11 +554,11 @@
           }
         ],
         "memory": {
-          "reusedLedger": false,
+          "reusedLedger": true,
           "reusedVerdicts": false,
-          "ledgerSize": 7,
+          "ledgerSize": 8,
           "previousScore": 1,
-          "note": "Memory: first time this posting was read. Stored its 7-requirement list so later runs use the same yardstick."
+          "note": "Memory: judged against the requirement list stored the first time this posting was read (8 requirements), so the list and weights did not change."
         }
       },
       "observation": "Constraints passed. fit_score=1 >= threshold 0.6.",
@@ -559,6 +580,7 @@
         "minFit": 0.6,
         "fitScore": 1,
         "matchedSkills": [
+          "Data analysis and business analytics experience",
           "SQL",
           "Excel",
           "Tableau",
@@ -569,20 +591,21 @@
         ],
         "missingSkills": [],
         "matchedEvidence": {
+          "Data analysis and business analytics experience": "Peachtree Retail Group — Business Analytics Intern, Atlanta, GA",
           "SQL": "Used SQL to answer recurring questions on store performance and customer purchase patterns with guidance from a senior analyst.",
           "Excel": "Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team.",
           "Tableau": "Built a Tableau dashboard tracking product sell-through, stockouts, and regional performance; presented findings to the merchandising manager.",
           "Python basics": "Python (pandas)",
           "business communication": "presented findings to the merchandising manager",
-          "retail analytics": "Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations",
+          "retail analytics": "Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team.",
           "dashboarding": "Developed a Tableau dashboard and presented three operational recommendations; separated findings supported by data from assumptions requiring further validation."
         },
         "fitMethod": "llm",
-        "fitReasoning": "The candidate is a CIS student with internship and coursework experience directly in data analysis, matching every required item (SQL, Excel, Tableau, Python basics, business communication) and both preferred items (retail analytics, dashboarding) with verbatim evidence. The role is explicitly entry-level with no prior professional experience required, so the internship and course projects are sufficient for a full match.",
+        "fitReasoning": "Jordan Lee is a current CIS student with an analytics internship and coursework that directly cover the posting's core tools (SQL, Excel, Tableau, Python) and retail analytics/dashboarding nice-to-haves, though the data analysis experience and SQL/Python depth are at intern/coursework level rather than full professional depth.",
         "fitRationale": [
+          "Data analysis and business analytics experience — resume.md: \"Peachtree Retail Group — Business Analytics Intern, Atlanta, GA\"",
           "SQL — resume.md: \"Used SQL to answer recurring questions on store performance and customer purchase patterns with guidance from a senior analyst.\"",
           "Excel — resume.md: \"Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team.\"",
-          "Tableau — resume.md: \"Built a Tableau dashboard tracking product sell-through, stockouts, and regional performance; presented findings to the merchandising manager.\"",
           "Documented experience: ~1.7 years (resume.md, \"Total professional experience\")."
         ],
         "hardConstraintViolations": [],
@@ -599,19 +622,24 @@
         "guidelines": "agent-guidelines.md@215582cc",
         "missingPreferredSkills": [],
         "matchStrength": {
-          "SQL": "full",
+          "Data analysis and business analytics experience": "partial",
+          "SQL": "partial",
           "Excel": "full",
           "Tableau": "full",
-          "Python basics": "full",
+          "Python basics": "partial",
           "business communication": "full",
           "retail analytics": "full",
           "dashboarding": "full"
         },
         "lowConfidence": false,
-        "requirementCount": 7,
+        "requirementCount": 8,
         "unassessedRequirements": [],
         "fitUnscoreable": false,
         "requirementLedger": [
+          {
+            "requirement": "Data analysis and business analytics experience",
+            "priority": "required"
+          },
           {
             "requirement": "SQL",
             "priority": "required"
@@ -642,11 +670,11 @@
           }
         ],
         "memory": {
-          "reusedLedger": false,
+          "reusedLedger": true,
           "reusedVerdicts": false,
-          "ledgerSize": 7,
+          "ledgerSize": 8,
           "previousScore": 1,
-          "note": "Memory: first time this posting was read. Stored its 7-requirement list so later runs use the same yardstick."
+          "note": "Memory: judged against the requirement list stored the first time this posting was read (8 requirements), so the list and weights did not change."
         }
       },
       "chosenBy": "harness",
@@ -668,6 +696,7 @@
         "minFit": 0.6,
         "fitScore": 1,
         "matchedSkills": [
+          "Data analysis and business analytics experience",
           "SQL",
           "Excel",
           "Tableau",
@@ -678,20 +707,21 @@
         ],
         "missingSkills": [],
         "matchedEvidence": {
+          "Data analysis and business analytics experience": "Peachtree Retail Group — Business Analytics Intern, Atlanta, GA",
           "SQL": "Used SQL to answer recurring questions on store performance and customer purchase patterns with guidance from a senior analyst.",
           "Excel": "Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team.",
           "Tableau": "Built a Tableau dashboard tracking product sell-through, stockouts, and regional performance; presented findings to the merchandising manager.",
           "Python basics": "Python (pandas)",
           "business communication": "presented findings to the merchandising manager",
-          "retail analytics": "Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations",
+          "retail analytics": "Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team.",
           "dashboarding": "Developed a Tableau dashboard and presented three operational recommendations; separated findings supported by data from assumptions requiring further validation."
         },
         "fitMethod": "llm",
-        "fitReasoning": "The candidate is a CIS student with internship and coursework experience directly in data analysis, matching every required item (SQL, Excel, Tableau, Python basics, business communication) and both preferred items (retail analytics, dashboarding) with verbatim evidence. The role is explicitly entry-level with no prior professional experience required, so the internship and course projects are sufficient for a full match.",
+        "fitReasoning": "Jordan Lee is a current CIS student with an analytics internship and coursework that directly cover the posting's core tools (SQL, Excel, Tableau, Python) and retail analytics/dashboarding nice-to-haves, though the data analysis experience and SQL/Python depth are at intern/coursework level rather than full professional depth.",
         "fitRationale": [
+          "Data analysis and business analytics experience — resume.md: \"Peachtree Retail Group — Business Analytics Intern, Atlanta, GA\"",
           "SQL — resume.md: \"Used SQL to answer recurring questions on store performance and customer purchase patterns with guidance from a senior analyst.\"",
           "Excel — resume.md: \"Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team.\"",
-          "Tableau — resume.md: \"Built a Tableau dashboard tracking product sell-through, stockouts, and regional performance; presented findings to the merchandising manager.\"",
           "Documented experience: ~1.7 years (resume.md, \"Total professional experience\")."
         ],
         "hardConstraintViolations": [],
@@ -708,19 +738,24 @@
         "guidelines": "agent-guidelines.md@215582cc",
         "missingPreferredSkills": [],
         "matchStrength": {
-          "SQL": "full",
+          "Data analysis and business analytics experience": "partial",
+          "SQL": "partial",
           "Excel": "full",
           "Tableau": "full",
-          "Python basics": "full",
+          "Python basics": "partial",
           "business communication": "full",
           "retail analytics": "full",
           "dashboarding": "full"
         },
         "lowConfidence": false,
-        "requirementCount": 7,
+        "requirementCount": 8,
         "unassessedRequirements": [],
         "fitUnscoreable": false,
         "requirementLedger": [
+          {
+            "requirement": "Data analysis and business analytics experience",
+            "priority": "required"
+          },
           {
             "requirement": "SQL",
             "priority": "required"
@@ -751,11 +786,11 @@
           }
         ],
         "memory": {
-          "reusedLedger": false,
+          "reusedLedger": true,
           "reusedVerdicts": false,
-          "ledgerSize": 7,
+          "ledgerSize": 8,
           "previousScore": 1,
-          "note": "Memory: first time this posting was read. Stored its 7-requirement list so later runs use the same yardstick."
+          "note": "Memory: judged against the requirement list stored the first time this posting was read (8 requirements), so the list and weights did not change."
         }
       },
       "observation": "The agent is stopping for a person (awaiting_approval). The advisor reads the evaluation facts and the résumé (never the posting text) and tells the person what to do next.",
@@ -763,7 +798,7 @@
         "advise_human"
       ],
       "selectedAction": "advise_human",
-      "result": "Strong match: 100% fit against a 60% bar, with every listed requirement backed by real résumé lines. Approve and draft. Recommends: approve. 4 tailored preset(s), 0 gap(s) ranked.",
+      "result": "Strong match — 100% against a 60% bar, no missing requirements. Approve and draft the application. Recommends: approve. 4 tailored preset(s), 0 gap(s) ranked.",
       "stateAfter": {
         "jobId": "J001",
         "stage": "awaiting_approval",
@@ -777,6 +812,7 @@
         "minFit": 0.6,
         "fitScore": 1,
         "matchedSkills": [
+          "Data analysis and business analytics experience",
           "SQL",
           "Excel",
           "Tableau",
@@ -787,20 +823,21 @@
         ],
         "missingSkills": [],
         "matchedEvidence": {
+          "Data analysis and business analytics experience": "Peachtree Retail Group — Business Analytics Intern, Atlanta, GA",
           "SQL": "Used SQL to answer recurring questions on store performance and customer purchase patterns with guidance from a senior analyst.",
           "Excel": "Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team.",
           "Tableau": "Built a Tableau dashboard tracking product sell-through, stockouts, and regional performance; presented findings to the merchandising manager.",
           "Python basics": "Python (pandas)",
           "business communication": "presented findings to the merchandising manager",
-          "retail analytics": "Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations",
+          "retail analytics": "Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team.",
           "dashboarding": "Developed a Tableau dashboard and presented three operational recommendations; separated findings supported by data from assumptions requiring further validation."
         },
         "fitMethod": "llm",
-        "fitReasoning": "The candidate is a CIS student with internship and coursework experience directly in data analysis, matching every required item (SQL, Excel, Tableau, Python basics, business communication) and both preferred items (retail analytics, dashboarding) with verbatim evidence. The role is explicitly entry-level with no prior professional experience required, so the internship and course projects are sufficient for a full match.",
+        "fitReasoning": "Jordan Lee is a current CIS student with an analytics internship and coursework that directly cover the posting's core tools (SQL, Excel, Tableau, Python) and retail analytics/dashboarding nice-to-haves, though the data analysis experience and SQL/Python depth are at intern/coursework level rather than full professional depth.",
         "fitRationale": [
+          "Data analysis and business analytics experience — resume.md: \"Peachtree Retail Group — Business Analytics Intern, Atlanta, GA\"",
           "SQL — resume.md: \"Used SQL to answer recurring questions on store performance and customer purchase patterns with guidance from a senior analyst.\"",
           "Excel — resume.md: \"Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team.\"",
-          "Tableau — resume.md: \"Built a Tableau dashboard tracking product sell-through, stockouts, and regional performance; presented findings to the merchandising manager.\"",
           "Documented experience: ~1.7 years (resume.md, \"Total professional experience\")."
         ],
         "hardConstraintViolations": [],
@@ -817,19 +854,24 @@
         "guidelines": "agent-guidelines.md@215582cc",
         "missingPreferredSkills": [],
         "matchStrength": {
-          "SQL": "full",
+          "Data analysis and business analytics experience": "partial",
+          "SQL": "partial",
           "Excel": "full",
           "Tableau": "full",
-          "Python basics": "full",
+          "Python basics": "partial",
           "business communication": "full",
           "retail analytics": "full",
           "dashboarding": "full"
         },
         "lowConfidence": false,
-        "requirementCount": 7,
+        "requirementCount": 8,
         "unassessedRequirements": [],
         "fitUnscoreable": false,
         "requirementLedger": [
+          {
+            "requirement": "Data analysis and business analytics experience",
+            "priority": "required"
+          },
           {
             "requirement": "SQL",
             "priority": "required"
@@ -860,23 +902,19 @@
           }
         ],
         "memory": {
-          "reusedLedger": false,
+          "reusedLedger": true,
           "reusedVerdicts": false,
-          "ledgerSize": 7,
+          "ledgerSize": 8,
           "previousScore": 1,
-          "note": "Memory: first time this posting was read. Stored its 7-requirement list so later runs use the same yardstick."
+          "note": "Memory: judged against the requirement list stored the first time this posting was read (8 requirements), so the list and weights did not change."
         },
         "advice": {
           "source": "model",
           "mode": "approval",
-          "headline": "Strong match: 100% fit against a 60% bar, with every listed requirement backed by real résumé lines. Approve and draft.",
+          "headline": "Strong match — 100% against a 60% bar, no missing requirements. Approve and draft the application.",
           "recommendation": "approve",
-          "recommendationWhy": "Fit is 100% versus a 60% minimum — at or above the bar — and no requirements are missing. The résumé shows SQL, Excel, Tableau, Python (pandas), retail analytics and presenting findings, all in the same retail context as this role. Nothing needs fixing before drafting.",
+          "recommendationWhy": "Every listed requirement is covered, most of them fully, and the fit score sits at or above the bar. Nothing to fix before drafting.",
           "strengths": [
-            {
-              "requirement": "SQL",
-              "evidenceQuote": "Used SQL to answer recurring questions on store performance and customer purchase patterns with guidance from a senior analyst."
-            },
             {
               "requirement": "Excel",
               "evidenceQuote": "Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team."
@@ -884,28 +922,32 @@
             {
               "requirement": "Tableau / dashboarding",
               "evidenceQuote": "Built a Tableau dashboard tracking product sell-through, stockouts, and regional performance; presented findings to the merchandising manager."
+            },
+            {
+              "requirement": "SQL",
+              "evidenceQuote": "Used SQL to answer recurring questions on store performance and customer purchase patterns with guidance from a senior analyst."
             }
           ],
           "rankedGaps": [],
           "draftPresets": [
             {
-              "label": "Lead with SQL",
-              "instruction": "Open the summary by naming SQL as a tool used to answer recurring store-performance and customer-purchase questions, exactly as stated.",
-              "evidenceQuote": "Used SQL to answer recurring questions on store performance and customer purchase patterns with guidance from a senior analyst."
-            },
-            {
-              "label": "Retail data at scale",
-              "instruction": "State that you cleaned and combined weekly sales and inventory files in Excel and Python across 18 retail locations and cut manual reporting steps.",
+              "label": "Lead with retail analytics work",
+              "instruction": "Open the summary with the retail sales and inventory reporting work and the 18-location scope.",
               "evidenceQuote": "Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team."
             },
             {
-              "label": "Dashboard + audience",
-              "instruction": "Mention the Tableau dashboard on sell-through, stockouts and regional performance, and that you presented the findings to the merchandising manager.",
+              "label": "Show dashboarding",
+              "instruction": "Name the Tableau dashboard and what it tracked, and note that findings were presented to the merchandising manager.",
               "evidenceQuote": "Built a Tableau dashboard tracking product sell-through, stockouts, and regional performance; presented findings to the merchandising manager."
             },
             {
-              "label": "Honest analysis framing",
-              "instruction": "Note that you separate data-supported findings from assumptions needing validation — useful for a junior analyst role.",
+              "label": "Show SQL in use",
+              "instruction": "Describe the SQL work as answering recurring store-performance and purchase-pattern questions, with guidance from a senior analyst.",
+              "evidenceQuote": "Used SQL to answer recurring questions on store performance and customer purchase patterns with guidance from a senior analyst."
+            },
+            {
+              "label": "Show analytical judgment",
+              "instruction": "Mention separating data-supported findings from assumptions needing validation in the campus dining project.",
               "evidenceQuote": "Developed a Tableau dashboard and presented three operational recommendations; separated findings supported by data from assumptions requiring further validation."
             }
           ]
@@ -913,7 +955,7 @@
       },
       "chosenBy": "model",
       "brain": "ai",
-      "thinking": "Strong match: 100% fit against a 60% bar, with every listed requirement backed by real résumé lines. Approve and draft.\nFit is 100% versus a 60% minimum — at or above the bar — and no requirements are missing. The résumé shows SQL, Excel, Tableau, Python (pandas), retail analytics and presenting findings, all in the same retail context as this role. Nothing needs fixing before drafting.",
+      "thinking": "Strong match — 100% against a 60% bar, no missing requirements. Approve and draft the application.\nEvery listed requirement is covered, most of them fully, and the fit score sits at or above the bar. Nothing to fix before drafting.",
       "guidelines": "agent-guidelines.md@215582cc",
       "classAction": "RECOMMEND"
     }
@@ -921,6 +963,7 @@
   "fit": {
     "score": 1,
     "matched": [
+      "Data analysis and business analytics experience",
       "SQL",
       "Excel",
       "Tableau",
@@ -932,27 +975,33 @@
     "missing": [],
     "missingPreferred": [],
     "matchedEvidence": {
+      "Data analysis and business analytics experience": "Peachtree Retail Group — Business Analytics Intern, Atlanta, GA",
       "SQL": "Used SQL to answer recurring questions on store performance and customer purchase patterns with guidance from a senior analyst.",
       "Excel": "Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team.",
       "Tableau": "Built a Tableau dashboard tracking product sell-through, stockouts, and regional performance; presented findings to the merchandising manager.",
       "Python basics": "Python (pandas)",
       "business communication": "presented findings to the merchandising manager",
-      "retail analytics": "Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations",
+      "retail analytics": "Cleaned and combined weekly sales and inventory files in Excel and Python for 18 retail locations, reducing manual reporting steps for the operations team.",
       "dashboarding": "Developed a Tableau dashboard and presented three operational recommendations; separated findings supported by data from assumptions requiring further validation."
     },
     "matchStrength": {
-      "SQL": "full",
+      "Data analysis and business analytics experience": "partial",
+      "SQL": "partial",
       "Excel": "full",
       "Tableau": "full",
-      "Python basics": "full",
+      "Python basics": "partial",
       "business communication": "full",
       "retail analytics": "full",
       "dashboarding": "full"
     },
     "lowConfidence": false,
-    "requirementCount": 7,
+    "requirementCount": 8,
     "unassessedRequirements": [],
     "ledger": [
+      {
+        "requirement": "Data analysis and business analytics experience",
+        "priority": "required"
+      },
       {
         "requirement": "SQL",
         "priority": "required"
@@ -982,9 +1031,11 @@
         "priority": "preferred"
       }
     ],
-    "fromLedger": false,
+    "fromLedger": true,
+    "droppedMatches": 0,
+    "viaBackup": false,
     "method": "llm",
-    "reasoning": "The candidate is a CIS student with internship and coursework experience directly in data analysis, matching every required item (SQL, Excel, Tableau, Python basics, business communication) and both preferred items (retail analytics, dashboarding) with verbatim evidence. The role is explicitly entry-level with no prior professional experience required, so the internship and course projects are sufficient for a full match.",
-    "note": "LLM semantic matching."
+    "reasoning": "Jordan Lee is a current CIS student with an analytics internship and coursework that directly cover the posting's core tools (SQL, Excel, Tableau, Python) and retail analytics/dashboarding nice-to-haves, though the data analysis experience and SQL/Python depth are at intern/coursework level rather than full professional depth.",
+    "note": "LLM semantic matching against the stored requirement list for this posting (8 requirements, same list and weights as the first evaluation). Consensus of 3 independent readings: a requirement counts as met only when a majority matched it with a quote verified in the résumé. 3 requirement(s) matched at PARTIAL strength (internship/coursework/basics level) and scored at half credit."
   }
 }

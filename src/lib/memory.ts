@@ -44,7 +44,8 @@ export function jobHash(jobText: string): string {
 //   v3: near-exact quotes recovered to the resume's own line; only clean verdicts are saved
 //   v4: a majority of three independent readings decides each requirement
 //   v5: verdicts answered by the backup brain are never saved (drops the ones saved during an outage)
-export const MATCHER_VERSION = "v5";
+//   v6: quote recovery compares sentence-sized pieces, so a flattened resume cannot over-match
+export const MATCHER_VERSION = "v6";
 
 export function fitKey(resumeText: string, settings: HarnessSettings, model: string): string {
   return hashText([MATCHER_VERSION, resumeText, settings.prompts.fit, model].join(" | "));
