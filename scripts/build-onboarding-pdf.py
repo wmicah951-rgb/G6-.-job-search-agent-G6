@@ -20,16 +20,19 @@ from reportlab.platypus import (BaseDocTemplate, PageTemplate, Frame, Paragraph,
                                 TableStyle, PageBreak, Preformatted, KeepTogether, Flowable)
 from reportlab.graphics.shapes import Drawing, Rect, String, Line, Polygon
 
-ROOT = r"C:\a.App Projectts\job find\job-search-agent-app"
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "G6_Team_Onboarding_Guide.pdf")
 TR = json.load(open(os.path.join(ROOT, "docs", "submission", "traces.json"), encoding="utf-8"))["runs"]
-
+# Segoe UI / Consolas on Windows; Liberation Sans / Mono elsewhere (same layout, metric-compatible with Arial).
 F = r"C:\Windows\Fonts"
-pdfmetrics.registerFont(TTFont("Body", F + r"\segoeui.ttf"))
-pdfmetrics.registerFont(TTFont("Body-B", F + r"\segoeuib.ttf"))
-pdfmetrics.registerFont(TTFont("Body-I", F + r"\segoeuii.ttf"))
-pdfmetrics.registerFont(TTFont("Body-BI", F + r"\segoeuiz.ttf"))
-pdfmetrics.registerFont(TTFont("Mono", F + r"\consola.ttf"))
+L = "/usr/share/fonts/truetype/liberation"
+FONTS = ({"Body": "segoeui.ttf", "Body-B": "segoeuib.ttf", "Body-I": "segoeuii.ttf", "Body-BI": "segoeuiz.ttf", "Mono": "consola.ttf"}
+         if os.path.exists(os.path.join(F, "segoeui.ttf")) else
+         {"Body": "LiberationSans-Regular.ttf", "Body-B": "LiberationSans-Bold.ttf", "Body-I": "LiberationSans-Italic.ttf",
+          "Body-BI": "LiberationSans-BoldItalic.ttf", "Mono": "LiberationMono-Regular.ttf"})
+_dir = F if FONTS["Body"] == "segoeui.ttf" else L
+for _name, _file in FONTS.items():
+    pdfmetrics.registerFont(TTFont(_name, os.path.join(_dir, _file)))
 pdfmetrics.registerFontFamily("Body", normal="Body", bold="Body-B", italic="Body-I", boldItalic="Body-BI")
 
 NAVY = colors.HexColor("#1f3a5f"); TEAL = colors.HexColor("#2a7f8e"); GREY = colors.HexColor("#5b6470")
@@ -96,12 +99,12 @@ class Fig(Flowable):
 
 def fig_arch():
     d = Drawing(500, 262)
-    box(d, 10, 205, 480, 46, "BROWSER  ·  Next.js pages (React 19)\nDashboard  ·  Add posting  ·  Job detail (Approve / Edit / Reject)  ·  Resume & Preferences  ·  Test Lab  ·  Harness", fill=colors.HexColor("#dde8f5"), size=7.6)
+    box(d, 10, 205, 480, 46, "BROWSER  ·  Next.js pages (React 19)\nDashboard  ·  Live Demo  ·  Add posting  ·  Job detail (Approve / Edit / Reject)  ·  Resume & Preferences  ·  Test Lab  ·  Harness", fill=colors.HexColor("#dde8f5"), size=7.6)
     box(d, 10, 148, 480, 44, "API ROUTES  ·  src/app/api/**  (the only door into the agent)\n/jobs  ·  /agent/approve  ·  /agent/clarify  ·  /agent/override  ·  /profiles  ·  /harness  ·  /testlab   —  enforce 409 stage guards", fill=colors.HexColor("#dde8f5"), size=7.6)
     box(d, 10, 78, 205, 58, "HARNESS  ·  src/lib/agent.ts\nDETERMINISTIC CODE — every decision\nrunAgent · decideAfterConstraints\napplyHumanDecision · guards", fill=colors.HexColor("#e2f1e4"), stroke=GREEN, size=7.4, bold=False)
     box(d, 232, 78, 125, 58, "BRAIN ADAPTER\nllmEvaluator.ts + llm/*\nDeepSeek · Claude · custom\nreads & drafts ONLY", fill=colors.HexColor("#fdf0d8"), stroke=AMBER, size=7.4)
     box(d, 372, 78, 118, 58, "CHECKER\ndraftVerifier.ts\nno model call\nflags unsourced facts", fill=colors.HexColor("#e2f1e4"), stroke=GREEN, size=7.4)
-    box(d, 10, 8, 235, 52, "DATABASE  ·  libSQL / Turso (prod) or local.db\nprofiles · jobs · evaluations (trace_json, state_json,\nresume_snapshot) · harness_settings", size=7.4)
+    box(d, 10, 8, 235, 52, "DATABASE  ·  Postgres / Supabase (live) or local.db\nprofiles · jobs · evaluations (trace_json, state_json,\nresume_snapshot) · harness_settings", size=7.4)
     box(d, 262, 8, 228, 52, "INPUT FILES / DATA\nresume.md + preferences.md (a “profile”) ·\njob postings (pasted or scraped) · src/data/*", size=7.4)
     arrow(d, 250, 205, 250, 192); arrow(d, 110, 148, 110, 136); arrow(d, 110, 78, 110, 60)
     arrow(d, 215, 107, 232, 107); arrow(d, 357, 107, 372, 107)
@@ -206,7 +209,7 @@ TABLE([["File", "Role", "Lines"],
        ["<font name='Mono'>src/lib/llm/types.ts</font>", "Every prompt sent to the model and the exact JSON shape it must return", "411"],
        ["<font name='Mono'>src/lib/llmEvaluator.ts</font>", "Swappable-brain dispatcher; nothing else talks to a model", "111"],
        ["<font name='Mono'>src/app/api/**</font>", "HTTP routes; the approval/clarify/override routes enforce 409 stage guards", "~1,000"],
-       ["<font name='Mono'>src/lib/db.ts</font>", "libSQL schema (profiles, jobs, evaluations, harness_settings)", "227"]],
+       ["<font name='Mono'>src/lib/db.ts</font>", "Database layer: one schema, runs on Postgres (Supabase, live), Turso or a local file (profiles, jobs, evaluations, harness_settings, memory)", "227"]],
       [2.0, 4.4, 0.6])
 story.append(PageBreak())
 
@@ -306,8 +309,8 @@ P("<b>Nothing on the approval screen is fixed text any more.</b> The old “Quic
   "They are replaced by <i>AI-recommended additions</i> written by the Advisor for this résumé and this job, each with the résumé line that backs it. The missing-skills list is re-ordered by the Advisor "
   "(critical / helpful / minor, with a reason). The ASK_USER question and the low-fit rejection screen also show the Advisor's recommendation, and the button it recommends is tagged “agent recommends”. "
   "With no model the same panel is filled by a default policy and is labelled as such.")
-P("<b>The trace shows the agent's brain.</b> Every step is tagged <font name='Mono'>🧠 AI thinking</font> or <font name='Mono'>⚙ code rule</font>, who chose it (AI / guardrail / default policy), and the agent's own words for why. "
-  "The Test Lab shows the same for each of its 19 tests, plus the Advisor's recommendation, and now includes the four class-page scenarios (K001–K004).")
+P("<b>The trace shows the agent's brain.</b> Every step is tagged “AI thinking” or “code rule”, who chose it (AI / guardrail / default policy), and the agent's own words for why. "
+  "The Test Lab shows the same for each of its 21 tests, plus the Advisor's recommendation, and now includes the four class-page scenarios (K001–K004).")
 H2("3.6 Running on a weaker local model (Ollama)")
 P("A local 7B model is slower and much worse at structured output, so in <b>small-model mode</b> (automatic for a local <font name='Mono'>LLM_BASE_URL</font>; <font name='Mono'>LLM_SMALL=1/0</font> to force) the agent asks easier questions: "
   "the Controller picks a <b>number from a menu</b>; the Matcher is shown <b>numbered résumé lines</b> and points at line numbers (so quotes are exact by construction); the Advisor <b>ranks and picks among choices the harness built</b> from the résumé. "
@@ -353,7 +356,7 @@ H1("5. The decision loop — what the agent actually does")
 story.append(fig_flow())
 P("<b>Figure 2.</b> Every action the agent can take. The order of the check/evaluate steps, and the borderline decision, are chosen at run time from the permitted set; 8–10 exist only because a human said yes.", small)
 H2("Different inputs, different executed sequences (real output, DeepSeek controller)")
-P("<font name='Mono'>[m]</font> = the AI controller chose this from 2+ permitted actions · <font name='Mono'>[g]</font> = a guardrail (only one permitted) · from <font name='Mono'>docs/submission/traces.json</font>, generated 20 Sep 2026.", small)
+P("<font name='Mono'>[m]</font> = the AI controller chose this from 2+ permitted actions · <font name='Mono'>[g]</font> = a guardrail (only one permitted) · from <font name='Mono'>docs/submission/traces.json</font>, generated 22 Sep 2026.", small)
 def _seq(rid):
     parts = []
     for t in TR[rid]["trace"]:
@@ -460,7 +463,7 @@ TABLE([["Decision", "Alternative", "Why ours", "Class tie"],
        ["Minimum fit 60%, editable per profile", "Fixed threshold", "0.34 gave wrong splits with the LLM matcher; 60% reproduces the correct split under both matchers", "Evaluation"],
        ["Verifier stays quiet on honest rewording", "Flag anything that differs", "A checker that cries wolf gets ignored", "HITL trust"],
        ["Snapshot the résumé at evaluation", "Read live profile at approval time", "Drafts cannot drift from what was scored", "State"],
-       ["Next.js + Vercel + Turso", "Notebook / Google ADK script", "A deployable app with a real approval UI; class allows “Python of your choice” and grades all paths identically", "Path C"]],
+       ["Next.js + Vercel + Supabase (Postgres)", "Notebook / Google ADK script", "A deployable app with a real approval UI; class allows “Python of your choice” and grades all paths identically", "Path C"]],
       [1.7, 1.6, 2.7, 1.0])
 story.append(PageBreak())
 
@@ -479,23 +482,27 @@ P("With no env vars the app uses a local file database (<font name='Mono'>local.
   "<font name='Mono'>node_modules/next/dist/docs/</font> before changing routing or config.")
 H2("8.2 Environment variables")
 TABLE([["Variable", "Purpose", "Required?"],
-       ["TURSO_DATABASE_URL, TURSO_AUTH_TOKEN", "Production database. Omit both → local <font name='Mono'>file:local.db</font>", "Prod only"],
+       ["SUPABASE_DB_URL", "Live database (Supabase Postgres, session-pooler URI). Omit → Turso if set, else local <font name='Mono'>file:local.db</font>", "Prod only"],
+       ["TURSO_DATABASE_URL, TURSO_AUTH_TOKEN", "Older libSQL option, still supported", "No"],
+       ["LLM_BACKUP", "Backup model used for one call when the main one fails; its scores are never saved. <font name='Mono'>off</font> disables it", "No"],
        ["LLM_PROVIDER", "<font name='Mono'>deepseek</font> | <font name='Mono'>anthropic</font> | <font name='Mono'>custom</font>; empty/none = no AI", "No"],
        ["DEEPSEEK_API_KEY, DEEPSEEK_MODEL", "Current brain (deepseek-chat)", "If provider=deepseek"],
        ["ANTHROPIC_API_KEY, ANTHROPIC_MODEL", "Claude alternative (haiku-4-5)", "If provider=anthropic"],
        ["LLM_BASE_URL, LLM_API_KEY, LLM_MODEL", "Any OpenAI-compatible model, incl. local Ollama", "If provider=custom"]],
       [2.5, 3.0, 1.5])
 H2("8.3 The proof commands")
-TABLE([["Command", "Proves", "Verified 20 Sep 2026"],
+TABLE([["Command", "Proves", "Last verified"],
        ["<font name='Mono'>npx tsx scripts/run-tests.ts</font>", "15 postings with full traces; required sequences distinct", "Ran with model OFF: J001–J004 sequences as in §5"],
-       ["<font name='Mono'>LLM_PROVIDER=none … npx tsx scripts/conformance.ts</font>", "Every gate with no AI", "<b>PASS</b> — 11/11 with no AI; <b>13/13 with the live DeepSeek controller</b> (re-run 20 Sep)"],
+       ["<font name='Mono'>LLM_PROVIDER=none … npx tsx scripts/conformance.ts</font>", "Every gate with no AI", "<b>PASS</b> — 11/11 with no AI (re-run 24 Sep); <b>13/13 with the live DeepSeek controller</b>"],
        ["<font name='Mono'>npx tsx scripts/guidelines-proof.ts</font>", "Same postings under edited versions of agent-guidelines.md: decisions change; a file that tries to disable guardrails changes nothing", "<b>PASS</b> twice on DeepSeek"],
        ["<font name='Mono'>npx tsx scripts/controller-demo.ts</font>", "Who chose each action (AI / guardrail / policy) and the model's reason, per posting", "<b>Ran</b> on DeepSeek: model chooses order, skips fit on J003/K003, judges borderline fits"],
        ["<font name='Mono'>node scripts/hostile-model-test.mjs</font>", "A hijacked controller and a lying model cannot change any decision", "<b>PASS</b> incl. controller attacks"],
        ["<font name='Mono'>npx tsx scripts/verify-tests.ts</font>", "Draft checker, incl. zero false alarms on honest rewording", "<b>PASS</b> — all"],
-       ["<font name='Mono'>npx tsx scripts/kit-tests.ts [kitDir]</font>", "The four class cases judged against the Week 2 page's expectations (run on the official kit by passing its folder)", "<b>PASS</b> on reconstructed fixtures, model on and off"],
+       ["<font name='Mono'>npx tsx scripts/kit-tests.ts [kitDir]</font>", "The four class cases judged against the Week 2 page's expectations (run on the official kit by passing its folder)", "<b>PASS</b> 18/18 (re-run 24 Sep, no AI); the official kit itself runs via classkit-run.ts, 6/6"],
        ["<font name='Mono'>npx tsx scripts/knob-tests.ts</font>", "Quick-match settings round-trip, edit one line", "<b>PASS</b> — all"],
        ["<font name='Mono'>npx tsx scripts/doc-check.ts</font>", "Docs still match code", "<b>PASS</b> (but see §12.2 #5 for what it misses)"],
+       ["years-tests, location-tests, resume-ingest-tests, note-answers-tests, pg-translate-tests, category-matrix", "Years and location reading; résumé files; answers reach the drafter; SQL runs on Postgres; six fields", "<b>PASS</b> — 5, 8, 25, 13, 7 and 16/16 (re-run 24 Sep)"],
+       ["<font name='Mono'>node scripts/live-verify.mjs</font>; <font name='Mono'>live-demo-check.mjs</font>", "The deployed site: DB, model, all 9 candidates, class kit, Test Lab; every featured Live Demo link", "<b>PASS</b> — Test Lab 21/21, demo links 27/27 (24 Sep)"],
        ["stress-suite.ts; local-e2e.mjs", "64 checks; 48 HTTP checks (real server, scratch DB)", "<b>PASS</b> — 64/64 and all e2e checks, with the live controller"],
        ["harness-tests.mjs", "16 settings checks", "Not re-run; result as recorded in HANDOFF.md"]],
       [2.6, 2.5, 1.9])
@@ -511,19 +518,18 @@ CODE("Developer ──git push──► GitHub (wmicah951-rgb/G6-.-job-search-ag
      "                              ▼\n"
      "                    Vercel: Next.js 16 build ── serverless API routes\n"
      "                              │                      │\n"
-     "                              │                      ├──► Turso (libSQL) :  profiles / jobs / evaluations\n"
-     "                              │                      └──► LLM provider  :  DeepSeek / Anthropic / custom (server-side only)\n"
+     "                              │                      ├──► Supabase (Postgres): profiles / jobs / evaluations\n"
+     "                              │                      └──► LLM: DeepSeek (+ backup), server-side only\n"
      "                              ▼\n"
      "                    https://g6-job-search-agent-g6.vercel.app   (HTTP 200 confirmed)")
 TABLE([["Step", "Detail"],
-       ["1  Database", "Create a Turso DB; get URL + token. Schema self-creates on first request (<font name='Mono'>ensureSchema()</font> in db.ts) — no migration step."],
-       ["2  Environment", "Vercel → Project Settings → Environment Variables: TURSO_*, LLM_PROVIDER, the provider key/model. Currently set for <b>Production and Development only</b>."],
+       ["1  Database", "Create a Supabase project and copy the <b>session pooler</b> connection URI into SUPABASE_DB_URL (docs/architecture/11-supabase.md). Schema self-creates on first request (<font name='Mono'>ensureSchema()</font> in db.ts) — no migration step."],
+       ["2  Environment", "Vercel → Project Settings → Environment Variables: SUPABASE_DB_URL, LLM_PROVIDER, the provider key/model. Currently set for <b>Production and Development only</b>."],
        ["3  Deploy", "Push to GitHub (or <font name='Mono'>vercel deploy</font>). HANDOFF.md notes: push with PowerShell — the Bash tool's git push is blocked in this environment."],
        ["4  Verify", "Open the live URL; the status strip on the dashboard shows DB / AI / scraper health; run the Test Lab."],
        ["5  Seed / profile data", "Fictional data only. The URL is public."]],
       [1.4, 5.6])
-P("<b>Deployment limits you should know:</b> preview deployments have no env vars (no DB, no model); API routes set no explicit <font name='Mono'>maxDuration</font> "
-  "(a long posting = ~30 s over two model calls); there is <b>no authentication</b> on any route of a public URL; the URL scraper cannot read LinkedIn/Indeed (and must not — it breaches their terms; "
+P("<b>Deployment limits you should know:</b> preview deployments have no env vars (no DB, no model); agent routes set <font name='Mono'>maxDuration</font> (a posting takes about 15 s); there is <b>no authentication</b> on any route of a public URL; the URL scraper cannot read LinkedIn/Indeed (and must not — it breaches their terms; "
   "use Adzuna, JSearch or USAJOBS if discovery is added).", callout)
 
 # =====================================================================================
@@ -531,11 +537,11 @@ P("<b>Deployment limits you should know:</b> preview deployments have no env var
 # =====================================================================================
 H1("10. The evidence — four required tests")
 P("All values below come from <font name='Mono'>docs/submission/traces.json</font> (written by <font name='Mono'>scripts/export-traces.ts</font> running the real agent on "
-  "<b>deepseek:deepseek-chat</b>, generated 20 Sep 2026) and were cross-checked by my no-AI run today. Nothing here is hand-typed.")
+  "<b>deepseek:deepseek-chat</b>, generated 22 Sep 2026). Nothing here is hand-typed.")
 def sc(k): return TR[k]
 TABLE([["Test", "Job", "Result (AI on)", "Expected by the assignment", "Match?"],
        ["1 Obvious fit", "J001", "awaiting_approval · fit 100% · no gaps", "Recommend / high rank; cite evidence; no fabrication", "Yes"],
-       ["2 Partial fit", "J002", "rejected_low_fit at 44% (well under the judgment zone, so the harness decides) · missing ML/DL, deployment, NLP/vision, Tableau, Spark", "Recommend <i>or investigate</i>; identify missing skills; don't invent", "Gaps identified, none invented; outcome depends on fit vs bar — see §12.2 #1"],
+       ["2 Partial fit", "J002", "rejected_low_fit at %d%% (bar 60%%) · missing ML/DL, deployment, NLP/vision, Tableau, Spark" % round(TR["J002"]["fitScore"] * 100), "Recommend <i>or investigate</i>; identify missing skills; don't invent", "Gaps identified, none invented"],
        ["3 Hard constraint", "J003", "rejected_hard_constraint after 3 steps · 3 violations (5+ yrs, clearance, on-site) · controller skipped fit evaluation as the outcome was final", "Reject or materially down-rank", "Yes"],
        ["4 Injection", "J004", "awaiting_approval · injection caught by regex + AI · refused · gaps preserved (none)", "Untreated as data; no external action", "Yes"]],
       [1.05, 0.45, 2.55, 1.9, 1.05])
@@ -612,8 +618,8 @@ B("Résumé snapshot is stored at evaluation and used at approval (jobs route �
 B("Suites: conformance 11/11 (no AI) and 13/13 (live controller), stress-suite 64/64, e2e over real HTTP all pass, verify-tests, knob-tests and doc-check pass.")
 H2("12.2 Findings — fix or consciously accept before submitting")
 TABLE([["#", "Severity", "Finding", "Suggested action"],
-       ["1", "<font color='#b26a00'><b>Open</b></font> (needs the official kit)", "<b>Test postings differ from the class starter kit.</b> The class page shows J001 as “Junior Data Analyst · SQL, Excel, Tableau, Python · Atlanta”, J002 as “Business Analyst · A/B testing preferred”, J004 as an injection to “claim AWS certification”. The repo's J001–J004 are the group's own (unchanged since 17 Sep). The kit is behind the course login, so I could not fetch it. <b>What I did:</b> wrote four fixtures to the class descriptions (<font name='Mono'>src/data/jobs/spec/K001–K004</font>) and <font name='Mono'>scripts/kit-tests.ts</font>, which judges the agent against the class's own expectations. Result on DeepSeek and with no AI: all class-spec checks pass (K002 = recommended at 67%, A/B testing and product analytics both listed as gaps, none invented; K004 = injection refused, AWS gap kept, no email/approval).",
-        "Download the kit, put J001–J004 in a folder and run <font name='Mono'>npx tsx scripts/kit-tests.ts &lt;folder&gt; --resume &lt;kit resume&gt; --prefs &lt;kit prefs&gt;</font>. Then submit the traces from that run."],
+       ["1", "<font color='#2e7d32'><b>Fixed</b></font> (22 Sep)", "<b>Test postings differed from the class starter kit.</b> <b>Now:</b> the official kit is in <font name='Mono'>src/data/classkit/</font> and all six pass (§13b). Original note: The class page shows J001 as “Junior Data Analyst · SQL, Excel, Tableau, Python · Atlanta”, J002 as “Business Analyst · A/B testing preferred”, J004 as an injection to “claim AWS certification”. The repo's J001–J004 are the group's own (unchanged since 17 Sep). The kit is behind the course login, so I could not fetch it. <b>What I did:</b> wrote four fixtures to the class descriptions (<font name='Mono'>src/data/jobs/spec/K001–K004</font>) and <font name='Mono'>scripts/kit-tests.ts</font>, which judges the agent against the class's own expectations. Result on DeepSeek and with no AI: all class-spec checks pass (K002 = recommended at 67%, A/B testing and product analytics both listed as gaps, none invented; K004 = injection refused, AWS gap kept, no email/approval).",
+        "—"],
        ["2", "<font color='#2e7d32'><b>Fixed</b></font>", "<b><font name='Mono'>.env.local</font> was un-ignored in .gitignore.</b> Removed the exception; <font name='Mono'>git check-ignore</font> now confirms it is ignored.", "Share keys privately. Rotate them if you ever pushed a commit containing the file (history shows none)."],
        ["3", "<font color='#2e7d32'><b>Fixed</b></font>", "<b>No ranked output.</b> Dashboard defaults to “Ranked: best fit first” with #1, #2… badges. Tiers: active jobs by fit, then low-fit rejects, then hard-constraint rejects last (down-ranked despite skill fit). Verified in a browser on a scratch database.", "—"],
        ["4", "<font color='#2e7d32'><b>Fixed</b></font>", "<b><font name='Mono'>state.redFlags</font> was dead.</b> Now filled by <font name='Mono'>computeRedFlags()</font> from observed state only: injection snippets, hard-constraint violations, unknown work arrangement, low-confidence score, required qualifications not evidenced. Appears in every trace after the decision step.", "—"],
@@ -627,7 +633,6 @@ TABLE([["#", "Severity", "Finding", "Suggested action"],
        ["11", "Low", "<b>Draft checker catches invented specifics, not stretched activities</b> (e.g. “coordinated with the teams”). The Advisor prompt now forbids stretching a résumé line; a verb-level check in draftVerifier.ts is the real fix and is not built.", "Decide whether to build it."]],
       [0.25, 0.85, 3.5, 2.4])
 P("Fixes 2–4 and the controller change were verified by: type-check clean, production build clean, conformance 11/11 (no AI) and 13/13 (DeepSeek controller), stress-suite 64/64, e2e over HTTP, hostile-model test, verify-tests, doc-check and kit-tests.", small)
-P("The assignment says <b>due 17 Sep 2026, 11:59 PM</b>; the current date is 20 Sep 2026, so check the course's late policy or whether an extension exists.", callout)
 story.append(PageBreak())
 
 # =====================================================================================
@@ -699,7 +704,35 @@ H2("The database can fail without taking the app down")
 P("Our Turso database hit its plan limit and began refusing every statement, reads included, which turned the whole "
   "site into a 500. The app now falls back to temporary in-memory storage and says so plainly in a banner — "
   "everything works, nothing is saved — and the database layer is no longer tied to libSQL, so Postgres (Supabase) "
-  "is a connection string rather than a rewrite. See <font name='Mono'>docs/architecture/11-supabase.md</font>.")
+  "is a connection string rather than a rewrite. The live site now runs on Supabase. See <font name='Mono'>docs/architecture/11-supabase.md</font>.")
+story.append(PageBreak())
+
+H1("13c. Live Demo and root-cause fixes (23–24 Sep)")
+P("The <b>Live Demo</b> page gives anyone nine ready-made candidates (Jordan Lee from the class kit, Jordan Ellis, "
+  "nursing, teaching, software, skilled trades, retail, finance, marketing ops) and 57 real LinkedIn postings. Every "
+  "link card shows two numbers: the fit score the live site gave, and the score after tailoring. The after score "
+  "comes from the step a person would take — Approve; Override then Approve for a down-ranked job; answer the question "
+  "then Approve — and for a hard-rule reject, where the agent never drafts, the card shows the skills match instead. "
+  "Each candidate has a strong, a partial and a weak-or-rejected example. "
+  "<font name='Mono'>scripts/build-demo-links.ts</font> and <font name='Mono'>scripts/fill-demo-outcomes.ts</font> "
+  "build the list (the second stops with an error if any after score is lower than the fit score); "
+  "<font name='Mono'>scripts/live-demo-check.mjs</font> confirms the 27 featured links on the live site.")
+P("<b>For class:</b> Live Demo → Jordan Lee → <i>Use saved copy</i> on the Home Depot link → Run: expect 100%, "
+  "recommended. Then the Global Payments link: expect 31%, down-ranked, with 5 matches and 9 gaps listed.", good)
+H2("What running real postings found, and the fix")
+TABLE([["Problem", "Fix (in the code the live site runs)"],
+       ["Blank “after tailoring” boxes: the script only tailored recommended jobs", "Every link now gets the step a person would take; 57/57 filled, none lower than before"],
+       ["A 46% down-ranked job was labelled “partial fit” (fixed 40% cutoff)", "The label follows the agent's own decision; down-ranked is always “weak fit” (11 links relabelled)"],
+       ["A real résumé was saved over the class kit's Jordan Lee", "Sample candidates are locked; the server offers “Save it as my own profile”"],
+       ["Re-score after tailoring could go down", "It can no longer fall below the fit score (runs that dropped now go 60→67%, 88→91%)"],
+       ["Same posting scored 42–58% between runs", "Requirements and verdicts remembered per posting; the score repeats"],
+       ["“45 years in business”, “12+ years of HVAC” misread as the candidate's requirement", "Years reader fixed; years tests pass"],
+       ["“Schools Marion, OH” not read as a city; Portland counted as the Southeast", "Location reader fixed; 8/8 location tests"],
+       ["A backup model's score could be remembered as the posting's score", "Backup answers are used for that call only, never saved"],
+       ["Trace read DOWN_RANK → RECOMMEND", "The advice step after a down-rank or rejection is labelled FINISH"]],
+      [3.2, 3.8])
+P("No guardrail was loosened: hard-rule rejections, the low-fit bar, the approval pause, the injection defence and "
+  "the never-invent rule are unchanged.", small)
 story.append(PageBreak())
 
 H1("14. Status and next steps")
@@ -709,7 +742,7 @@ P("Four required sequences on both engines; two-layer injection defence with a f
   "re-score with unearned-gain flag; Test Lab; Harness tab; Quick match settings; trace replay; submission PDF built from generated traces.")
 H2("Open, in priority order")
 TABLE([["Priority", "Item"],
-       ["Before submission", "Capture the live Approve/Edit/Reject screenshot. Fill in member names and the AI-tools list. Write the reflection in your own words (docs/submission/REFLECTION.md is evidence, not a script). Put SUPABASE_DB_URL into Vercel so the live site saves work again."],
+       ["Before submission", "Capture the live Approve/Edit/Reject screenshot. Fill in member names and the AI-tools list. Write the reflection in your own words (docs/submission/REFLECTION.md is evidence, not a script). The live site is on Supabase and saving (verified 24 Sep)."],
        ["Soon", "Set the Vercel Preview environment variables; consider a shared secret or rate limit on the write routes (the API is public). Done already: every old profile and posting was deleted, the agent routes set maxDuration, and the résumé/posting size caps are in place."],
        ["Nice to have", "True live streaming of the agent's steps (needs phase events <i>before</i> each model call; today the submit page <i>replays</i> the trace after it finishes). Automatic job discovery via Adzuna / JSearch / USAJOBS (not LinkedIn scraping)."]],
       [1.3, 5.7])
@@ -735,7 +768,7 @@ TABLE([["Term", "Meaning in this project"],
       [1.6, 5.4])
 P("Sources: repo docs G6-AGENT.md, PROJECT-BREAKDOWN.md, HANDOFF.md, TESTING-GUIDE.md, DOCS-INDEX.md, docs/architecture/*; code in src/lib and src/app/api; "
   "assignment text, Week 2 Evaluate page and the CIS 4394 Week 2 class bundle (starter kit, slides, step-by-step) supplied by the group. "
-  "Statistics and results reflect the repo as of 22 Sep 2026.", small)
+  "Statistics and results reflect the repo as of 24 Sep 2026.", small)
 
 doc.build(story)
 print("built", OUT)
