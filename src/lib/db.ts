@@ -13,10 +13,13 @@ let client: SqlClient | null = null;
 // DB_PROVIDER=turso forces Turso even when a Postgres URL is also configured (Vercel still holds
 // the Supabase one). G6_TURSO_URL / G6_TURSO_TOKEN come first so the current Turso database wins
 // over any older TURSO_* values left in the Vercel dashboard.
-const forceTurso = () => process.env.DB_PROVIDER === "turso";
+// Values pasted into a dashboard often carry stray spaces or quotes; strip them.
+const env = (name: string) => (process.env[name] ?? "").trim().replace(/^["']|["']$/g, "").trim();
+// Setting G6_TURSO_URL alone is enough to choose Turso.
+const forceTurso = () => env("DB_PROVIDER").toLowerCase() === "turso" || !!env("G6_TURSO_URL");
 const usePostgres = () => !forceTurso() && isPostgresConfigured();
-const tursoUrl = () => process.env.G6_TURSO_URL || process.env.TURSO_DATABASE_URL;
-const tursoToken = () => (process.env.G6_TURSO_URL ? process.env.G6_TURSO_TOKEN : process.env.TURSO_AUTH_TOKEN);
+const tursoUrl = () => env("G6_TURSO_URL") || env("TURSO_DATABASE_URL");
+const tursoToken = () => (env("G6_TURSO_URL") ? env("G6_TURSO_TOKEN") : env("TURSO_AUTH_TOKEN")) || undefined;
 
 // TEMPORARY-STORAGE MODE. A hosted database can refuse to serve: a Turso free plan that has hit
 // its limit returns BLOCKED for every statement, reads included. Before this, that turned the
