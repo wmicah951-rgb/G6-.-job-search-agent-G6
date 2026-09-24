@@ -62,9 +62,10 @@ export async function POST(req: NextRequest) {
     settings,
   });
 
-  await c.execute({
+  const saved = await c.execute({
     sql: `UPDATE evaluations SET stage = ?, hard_constraint_violations = ?, trace_json = ?,
-          state_json = ?, updated_at = datetime('now') WHERE job_id = ?`,
+          state_json = ?, updated_at = datetime('now')
+          WHERE job_id = ? AND stage = 'awaiting_clarification' RETURNING job_id`,
     args: [
       result.state.stage,
       JSON.stringify(result.state.hardConstraintViolations),
@@ -73,6 +74,15 @@ export async function POST(req: NextRequest) {
       jobId,
     ],
   });
+
+  // Two clicks at once (or two tabs) both passed the stage check above; only the first save
+  // lands, because the UPDATE requires the job to still be at awaiting_clarification.
+  if (saved.rows.length === 0) {
+    return NextResponse.json(
+      { error: "This job was already decided in another request. Reload to see the result." },
+      { status: 409 }
+    );
+  }
 
   return NextResponse.json({ evaluation: result });
 }

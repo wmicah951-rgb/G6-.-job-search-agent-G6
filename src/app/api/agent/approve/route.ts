@@ -65,10 +65,11 @@ export async function POST(req: NextRequest) {
   const settings = resolveSettings(await loadHarnessOverrides(activeProfile.id));
   const result = await applyHumanDecision(prior, decision as any, editNote, jobText, resumeText, settings);
 
-  await c.execute({
+  const saved = await c.execute({
     sql: `UPDATE evaluations SET stage = ?, approval_note = ?, draft = ?,
           cover_letter = ?, tailored_resume = ?,
-          trace_json = ?, state_json = ?, updated_at = datetime('now') WHERE job_id = ?`,
+          trace_json = ?, state_json = ?, updated_at = datetime('now')
+          WHERE job_id = ? AND stage = 'awaiting_approval' RETURNING job_id`,
     args: [
       result.state.stage,
       result.state.approvalNote,
@@ -80,6 +81,15 @@ export async function POST(req: NextRequest) {
       jobId,
     ],
   });
+
+  // Two clicks at once (or two tabs) both passed the stage check above; only the first save
+  // lands, because the UPDATE requires the job to still be at awaiting_approval.
+  if (saved.rows.length === 0) {
+    return NextResponse.json(
+      { error: "This job was already decided in another request. Reload to see the result." },
+      { status: 409 }
+    );
+  }
 
   return NextResponse.json({ evaluation: result });
 }

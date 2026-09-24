@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { databaseKind, ensureSchema, isDegraded, testDbConnection } from "@/lib/db";
+import { databaseKind, ensureSchema, isDegraded, mirrorStatus, testDbConnection } from "@/lib/db";
 import { isLlmConfigured, getModelName, backupStatus } from "@/lib/llmEvaluator";
 
 // Auto-run checks only — the database check is a free SELECT 1, cheap enough
@@ -18,6 +18,8 @@ export async function GET() {
       mode: isDegraded() ? "temporary" : databaseKind(),
       degraded: isDegraded(),
       message: db.message,
+      // Supabase first, every write copied to Turso (src/lib/db.ts).
+      mirror: mirrorStatus(),
     },
     llm: {
       configured: isLlmConfigured(),

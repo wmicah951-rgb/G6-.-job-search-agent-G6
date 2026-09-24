@@ -10,14 +10,18 @@ import { nanoid } from "nanoid";
 // and can be QA'd without a Turso account.
 let client: SqlClient | null = null;
 
-// DB_PROVIDER=turso forces Turso even when a Postgres URL is also configured (Vercel still holds
-// the Supabase one). G6_TURSO_URL / G6_TURSO_TOKEN come first so the current Turso database wins
-// over any older TURSO_* values left in the Vercel dashboard.
-// Values pasted into a dashboard often carry stray spaces or quotes; strip them.
+// SUPABASE FIRST, TURSO AS AN EXACT COPY.
+// With both configured, Supabase (Postgres) is the database the app reads and writes, and every
+// write is repeated on Turso, so Turso holds the same data. If Supabase refuses to serve, the app
+// switches to Turso and keeps saving; only if Turso fails too does it fall back to temporary
+// in-memory storage. DB_PROVIDER=turso-only skips Supabase entirely.
+// G6_TURSO_URL / G6_TURSO_TOKEN come first so the current Turso database wins over any older
+// TURSO_* values left in the Vercel dashboard. Values pasted into a dashboard often carry stray
+// spaces or quotes; strip them.
 const env = (name: string) => (process.env[name] ?? "").trim().replace(/^["']|["']$/g, "").trim();
-// Setting G6_TURSO_URL alone is enough to choose Turso.
-const forceTurso = () => env("DB_PROVIDER").toLowerCase() === "turso" || !!env("G6_TURSO_URL");
-const usePostgres = () => !forceTurso() && isPostgresConfigured();
+const forceTurso = () => env("DB_PROVIDER").toLowerCase() === "turso-only";
+let postgresDown = false;
+const usePostgres = () => !forceTurso() && !postgresDown && isPostgresConfigured();
 const tursoUrl = () => env("G6_TURSO_URL") || env("TURSO_DATABASE_URL");
 const tursoToken = () => (env("G6_TURSO_URL") ? env("G6_TURSO_TOKEN") : env("TURSO_AUTH_TOKEN")) || undefined;
 
@@ -44,15 +48,57 @@ export function db(): SqlClient {
   // production, or a local file for development. Both are reached through the same small
   // interface (src/lib/pgClient.ts), so nothing else in the app knows the difference.
   if (usePostgres()) {
-    client = postgresClient();
+    client = isTursoConfigured() ? mirrored(postgresClient(), tursoClient()) : postgresClient();
     return client;
   }
+  client = tursoClient();
+  return client;
+}
+
+function tursoClient(): SqlClient {
   const url = tursoUrl() || "file:local.db";
   const authToken = tursoToken();
-  client = createClient(
-    authToken ? { url, authToken } : { url }
-  );
-  return client;
+  return createClient(authToken ? { url, authToken } : { url });
+}
+
+// The last copy error, for the status panel. A copy that fails never fails the request: the
+// person's work is already saved in Supabase.
+let mirrorError = "";
+let mirrorWrites = 0;
+export function mirrorStatus(): { active: boolean; writes: number; lastError: string } {
+  return { active: usePostgres() && isTursoConfigured(), writes: mirrorWrites, lastError: mirrorError };
+}
+
+/** Supabase answers every call; each write (anything but a read) is then repeated on Turso. */
+function mirrored(primary: SqlClient, copy: SqlClient): SqlClient {
+  const isRead = (sql: string) => /^\s*(SELECT|WITH|PRAGMA|EXPLAIN)\b/i.test(sql);
+  const toCopy = async (run: () => Promise<unknown>) => {
+    try {
+      await Promise.race([
+        run(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("Turso copy timed out after 8s")), 8000)),
+      ]);
+      mirrorWrites += 1;
+    } catch (err) {
+      mirrorError = String(err).slice(0, 200);
+      console.error(`[db] Turso copy failed (Supabase write succeeded): ${mirrorError}`);
+    }
+  };
+  return {
+    async execute(q) {
+      const result = await primary.execute(q);
+      const sql = typeof q === "string" ? q : q.sql;
+      // A guarded write (… WHERE stage = … RETURNING) that changed nothing in Supabase lost a race
+      // there; copying it could let it win on Turso instead, so it is not copied.
+      const lostRace = /\bRETURNING\b/i.test(sql) && result.rows.length === 0;
+      if (!isRead(sql) && !lostRace) await toCopy(() => copy.execute(q as never));
+      return result;
+    },
+    async executeMultiple(sql) {
+      await primary.executeMultiple(sql);
+      await toCopy(() => copy.executeMultiple(sql));
+    },
+  };
 }
 
 /** Swap to in-memory storage after the real database refused to serve. */
@@ -71,6 +117,19 @@ export async function ensureSchema() {
   try {
     await ensureSchemaOn(db());
   } catch (err) {
+    // Supabase refused: switch to the Turso copy before giving up on saving at all.
+    if (usePostgres() && isTursoConfigured()) {
+      postgresDown = true;
+      client = tursoClient();
+      degradedReason = String(err).slice(0, 200);
+      console.error(`[db] Supabase refused the request (${degradedReason}). Switching to the Turso copy.`);
+      try {
+        await ensureSchemaOn(client);
+        return;
+      } catch (err2) {
+        err = err2;
+      }
+    }
     // Blocked plan, bad token, network: keep the app alive on temporary storage.
     fallBackToMemory(err);
     await ensureSchemaOn(db());
@@ -227,9 +286,13 @@ export async function testDbConnection(): Promise<{ ok: boolean; message: string
       ok: true,
       message:
         databaseKind() === "postgres"
-          ? "Connected to Postgres (Supabase)."
+          ? isTursoConfigured()
+            ? `Connected to Postgres (Supabase); every write is also copied to Turso${mirrorError ? ` (last copy error: ${mirrorError})` : ""}.`
+            : "Connected to Postgres (Supabase)."
           : databaseKind() === "turso"
-            ? "Connected to Turso."
+            ? postgresDown
+              ? `Supabase is unavailable, so the app switched to the Turso copy and is saving there. (${degradedReason})`
+              : "Connected to Turso."
             : "Using local file DB (local.db).",
     };
   } catch (err) {
