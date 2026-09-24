@@ -105,6 +105,11 @@ export function sampleProfileText(key: string): { resumeText: string; preference
   };
 }
 
+/** Every sample candidate with its full résumé and preferences — what each test runs against. */
+export function sampleProfilesWithText(): (SampleProfile & { resumeText: string; preferencesText: string })[] {
+  return SAMPLE_PROFILES.map((p) => ({ ...p, ...(sampleProfileText(p.key) ?? { resumeText: "", preferencesText: "" }) }));
+}
+
 export interface SamplePostingSet {
   key: string;
   label: string;

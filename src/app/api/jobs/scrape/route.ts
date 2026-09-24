@@ -15,6 +15,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "A valid http(s) URL is required." }, { status: 400 });
   }
 
+  // A public site that fetches any URL it is given can be pointed at addresses only the server
+  // can reach (its own machine, a private network, cloud metadata). Job postings live on the
+  // public internet, so anything else is refused outright.
+  if (isPrivateAddress(url)) {
+    return NextResponse.json(
+      { error: "That address is not a public web page. Paste a link to a public job posting." },
+      { status: 400 }
+    );
+  }
+
   let resp: Response;
   try {
     resp = await fetch(url, {
@@ -70,6 +80,22 @@ export async function POST(req: NextRequest) {
   }
 
   const html = await resp.text();
+
+  // SIGN-IN WALLS. The class rule is explicit: do not scrape login-protected job boards. This
+  // agent never signs in anywhere. LinkedIn (and others) often answer a logged-out visitor with a
+  // sign-in page instead of the job; when that happens we say so plainly and ask for the text,
+  // rather than feeding a login form to the agent as if it were a posting.
+  if (looksLikeSignInWall(finalUrl, html)) {
+    return NextResponse.json(
+      {
+        error:
+          "That site asked for a sign-in before showing the job. This agent never logs in to job boards (a class rule), so it cannot read this link. Open the posting yourself and paste its text instead.",
+        signInWall: true,
+      },
+      { status: 403 }
+    );
+  }
+
   const $ = cheerio.load(html);
   $(
     "script, style, nav, footer, header, noscript, svg, [class*=video], [class*=modal], [class*=popup], [aria-label*=video]"
@@ -134,4 +160,34 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json({ title, text: bestText.slice(0, 20000), sourceUrl: url });
+}
+
+function isPrivateAddress(raw: string): boolean {
+  let host: string;
+  try {
+    host = new URL(raw).hostname.toLowerCase().replace(/^\[|\]$/g, "");
+  } catch {
+    return true;
+  }
+  if (host === "localhost" || host.endsWith(".localhost") || host.endsWith(".internal") || host === "0.0.0.0") return true;
+  // IPv6 literals only (a colon means an address, not a name — "fcbarcelona.com" is a real site).
+  if (host.includes(":") && (host === "::1" || host === "::" || /^(fc|fd|fe80)/.test(host))) return true;
+  const v4 = host.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
+  if (v4) {
+    const [a, b] = [Number(v4[1]), Number(v4[2])];
+    if (a === 10 || a === 127 || a === 0) return true;
+    if (a === 169 && b === 254) return true;
+    if (a === 172 && b >= 16 && b <= 31) return true;
+    if (a === 192 && b === 168) return true;
+    if (a === 100 && b >= 64 && b <= 127) return true;
+  }
+  return false;
+}
+
+function looksLikeSignInWall(finalUrl: string, html: string): boolean {
+  if (/\/(authwall|login|signin|sign-in|checkpoint|uas\/login)/i.test(finalUrl)) return true;
+  const text = html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").slice(0, 20000);
+  const prompts = (text.match(/sign in to (view|see|apply)|join (now|linkedin) to (see|view)|log in to (view|continue)|you must (sign|log) in/gi) ?? []).length;
+  // A real posting is long; a wall is a short page dominated by sign-in prompts.
+  return prompts > 0 && text.length < 6000;
 }

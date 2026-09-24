@@ -4,6 +4,8 @@
 // says where the thing lives in this app (or, for documents, in the repository) and how to see
 // it for themselves. docs/submission/DELIVERABLES.md is the same map in markdown.
 
+import { sampleProfilesWithText } from "@/lib/samples";
+
 const REPO = "https://github.com/wmicah951-rgb/G6-.-job-search-agent-G6/blob/main";
 
 type Row = { n: string; what: string; where: React.ReactNode; how: React.ReactNode };
@@ -16,7 +18,7 @@ const ROWS: Row[] = [
     how: (
       <>
         On the <a href="/">Dashboard</a>, press <em>Run the agent on these</em> with the class kit selected,
-        or paste any posting on <a href="/jobs/new">Add Posting</a>.
+        or use the <a href="/demo">Live Demo</a> to run any candidate on a real job link or pasted posting.
       </>
     ),
   },
@@ -102,6 +104,9 @@ const ROWS: Row[] = [
 ];
 
 export default function AssignmentPage() {
+  // Read from the same files the agent and the tests use, so what is shown here is exactly what
+  // every test runs against — not a copy that could drift.
+  const candidates = sampleProfilesWithText();
   return (
     <div className="max-w-4xl">
       <h1 className="text-xl font-semibold mb-1">The assignment, on this site</h1>
@@ -176,6 +181,41 @@ export default function AssignmentPage() {
           is written.
         </li>
       </ul>
+
+      <h2 className="text-base font-semibold mt-8 mb-2">The candidates we test against</h2>
+      <p className="text-sm text-neutral-600 mb-3 leading-relaxed">
+        Every test and every sample posting is judged against one of these fictional candidates. The résumé is the only
+        source of facts the agent may use; the preferences hold the candidate&apos;s hard rules (years, location,
+        clearance) and fit bar. The first is the <strong>official class starter kit&apos;s</strong> Jordan Lee, unchanged.
+        Try any of them on a real posting in the <a href="/demo" className="underline text-sky-800">Live Demo</a>.
+      </p>
+      <div className="space-y-2">
+        {candidates.map((c) => (
+          <details key={c.key} className="border border-neutral-200 rounded-xl bg-white">
+            <summary className="cursor-pointer px-3 py-2 text-sm">
+              <span className="font-medium text-neutral-900">{c.name}</span>
+              <span className="text-neutral-500"> — {c.field}</span>
+            </summary>
+            <div className="px-3 pb-3">
+              <p className="text-xs text-neutral-500 mb-2">{c.blurb}</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="min-w-0">
+                  <div className="text-xs font-medium text-neutral-500 mb-1">Résumé</div>
+                  <pre className="text-[11px] whitespace-pre-wrap break-words bg-neutral-50 border border-neutral-200 rounded-lg p-2 max-h-80 overflow-y-auto">
+                    {c.resumeText}
+                  </pre>
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xs font-medium text-neutral-500 mb-1">Preferences and hard rules</div>
+                  <pre className="text-[11px] whitespace-pre-wrap break-words bg-neutral-50 border border-neutral-200 rounded-lg p-2 max-h-80 overflow-y-auto">
+                    {c.preferencesText}
+                  </pre>
+                </div>
+              </div>
+            </div>
+          </details>
+        ))}
+      </div>
 
       <h2 className="text-base font-semibold mt-8 mb-2">More</h2>
       <ul className="text-sm text-neutral-700 space-y-1.5 list-disc pl-5 [&_a]:underline [&_a]:text-sky-800">

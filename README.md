@@ -210,7 +210,13 @@ https://g6-job-search-agent-g6.vercel.app — no login. Each browser gets its ow
   trades, retail, finance or marketing) and run the agent on a matching set of postings —
   including the kit's J001–J006. Each posting goes through the real agent, so the board is real,
   ranked agent output with a full trace per job.
-- **Assignment** (top nav): each of the ten deliverables, and where to check it on the site.
+- **Live Demo** (top nav): pick a candidate — the class kit's Jordan Lee, Jordan Ellis, or any of
+  the others — then paste a job link (LinkedIn or any posting) or the job text and run the agent
+  in front of the class. Links are read only when the page is public: the class rule is not to
+  scrape login-protected job boards, and the agent never signs in, so a sign-in wall gets a clear
+  "paste the text instead" message.
+- **Assignment** (top nav): each of the ten deliverables, where to check it on the site, and the
+  full résumé and preferences of every candidate the tests run against.
 - **Test Lab**: every test case, run live on the server.
 
 `node scripts/live-verify.mjs` checks the deployed site end to end: database saving, model

@@ -17,14 +17,16 @@ import { nanoid } from "nanoid";
 import { db, ensureSchema, setActiveProfile } from "@/lib/db";
 import { currentWorkspace } from "@/lib/workspace";
 import { evaluateAndStore } from "@/lib/evaluateJob";
-import { SAMPLE_POSTING_SETS, SAMPLE_PROFILES, samplePostings, sampleProfileText } from "@/lib/samples";
+import { SAMPLE_POSTING_SETS, SAMPLE_PROFILES, samplePostings, sampleProfileText, sampleProfilesWithText } from "@/lib/samples";
 
 // The page sends one posting per request (about 15 seconds); a whole set in one call needs more.
 export const maxDuration = 300;
 
 export async function GET() {
+  // Full résumé and preferences text for each candidate (all fictional), so the Live Demo can
+  // show exactly what a posting is being judged against.
   return NextResponse.json({
-    profiles: SAMPLE_PROFILES,
+    profiles: sampleProfilesWithText(),
     postingSets: SAMPLE_POSTING_SETS.map((s) => ({ ...s, count: samplePostings(s.key).length })),
   });
 }
