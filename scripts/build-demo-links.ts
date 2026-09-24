@@ -124,7 +124,10 @@ export interface DemoLink {
 function bandOf(score: number | null, stage: string): DemoLink["band"] {
   if (stage === "rejected_hard_constraint") return "rejected";
   if (stage === "awaiting_clarification") return "asks";
-  if (score === null) return "low";
+  // A job the agent down-ranked is a weak fit whatever its number: the candidate's own fit bar
+  // decides that, not a fixed 40%. Calling a 46% down-ranked job "partial fit" hid it from the
+  // weak-fit pick, so the Trades row once had no weak example at all.
+  if (stage === "rejected_low_fit" || score === null) return "low";
   if (score >= 0.7) return "high";
   if (score >= 0.4) return "mid";
   return "low";
