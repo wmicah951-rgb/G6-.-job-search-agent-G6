@@ -113,9 +113,22 @@ function fallBackToMemory(err: unknown) {
   );
 }
 
+let copySchemaReady = false;
+
 export async function ensureSchema() {
   try {
     await ensureSchemaOn(db());
+    // The copy's schema is built on Turso directly as well: on an existing Supabase every
+    // "ADD COLUMN" migration fails (the column is already there), so it is never repeated on
+    // Turso, and a fresh Turso would be left without those columns.
+    if (!copySchemaReady && usePostgres() && isTursoConfigured()) {
+      try {
+        await ensureSchemaOn(tursoClient());
+        copySchemaReady = true;
+      } catch (copyErr) {
+        mirrorError = String(copyErr).slice(0, 200);
+      }
+    }
   } catch (err) {
     // Supabase refused: switch to the Turso copy before giving up on saving at all.
     if (usePostgres() && isTursoConfigured()) {

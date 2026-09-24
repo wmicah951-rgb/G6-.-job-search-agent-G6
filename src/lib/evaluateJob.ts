@@ -31,12 +31,14 @@ export async function evaluateAndStore(opts: {
   // create a second job with its own fresh evaluation — exactly how two different scores for one
   // posting appeared. The content hash makes the second paste reopen the first job. The candidate
   // is part of the key: the same posting judged for a different profile is a different question,
-  // and gets its own evaluation.
+  // and gets its own evaluation. So is the résumé: after the profile's résumé is replaced (say,
+  // with the tailored version the agent drafted) the same posting is a new question too, and must
+  // be scored against the new text rather than reopening the old résumé's score.
   const hash = jobHash(rawText);
   const dupe = await c.execute({
     sql: `SELECT j.id FROM jobs j JOIN evaluations e ON e.job_id = j.id
-          WHERE j.workspace_id = ? AND j.content_hash = ? AND e.profile_id = ? LIMIT 1`,
-    args: [workspaceId, hash, profile.id],
+          WHERE j.workspace_id = ? AND j.content_hash = ? AND e.profile_id = ? AND e.resume_snapshot = ? LIMIT 1`,
+    args: [workspaceId, hash, profile.id, profile.resumeText],
   });
   if (dupe.rows.length > 0) return { kind: "duplicate", id: dupe.rows[0].id as string };
 
