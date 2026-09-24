@@ -1,0 +1,4 @@
+=== live-run 2026-09-24T20:53:42Z ===
+=== step 1: curl -sS -m 15 https://g6-job-search-agent-g6.vercel.app/api/system-status ===
+curl: (56) CONNECT tunnel failed, response 403
+=== result: network check failed from the sandbox; steps 2-3 skipped per instructions ===
