@@ -180,7 +180,8 @@ async function evaluate(profileKey: string, url: string): Promise<DemoLink | { u
     profile: profileKey,
     url,
     title: decode(page.title),
-    company: decode(company.trim()),
+    // Some pages repeat the title before the company name ("Title Title Company, City"); drop the repeat.
+    company: decode(company.trim().startsWith(page.title) ? company.trim().slice(page.title.length).trim() : company.trim()),
     score: r.state.fitScore,
     stage: r.state.stage,
     band: bandOf(r.state.fitScore, r.state.stage),
