@@ -32,8 +32,24 @@ export function hashText(text: string): string {
   return crypto.createHash("sha256").update(text.replace(/\s+/g, " ").trim()).digest("hex").slice(0, 32);
 }
 
+/**
+ * Job boards wrap a posting in text that changes daily without the job changing: "2 weeks ago",
+ * "Be among the first 25 applicants", "Over 200 applicants", "See who X has hired for this role".
+ * Left in, the same LinkedIn posting read on Tuesday and on Wednesday hashed differently, so the
+ * agent treated it as a new job and re-judged it. These phrases are removed before hashing only —
+ * the agent still reads the posting exactly as fetched.
+ */
+export function withoutVolatileText(text: string): string {
+  return text
+    .replace(/\b\d+\s+(?:second|minute|hour|day|week|month|year)s?\s+ago\b/gi, " ")
+    .replace(/\b(?:be among the first|over)\s+\d[\d,]*\s+applicants\b/gi, " ")
+    .replace(/\b\d[\d,]*\s+applicants\b/gi, " ")
+    .replace(/\bsee who .{0,80}? has hired for this role\b/gi, " ")
+    .replace(/\breposted\b/gi, " ");
+}
+
 export function jobHash(jobText: string): string {
-  return hashText(jobText);
+  return hashText(withoutVolatileText(jobText));
 }
 
 // Bumped whenever the code that TURNS a model answer into a verdict changes (quote checking,

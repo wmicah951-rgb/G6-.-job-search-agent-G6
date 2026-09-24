@@ -303,17 +303,22 @@ function digitise(text: string): string {
  */
 function factsOnly(jobText: string, injectionSnippets: string[] = []): string {
   const snippets = injectionSnippets.map((s) => s.toLowerCase().trim()).filter((s) => s.length > 8);
-  return jobText
-    .split(/(?<=[.!?])\s+|\n/)
-    .filter((sentence) => {
-      const low = sentence.toLowerCase();
-      if (snippets.some((sn) => low.includes(sn) || sn.includes(low.trim()))) return false;
-      // Second-person instructions about what to SAY are never statements of requirement.
-      return !/(?:state|say|claim|report|write|confirm)\s+(?:that\s+)?(?:the\s+)?(?:candidate|applicant|they|he|she)\b/i.test(
-        sentence
-      );
-    })
-    .join("\n");
+  return (
+    jobText
+      // Hidden HTML comments are never part of the job a person reads, so nothing in them is a
+      // requirement. (K004 hides "5 years of experience" in one, across several lines.)
+      .replace(/<!--[\s\S]*?-->/g, " ")
+      .split(/(?<=[.!?])\s+|\n/)
+      .filter((sentence) => {
+        const low = sentence.toLowerCase();
+        if (snippets.some((sn) => low.includes(sn) || sn.includes(low.trim()))) return false;
+        // Instructions about what to SAY are never statements of requirement.
+        return !/(?:state|say|claim|report|write|confirm)\s+(?:that\s+|this\s+|it\s+)?(?:the\s+)?(?:candidate|applicant|they|he|she|in the cover letter)\b|\bstate this\b/i.test(
+          sentence
+        );
+      })
+      .join("\n")
+  );
 }
 
 // ---------- Years-of-experience extraction ----------
@@ -326,14 +331,33 @@ function extractRequiredYears(jobText: string): number | null {
   // For a range like "3-5+ years", the lower bound is used since that is the
   // actual minimum a candidate needs to clear.
   const experiencePatterns = [
-    /(\d+)\s*\+?\s*(?:[-–—]\s*\d+\s*\+?\s*)?years?\s*(?:of\s+)?(?:relevant\s+|professional\s+|prior\s+|work(?:ing)?\s+)?experience/i,
+    // "5+ years of experience", and also "12+ years of HVAC experience" / "3 years of hands-on
+    // data analysis experience" — up to three words may name the kind of experience.
+    /(\d+)\s*\+?\s*(?:[-–—]\s*\d+\s*\+?\s*)?years?\s*(?:of\s+)?(?:[a-z][\w/&+-]*\s+){0,3}experience/i,
     /(?:requires?|minimum(?: of)?|at least|must have)\s*(\d+)\+?\s*years?/i,
     /(\d+)\s*\+?\s*(?:[-–—]\s*\d+\s*\+?\s*)?years?\s*(?:in|with|working)/i,
   ];
   const text = digitise(jobText);
+  // A real posting ("ARS ... with 45 years of experience serving homeowners") talks about the
+  // COMPANY's history in exactly the words a requirement uses, and the agent rejected an HVAC job
+  // for "requiring 45+ years". So every match is checked: a figure no job asks of a person (over
+  // 15 years), or one whose sentence is about the company, is not a requirement — keep looking.
+  // Only a sentence in which the company describes ITSELF is skipped ("we have 30 years", "our team
+  // brings", "serving since 1978"). "We are looking for someone with 1-3 years of experience" is a
+  // requirement and must be read as one — an earlier, broader filter skipped it and the agent went on
+  // to read a number out of an injected instruction instead.
+  const COMPANY_SELF =
+    /\b(?:we|our\s+\w+)\s+(?:have|has|bring|brings|offer|offers|boast|boasts)\b|\b(?:been serving|serving (?:customers|homeowners|clients|the)|in business|since (?:19|20)\d{2}|founded|family[- ]owned)\b/i;
   for (const re of experiencePatterns) {
-    const match = text.match(re);
-    if (match) return parseInt(match[1], 10);
+    for (const match of text.matchAll(new RegExp(re.source, "gi"))) {
+      const years = parseInt(match[1], 10);
+      if (!Number.isFinite(years) || years > 15) continue;
+      const start = Math.max(0, (match.index ?? 0) - 60);
+      const context = text.slice(start, (match.index ?? 0) + match[0].length + 40);
+      const sentence = context.split(/(?<=[.!?])\s+/).find((s) => s.includes(match[0])) ?? context;
+      if (COMPANY_SELF.test(sentence) && !/\b(?:you|candidate|applicant|required|requirement|minimum|must)\b/i.test(sentence)) continue;
+      return years;
+    }
   }
   return null;
 }

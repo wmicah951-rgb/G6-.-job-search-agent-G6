@@ -36,6 +36,27 @@ type State = {
   advice?: { headline?: string; recommendation?: string } | null;
 };
 type Outcome = { id: string; state: State; trace: TraceStep[]; reused: boolean };
+type DemoLink = {
+  url: string;
+  title: string;
+  company: string;
+  score: number | null;
+  stage: string;
+  band: "high" | "mid" | "low" | "rejected" | "asks";
+  afterTailoring: number | null;
+  violations: string[];
+  gaps: string[];
+  featured: boolean;
+  checkedAt: string;
+};
+
+const BAND: Record<DemoLink["band"], { label: string; cls: string }> = {
+  high: { label: "strong fit", cls: "bg-emerald-100 text-emerald-900 border-emerald-300" },
+  mid: { label: "partial fit", cls: "bg-amber-100 text-amber-900 border-amber-300" },
+  low: { label: "weak fit", cls: "bg-orange-100 text-orange-900 border-orange-300" },
+  rejected: { label: "hard rule", cls: "bg-rose-100 text-rose-900 border-rose-300" },
+  asks: { label: "asks you", cls: "bg-sky-100 text-sky-900 border-sky-300" },
+};
 
 const OUTCOME: Record<string, { label: string; tone: string; meaning: string }> = {
   awaiting_approval: {
@@ -72,6 +93,44 @@ export default function DemoPage() {
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [outcome, setOutcome] = useState<Outcome | null>(null);
+  const [demoLinks, setDemoLinks] = useState<DemoLink[]>([]);
+  const [showAllLinks, setShowAllLinks] = useState(false);
+
+  // The candidate's pre-tested LinkedIn postings (scripts/build-demo-links.ts).
+  useEffect(() => {
+    setDemoLinks([]);
+    setShowAllLinks(false);
+    fetch(`/api/demo-links?profile=${encodeURIComponent(key)}`)
+      .then((r) => r.json())
+      .then((d) => setDemoLinks(d.links ?? []))
+      .catch(() => {});
+  }, [key]);
+
+  async function useSavedCopy(link: DemoLink) {
+    setError(null);
+    setOutcome(null);
+    const d = await fetch(`/api/demo-links?url=${encodeURIComponent(link.url)}`).then((r) => r.json());
+    if (d.error) {
+      setError(d.error);
+      return;
+    }
+    setMode("link");
+    setUrl(link.url);
+    setTitle(d.title ?? link.title);
+    setText(d.text ?? "");
+    setNotice(
+      `Loaded the saved copy of this posting: the exact text that was scored, so the result should match the ${
+        link.score === null ? "listed outcome" : `${Math.round(link.score * 100)}% shown`
+      }.`
+    );
+  }
+
+  async function readFromLinkedIn(link: DemoLink) {
+    setMode("link");
+    setUrl(link.url);
+    setOutcome(null);
+    await readLink(link.url);
+  }
 
   useEffect(() => {
     fetch("/api/samples")
@@ -82,7 +141,7 @@ export default function DemoPage() {
 
   const candidate = candidates.find((c) => c.key === key);
 
-  async function readLink() {
+  async function readLink(target?: string) {
     setBusy("reading");
     setError(null);
     setNotice(null);
@@ -90,7 +149,7 @@ export default function DemoPage() {
       const res = await fetch("/api/jobs/scrape", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ url: url.trim() }),
+        body: JSON.stringify({ url: (target ?? url).trim() }),
       });
       const d = await res.json();
       if (!res.ok) {
@@ -149,8 +208,12 @@ export default function DemoPage() {
 
   const o = outcome ? OUTCOME[outcome.state.stage] : null;
 
+  const pct = (v: number | null) => (v === null ? "—" : `${Math.round(v * 100)}%`);
+  const shownLinks = showAllLinks ? demoLinks : demoLinks.filter((l) => l.featured);
+
   return (
-    <div className="max-w-3xl">
+    <div className="max-w-6xl grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_22rem] gap-5 items-start">
+    <div className="min-w-0">
       <h1 className="text-xl font-semibold mb-1">Live demo</h1>
       <p className="text-sm text-neutral-600 mb-5 leading-relaxed">
         Pick a candidate, give the agent a real job — a link or the posting text — and watch what it decides. Every
@@ -234,7 +297,7 @@ export default function DemoPage() {
                 className="flex-1 min-w-0 border border-neutral-300 rounded-md px-3 py-1.5 text-sm bg-white text-neutral-900"
               />
               <button
-                onClick={readLink}
+                onClick={() => readLink()}
                 disabled={!!busy || !/^https?:\/\//i.test(url.trim())}
                 className="text-sm bg-neutral-900 text-white px-3 py-1.5 rounded-md disabled:opacity-50 whitespace-nowrap"
               >
@@ -356,6 +419,85 @@ export default function DemoPage() {
           </div>
         )}
       </section>
+    </div>
+
+    {/* ------------------------------------------------------------ sidebar: tested links */}
+    <aside className="lg:sticky lg:top-4 border border-neutral-200 bg-white rounded-2xl p-4 min-w-0">
+      <h2 className="font-semibold text-sm">Real LinkedIn postings to try</h2>
+      <p className="text-[11px] text-neutral-500 mt-0.5 mb-3 leading-relaxed">
+        Tested in advance as <strong>{candidate?.name ?? "this candidate"}</strong>: each link opened without a login
+        and was run through the agent. <strong>Use saved copy</strong> loads the exact text that was scored (same
+        result every time); <strong>Read from LinkedIn</strong> pulls the live page.
+      </p>
+      {demoLinks.length === 0 && <p className="text-xs text-neutral-500">No tested links for this candidate yet.</p>}
+      <ul className="space-y-2">
+        {shownLinks.map((l) => (
+          <li key={l.url} className="border border-neutral-200 rounded-xl p-2.5">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <a href={l.url} target="_blank" rel="noreferrer" className="text-xs font-semibold text-neutral-900 underline break-words">
+                  {l.title}
+                </a>
+                {l.company && <div className="text-[11px] text-neutral-500 break-words">{l.company}</div>}
+              </div>
+              <span className={`shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded border ${BAND[l.band]?.cls ?? ""}`}>
+                {BAND[l.band]?.label ?? l.band}
+              </span>
+            </div>
+            <div className="text-[11px] text-neutral-700 mt-1.5">
+              {l.band === "rejected" ? (
+                <>
+                  Expected: <strong>rejected</strong> — {l.violations[0] ?? "a hard rule"}
+                </>
+              ) : l.band === "asks" ? (
+                <>
+                  Expected: the agent <strong>asks you a question</strong>
+                </>
+              ) : (
+                <>
+                  Expected score <strong>{pct(l.score)}</strong>
+                  {l.afterTailoring !== null && (
+                    <>
+                      {" "}→ <strong>{pct(l.afterTailoring)}</strong> after tailoring
+                    </>
+                  )}
+                  {l.stage === "rejected_low_fit" ? " · down-ranked" : l.stage === "awaiting_approval" ? " · recommended" : ""}
+                </>
+              )}
+            </div>
+            {l.gaps.length > 0 && l.band !== "rejected" && (
+              <div className="text-[10px] text-neutral-500 mt-0.5 break-words">gaps: {l.gaps.slice(0, 3).join(" · ")}</div>
+            )}
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              <button
+                onClick={() => useSavedCopy(l)}
+                disabled={!!busy}
+                className="text-[11px] bg-neutral-900 text-white px-2 py-1 rounded-md disabled:opacity-50"
+              >
+                Use saved copy
+              </button>
+              <button
+                onClick={() => readFromLinkedIn(l)}
+                disabled={!!busy}
+                className="text-[11px] bg-white border border-neutral-300 px-2 py-1 rounded-md disabled:opacity-50"
+              >
+                Read from LinkedIn
+              </button>
+            </div>
+          </li>
+        ))}
+      </ul>
+      {demoLinks.length > shownLinks.length || showAllLinks ? (
+        <button onClick={() => setShowAllLinks(!showAllLinks)} className="text-[11px] underline text-neutral-600 mt-2">
+          {showAllLinks ? "Show only the three picks" : `Show all ${demoLinks.length} tested links`}
+        </button>
+      ) : null}
+      {demoLinks[0] && (
+        <p className="text-[10px] text-neutral-400 mt-2">
+          Checked {demoLinks[0].checkedAt}. Live LinkedIn postings can close at any time; the saved copy always works.
+        </p>
+      )}
+    </aside>
     </div>
   );
 }

@@ -50,6 +50,16 @@ export async function POST(req: NextRequest) {
       args: [workspaceId, sample.name],
     });
     let id = existing.rows[0]?.id as string | undefined;
+    if (id) {
+      // A sample candidate is reference data. If someone saved their own résumé over it (it
+      // happened: a real résumé ended up under "Class kit — Jordan Lee", so every "Jordan Lee" run
+      // was really scoring someone else), choosing the sample puts the official text back.
+      await c.execute({
+        sql: `UPDATE profiles SET resume_text = ?, preferences_text = ?, updated_at = datetime('now')
+              WHERE id = ? AND workspace_id = ?`,
+        args: [text.resumeText, text.preferencesText, id, workspaceId],
+      });
+    }
     if (!id) {
       id = nanoid(10);
       await c.execute({
