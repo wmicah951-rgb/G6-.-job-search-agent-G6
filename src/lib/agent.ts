@@ -38,6 +38,7 @@ import {
   completeJsonWithLlm,
   rewriteBulletsWithLlm,
   isSmallModel,
+  backupUseCount,
 } from "./llmEvaluator";
 import { ADVISE_SYSTEM_PROMPT, postingVocabulary, type AdviceMode, type LlmFitResult } from "./llm/types";
 import { loadGuidelines, DEFAULT_JUDGMENT_MARGIN, withRole, type Guidelines } from "./guidelines";
@@ -854,6 +855,9 @@ export interface FitEvaluation {
   /** Proposed matches thrown out because their quote could not be found in the résumé. A verdict
    *  with any of these is uncertain, so memory does not save it (src/lib/memory.ts). */
   droppedMatches?: number;
+  /** True when the backup brain answered some of the readings because the primary failed. Such a
+   *  verdict is used for this run but never saved: memory holds only the primary brain's judgments. */
+  viaBackup?: boolean;
   method: "llm" | "deterministic";
   reasoning: string | null;
   note: string;
@@ -1162,6 +1166,7 @@ async function performFitEvaluation(
 ): Promise<FitEvaluation> {
   if (isLlmConfigured()) {
     try {
+      const backupBefore = backupUseCount();
       const useLedger = !!ledger && ledger.length > 0;
       const readFit = (posting: string): Promise<LlmFitResult> =>
         isSmallModel()
@@ -1354,6 +1359,7 @@ async function performFitEvaluation(
         ledger: effectiveLedger ?? ledgerOut,
         fromLedger: useLedger,
         droppedMatches: droppedCount,
+        viaBackup: backupUseCount() > backupBefore,
         method: "llm",
         reasoning: llmResult.reasoning,
         note: notes.join(" "),

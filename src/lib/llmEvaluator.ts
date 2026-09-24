@@ -86,6 +86,11 @@ async function withBackup<T>(what: string, run: (p: LlmProvider) => Promise<T>):
   }
 }
 
+/** A running count of backup calls, so a caller can tell whether the backup answered its call. */
+export function backupUseCount(): number {
+  return backupUses;
+}
+
 /** How often the backup has stepped in since this server instance started, and why. */
 export function backupStatus(): { provider: string | null; uses: number; lastReason: string } {
   const primary = selectProvider();

@@ -43,7 +43,8 @@ export function jobHash(jobText: string): string {
 //   v2: quotes are checked whitespace-insensitively, so wrapped resume lines no longer lose matches
 //   v3: near-exact quotes recovered to the resume's own line; only clean verdicts are saved
 //   v4: a majority of three independent readings decides each requirement
-export const MATCHER_VERSION = "v4";
+//   v5: verdicts answered by the backup brain are never saved (drops the ones saved during an outage)
+export const MATCHER_VERSION = "v5";
 
 export function fitKey(resumeText: string, settings: HarnessSettings, model: string): string {
   return hashText([MATCHER_VERSION, resumeText, settings.prompts.fit, model].join(" | "));
@@ -146,7 +147,11 @@ export async function saveMemory(opts: {
     const c = db();
     const jh = jobHash(opts.jobText);
     const fit = opts.fit;
-    if (fit && fit.method === "llm" && fit.ledger && fit.ledger.length > 0) {
+    // Memory holds only the PRIMARY brain's judgments. While DeepSeek was out of credit the backup
+    // (Haiku) answered, and its verdicts were being saved under DeepSeek's name — so a score from a
+    // different, smaller model kept being served as if DeepSeek had made it. A backup answer is
+    // good enough to keep the run going; it is not what the posting should be judged by forever.
+    if (fit && fit.method === "llm" && !fit.viaBackup && fit.ledger && fit.ledger.length > 0) {
       // INSERT OR IGNORE: the first list read for a posting is the one everybody is judged
       // against. Overwriting it on every run would put the drifting denominator right back.
       await c.execute({
