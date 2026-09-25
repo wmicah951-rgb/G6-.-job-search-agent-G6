@@ -53,11 +53,11 @@ SAME  marketing-ops Senior Marketing Operations Analyst          listed  n/a rej
 
 27/27 featured links give the listed result on the live site.
 demo-check exit 0
+w2: 63% with the original résumé -> 100% after 4 tailor/re-upload rounds
 w3: 63% with the original résumé -> 100% after 4 tailor/re-upload rounds
-w1: 63% with the original résumé -> 86% after 4 tailor/re-upload rounds
-w2: 63% with the original résumé -> 86% after 4 tailor/re-upload rounds
+w1: 63% with the original résumé -> 87% after 4 tailor/re-upload rounds
 
-3 worker(s) x 4 round(s) in 105.0s
+3 worker(s) x 4 round(s) in 108.9s
 THE WHOLE TAILOR / RE-UPLOAD CYCLE WORKS
 resume-cycle exit 0
 {"database":{"ok":true,"mode":"postgres","degraded":false,"message":"Connected to Postgres (Supabase); every write is also copied to Turso (last copy error: LibsqlError: SERVER_ERROR: Server returned HTTP status 404).","mirror":{"active":true,"writes":0,"lastError":"LibsqlError: SERVER_ERROR: Server returned HTTP status 404"}},"llm":{"configured":true,"model":"deepseek:deepseek-chat","backup":{"provider":"anthropic:claude-haiku-4-5-20251001","uses":0,"lastReason":""}},"scraper":{"available":true}}
