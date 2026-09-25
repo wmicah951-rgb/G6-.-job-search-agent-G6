@@ -1,0 +1,65 @@
+Live verification against https://g6-job-search-agent-g6.vercel.app
+
+PASS  database is connected and saving  (postgres)
+PASS  an AI model is configured  (deepseek:deepseek-chat)
+PASS  sample catalogue is served  (9 candidates)
+PASS  Class kit — Jordan Lee: 6 posting(s) through the agent  (awaiting_approval 100% | awaiting_approval 73% | rejected_hard_constraint | rejected_low_fit 50% | awaiting_approval 76% | rejected_hard_constraint)
+PASS  class kit J001 outcome  (awaiting_approval)
+PASS  class kit J002 outcome  (awaiting_approval)
+PASS  class kit J003 outcome  (rejected_hard_constraint)
+PASS  class kit J004 outcome  (rejected_low_fit)
+PASS  class kit J005 outcome  (awaiting_approval)
+PASS  class kit J006 outcome  (rejected_hard_constraint)
+PASS  Demo — Jordan Ellis: 4 posting(s) through the agent  (awaiting_approval 100% | rejected_low_fit 23% | rejected_hard_constraint | awaiting_approval 100%)
+PASS  Nursing — Alicia Moreno: 3 posting(s) through the agent  (awaiting_approval 100% | rejected_low_fit 33% | rejected_hard_constraint)
+PASS  Teaching — Daniel Okafor: 3 posting(s) through the agent  (awaiting_approval 100% | rejected_low_fit 27% | rejected_hard_constraint)
+PASS  Software — Wei Chen: 3 posting(s) through the agent  (awaiting_approval 100% | rejected_low_fit 25% | rejected_hard_constraint)
+PASS  Skilled trades — Marcus Bell: 3 posting(s) through the agent  (awaiting_approval 100% | rejected_low_fit 31% | rejected_hard_constraint)
+PASS  Retail — Sofia Ramirez: 3 posting(s) through the agent  (awaiting_approval 100% | rejected_low_fit 23% | rejected_hard_constraint)
+PASS  Finance — Priya Raghavan: 1 posting(s) through the agent  (awaiting_approval 100%)
+PASS  Marketing ops — Marcus Okonkwo: 1 posting(s) through the agent  (awaiting_approval 84%)
+PASS  everything landed on this browser's board  (27 jobs)
+PASS  Test Lab: all 21 cases pass live  (21/21)
+
+THE LIVE SITE IS READY
+live-verify exit 0
+SAME  classkit      Data Analyst - Speed to Customer             listed 100% awaiting_approval        live 100% awaiting_approval
+SAME  classkit      2027 Business Analyst                        listed  67% awaiting_approval        live  67% awaiting_approval
+SAME  classkit      Business Data Analyst I - Predictive Modelin listed  31% rejected_low_fit         live  31% rejected_low_fit
+SAME  demo          Data Analyst                                 listed  78% awaiting_approval        live  78% awaiting_approval
+SAME  demo          Senior Data Analyst                          listed  69% awaiting_approval        live  69% awaiting_approval
+SAME  demo          Data Analyst II                              listed  33% rejected_low_fit         live  33% rejected_low_fit
+SAME  nursing       Registered Nurse (RN) / MS / Telemetry (Tele listed  86% awaiting_approval        live  86% awaiting_approval
+SAME  nursing       Registered Nurse (RN) - IR                   listed  69% awaiting_approval        live  69% awaiting_approval
+SAME  nursing       Nurse Practitioner, Advanced Practice Provid listed   0% rejected_low_fit         live   0% rejected_low_fit
+SAME  teaching      2026 - 2027 Middle School Math Teacher at Wh listed  76% awaiting_approval        live  76% awaiting_approval
+SAME  teaching      Middle School Math Teacher (Metro Schools)   listed  60% awaiting_approval        live  60% awaiting_approval
+SAME  teaching      6th-8th Grade Math Teacher                   listed  n/a rejected_hard_constraint live  n/a rejected_hard_constraint
+SAME  software      Software Engineer II, Backend - Platform Tea listed 100% awaiting_approval        live 100% awaiting_approval
+SAME  software      Software Engineer - Backend                  listed  93% awaiting_clarification   live  93% awaiting_clarification
+SAME  software      Senior Software Engineer, Backend            listed  n/a rejected_hard_constraint live  n/a rejected_hard_constraint
+SAME  trades        HVAC Service Technician                      listed  91% awaiting_approval        live  91% awaiting_approval
+SAME  trades        HVAC Service Technician II                   listed  60% awaiting_approval        live  60% awaiting_approval
+SAME  trades        HVAC - Service Technician                    listed  46% rejected_low_fit         live  46% rejected_low_fit
+SAME  retail        Store Manager- Sally Beauty- 03334           listed  77% awaiting_approval        live  77% awaiting_approval
+SAME  retail        Store Manager 10632                          listed  62% awaiting_approval        live  62% awaiting_approval
+SAME  retail        Inventory Management & Pricing Analyst       listed  13% rejected_low_fit         live  13% rejected_low_fit
+SAME  finance-entry Financial Analyst                            listed  88% awaiting_approval        live  88% awaiting_approval
+SAME  finance-entry Financial Analyst - Fixed Income, Currency & listed  64% awaiting_approval        live  64% awaiting_approval
+SAME  finance-entry FP&A Senior Financial Analyst                listed  n/a rejected_hard_constraint live  n/a rejected_hard_constraint
+SAME  marketing-ops Senior Marketing Operations Manager (Reporti listed  90% awaiting_approval        live  90% awaiting_approval
+SAME  marketing-ops Marketing Project & Operations Coordinator   listed  65% awaiting_approval        live  65% awaiting_approval
+SAME  marketing-ops Senior Marketing Operations Analyst          listed  n/a rejected_hard_constraint live  n/a rejected_hard_constraint
+
+27/27 featured links give the listed result on the live site.
+demo-check exit 0
+FAIL  [w2] round 2: in-app re-score did not drop  (86% -> 81%)
+FAIL  [w2] round 3: score did not go down  (86% -> 81%)
+w2: 63% with the original résumé -> 81% after 4 tailor/re-upload rounds
+w3: 63% with the original résumé -> 100% after 4 tailor/re-upload rounds
+w1: 63% with the original résumé -> 100% after 4 tailor/re-upload rounds
+
+3 worker(s) x 4 round(s) in 105.9s
+2 CHECK(S) FAILED
+resume-cycle exit 1
+{"database":{"ok":true,"mode":"postgres","degraded":false,"message":"Connected to Postgres (Supabase); every write is also copied to Turso (last copy error: LibsqlError: SERVER_ERROR: Server returned HTTP status 404).","mirror":{"active":true,"writes":0,"lastError":"LibsqlError: SERVER_ERROR: Server returned HTTP status 404"}},"llm":{"configured":true,"model":"deepseek:deepseek-chat","backup":{"provider":"anthropic:claude-haiku-4-5-20251001","uses":0,"lastReason":""}},"scraper":{"available":true}}

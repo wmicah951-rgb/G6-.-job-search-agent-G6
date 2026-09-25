@@ -2,6 +2,7 @@
 // out go back verbatim, in the right place, exactly once; confirmed answers are added once.
 //   npx tsx scripts/restore-lines-tests.ts
 import fs from "fs";
+import { verifyDraft } from "../src/lib/draftVerifier";
 import { restoreOriginalLines, addQualifications, keepWorthyLine, mergeKnownEvidence, evidenceOf, confirmedAnswers } from "../src/lib/agent";
 
 const original = fs.readFileSync("src/data/classkit/resume.md", "utf-8");
@@ -64,6 +65,14 @@ const colon = confirmedAnswers("- Preferred Certifications: CPA, CMA: YES — I 
 check(colon.length === 1 && colon[0].requirement === "Preferred Certifications: CPA, CMA" && colon[0].answer.startsWith("I hold the CPA"), "a requirement containing a colon is read whole");
 check(!keepWorthyLine("**Summary** Licensed middle-school mathematics teacher with 4 years in the classroom, leading a team."), "an old summary paragraph is not pasted back");
 check(!keepWorthyLine("Comfortable building budget models in Excel and preparing month-end packages.", ["# X", "## Summary", "Comfortable building budget models in Excel and preparing month-end packages.", "## Experience", ""].join(String.fromCharCode(10))), "lines from the Summary section are not pasted back");
+
+const allPartial = { ...base, matched: ["SQL", "Tableau"], missing: ["Databases"], matchStrength: { SQL: "partial" as const, Tableau: "partial" as const } };
+const all = mergeKnownEvidence(allPartial, reworded, [{ requirement: "Databases", quote: "Used SQL to answer recurring questions on store performance and customer purchase patterns", strength: "partial" }], ledger);
+check(all.score === 1, "every requirement matched (even at partial strength) scores 100%, the same as a normal evaluation");
+const v = verifyDraft("**Certifications:** ServSafe food safety certified, 2021", ["# Sofia", "- Ran a store"].join(String.fromCharCode(10)), "- Food Safety: Serve Safe certified: YES — I hold this; I completed it in 2021", { kind: "resume", jobTitle: "Store Manager" } as any);
+check(v.totals.unsupported === 0, "a name spelled without the space the note used (Serve Safe / ServSafe) is not an invented fact");
+const v2 = verifyDraft("**Certifications:** PMP certified, 2021", ["# Sofia", "- Ran a store"].join(String.fromCharCode(10)), "- Food Safety: Serve Safe certified: YES — 2021", { kind: "resume", jobTitle: "Store Manager" } as any);
+check(v2.totals.unsupported > 0, "a credential in neither the résumé nor the note is still flagged");
 
 console.log(fails ? `${fails} FAILED` : "ALL RESTORE CHECKS PASS");
 process.exitCode = fails ? 1 : 0;

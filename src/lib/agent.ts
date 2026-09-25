@@ -1229,11 +1229,15 @@ export function mergeKnownEvidence(fit: FitEvaluation, document: string, known: 
     matchedEvidence[m] = found[m].quote;
     matchStrength[m] = found[m].strength;
   }
+  // The SAME formula performFitEvaluation uses: a match earns its weight (required 1, preferred
+  // 0.5, halved when partial) and the denominator is that earned weight plus the full weight of
+  // every requirement not matched. So everything matched is 100%, as on any other evaluation.
+  // (Dividing by the full ledger weight instead turned an all-matched 100% into 81%.)
   const weight = (r: string) => (ledger.find((l) => l.requirement === r)?.priority === "preferred" ? 0.5 : 1);
-  const total = ledger.reduce((s, l) => s + weight(l.requirement), 0);
-  const got = matched
-    .filter((m) => ledger.some((l) => l.requirement === m))
-    .reduce((s, m) => s + weight(m) * (matchStrength[m] === "partial" ? 0.5 : 1), 0);
+  const inLedger = new Set(ledger.map((l) => l.requirement));
+  const got = matched.filter((m) => inLedger.has(m)).reduce((s, m) => s + weight(m) * (matchStrength[m] === "partial" ? 0.5 : 1), 0);
+  const unmatched = ledger.filter((l) => !matched.includes(l.requirement)).reduce((s, l) => s + weight(l.requirement), 0);
+  const total = got + unmatched;
   return {
     ...fit,
     matched,
@@ -1241,7 +1245,7 @@ export function mergeKnownEvidence(fit: FitEvaluation, document: string, known: 
     missingPreferred: (fit.missingPreferred ?? []).filter((m) => !add.includes(m)),
     matchedEvidence,
     matchStrength,
-    score: total === 0 ? 0 : Math.round((Math.min(got, total) / total) * 100) / 100,
+    score: total === 0 ? 0 : Math.round((got / total) * 100) / 100,
     keptFromMemory: [...add, ...upgraded],
     note: `${fit.note} Kept ${add.length + upgraded.length} requirement(s) (${[...add, ...upgraded].join("; ")}) proved by résumé sentence(s) already judged for this posting that this résumé still contains.`,
   };

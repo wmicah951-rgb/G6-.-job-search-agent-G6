@@ -481,6 +481,35 @@ export function verifyDraft(
   // Corpus used for hard-fact lookups: the whole of both sources, normalised.
   const resumeCorpus = norm(resumeText);
   const noteCorpus = editNote ? norm(editNote) : "";
+  // The same name spelled with or without spaces or punctuation ("Serve Safe" in the note,
+  // "ServSafe" in the draft; "Power BI" / "PowerBI") is not a new fact.
+  const glue = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "");
+  const gluedCorpus = glue(`${resumeText} ${editNote ?? ""}`);
+  // Names of seven or more letters may also differ by ONE letter: the person typing "Serve Safe"
+  // in their note means the ServSafe the draft writes. Anything further apart is a different name.
+  const corpusWords = `${resumeText} ${editNote ?? ""}`.split(/\s+/).map(glue).filter(Boolean);
+  const gluedGrams = new Set<string>();
+  for (let i = 0; i < corpusWords.length; i++) {
+    let g = "";
+    for (let k = 0; k < 3 && i + k < corpusWords.length; k++) {
+      g += corpusWords[i + k];
+      gluedGrams.add(g);
+    }
+  }
+  const oneEditApart = (a: string, b: string) => {
+    if (Math.abs(a.length - b.length) > 1) return false;
+    let i = 0;
+    while (i < a.length && i < b.length && a[i] === b[i]) i++;
+    return a.slice(i + (a.length >= b.length ? 1 : 0)) === b.slice(i + (b.length >= a.length ? 1 : 0));
+  };
+  const gluedPresent = (s: string) => {
+    const g = glue(s);
+    if (g.length < 5) return false;
+    if (gluedCorpus.includes(g)) return true;
+    if (g.length < 7) return false;
+    for (const gram of gluedGrams) if (oneEditApart(g, gram)) return true;
+    return false;
+  };
   const corpusNumbers = new Set([
     ...extractNumbers(resumeText),
     ...(editNote ? extractNumbers(editNote) : []),
@@ -595,6 +624,7 @@ export function verifyDraft(
       if (resumeCorpus.includes(e) || (noteCorpus && noteCorpus.includes(e))) continue;
       // Same word, different form ("automation" vs "Automated") is rewording.
       if (morphologicallyPresent(e, corpusStems, corpusTokens)) continue;
+      if (gluedPresent(e)) continue;
       unsupportedFacts.push(`"${e}"`);
     }
 
@@ -623,7 +653,7 @@ export function verifyDraft(
         hardFactCount += 1;
         const corpus = `${resumeCorpus} ${noteCorpus ?? ""}`;
         const hasCredential = /certif|licen[cs]/.test(corpus);
-        const qualifiersPresent = qualifiers.every((q) => corpus.includes(q));
+        const qualifiersPresent = qualifiers.every((q) => corpus.includes(q) || gluedPresent(q));
         if (!hasCredential || !qualifiersPresent) {
           unsupportedFacts.push(`claims the credential "${claim}" (not in your resume or note)`);
         }

@@ -52,7 +52,10 @@ let warns = 0;
 // stem so "statistics" and "statistical" are the same claim.
 const GENERIC = new Set(["experience", "analysis", "knowledge", "ability", "skills", "working", "years", "strong", "understanding", "business", "large", "scale", "using", "with", "work", "data", "degree", "related", "field", "including"]);
 const stems = (req) => lc(req).split(/[^a-z0-9+#]+/).filter((w) => w.length >= 3 && !GENERIC.has(w)).map((w) => w.slice(0, 6));
-const names = (text, req) => stems(req).some((st) => lc(text).includes(st));
+const names = (text, req) => {
+  const words = lc(text).split(/[^a-z0-9+#]+/);
+  return stems(req).some((st) => words.some((w) => w.startsWith(st)));
+};
 const report = [];
 const OUT = process.env.OUT ?? "results/real-cycle-audit.json";
 
