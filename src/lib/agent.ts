@@ -1210,7 +1210,7 @@ export function mergeKnownEvidence(fit: FitEvaluation, document: string, known: 
     // Already matched at full strength: nothing to add.
     if (already && (matchStrength[item.requirement] ?? "full") === "full") continue;
     if (already && k.strength !== "full") continue;
-    const here = doc.includes(squash(k.quote)) ? k.quote : recoverQuote(k.quote, document);
+    const here = doc.includes(squash(k.quote)) ? k.quote : recoverQuote(k.quote, document) ?? recoverReworded(k.quote, document);
     if (!here) continue;
     if (already) {
       // Matched now only as "partial", on a sentence already judged as full experience.
@@ -1249,6 +1249,30 @@ export function mergeKnownEvidence(fit: FitEvaluation, document: string, known: 
     keptFromMemory: [...add, ...upgraded],
     note: `${fit.note} Kept ${add.length + upgraded.length} requirement(s) (${[...add, ...upgraded].join("; ")}) proved by résumé sentence(s) already judged for this posting that this résumé still contains.`,
   };
+}
+
+/**
+ * The same sentence after a rewrite that changed word FORMS: "Opened and closed the store,
+ * reconciled tills" -> "Ran store opening and closing, reconciled tills". Words are compared by a
+ * crude stem (opened/opening -> open), and one sentence of the document must keep 80% of them.
+ * Returns that sentence, the document's own words.
+ */
+export function recoverReworded(quote: string, document: string): string | null {
+  const stem = (w: string) => w.replace(/(ing|ed|es|s|ly)$/, "").replace(/e$/, "");
+  const words = (s: string) =>
+    s.toLowerCase().replace(/[^a-z0-9+#%$\s]/g, " ").split(/\s+/).filter((w) => w.length >= 3).map(stem);
+  const want = words(quote);
+  if (want.length < 5) return null;
+  let best: { line: string; share: number } | null = null;
+  const pieces = document.split(/\r?\n/).flatMap((l) => (l.length > 220 ? l.split(/(?<=[.;!?])\s+/) : [l]));
+  for (const raw of pieces) {
+    const line = raw.replace(/^[\s\-*•]+/, "").trim();
+    if (line.length < 10) continue;
+    const have = new Set(words(line));
+    const share = want.filter((w) => have.has(w)).length / want.length;
+    if (!best || share > best.share) best = { line, share };
+  }
+  return best && best.share >= 0.8 ? best.line : null;
 }
 
 /** The verified matches of a fit, as evidence later résumés can be held to. */

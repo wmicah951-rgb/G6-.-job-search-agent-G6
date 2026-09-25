@@ -108,6 +108,7 @@ async function runProfile(profile) {
       violations: st?.hardConstraintViolations ?? [],
       evidence: st?.matchedEvidence ?? null,
       strength: st?.matchStrength ?? null,
+      reasoning: st?.fitReasoning ?? null,
     };
   };
 
@@ -190,7 +191,10 @@ async function runProfile(profile) {
       r.rescore = rs;
       check(rs.comparable !== false, `round ${round}: in-app re-score used the same requirement list`);
       const notClosedInApp = openYes.filter((g) => !has(rs.newlyMatched, g) && has(rs.stillMissing, g));
-      check(notClosedInApp.length === 0, `round ${round}: in-app re-score counts every YES gap as closed`, notClosedInApp.join(" | "));
+      // Closing a gap may take the loop more than one round (a bare "I hold this" for a degree is
+      // often only accepted once the next draft writes it into Education). Per round that is a WARN;
+      // the FAIL is "every YES gap closed within ROUNDS" below.
+      if (notClosedInApp.length) warn(`round ${round}: in-app re-score has not closed yet`, notClosedInApp.join(" | "));
       const noCredited = t.no.filter((g) => has(rs.newlyMatched, g));
       const noClaimed = noCredited.filter((g) => names(tailored, g) && !names(ORIGINAL, g));
       check(noClaimed.length === 0, `round ${round}: in-app re-score never credits a NO gap the draft claimed`, noClaimed.join(" | "));
@@ -216,6 +220,7 @@ async function runProfile(profile) {
       r.matched = real.matched;
       r.missing = real.missing;
       r.evidence = real.evidence;
+      r.reasoning = real.reasoning;
       if (!changed) {
         check(real.reopened, `round ${round}: résumé unchanged, so the posting reopens the last result`);
       } else {

@@ -3,7 +3,7 @@
 //   npx tsx scripts/restore-lines-tests.ts
 import fs from "fs";
 import { verifyDraft } from "../src/lib/draftVerifier";
-import { restoreOriginalLines, addQualifications, keepWorthyLine, mergeKnownEvidence, evidenceOf, confirmedAnswers } from "../src/lib/agent";
+import { restoreOriginalLines, addQualifications, keepWorthyLine, mergeKnownEvidence, evidenceOf, confirmedAnswers, recoverReworded } from "../src/lib/agent";
 
 const original = fs.readFileSync("src/data/classkit/resume.md", "utf-8");
 let fails = 0;
@@ -73,6 +73,9 @@ const v = verifyDraft("**Certifications:** ServSafe food safety certified, 2021"
 check(v.totals.unsupported === 0, "a name spelled without the space the note used (Serve Safe / ServSafe) is not an invented fact");
 const v2 = verifyDraft("**Certifications:** PMP certified, 2021", ["# Sofia", "- Ran a store"].join(String.fromCharCode(10)), "- Food Safety: Serve Safe certified: YES — 2021", { kind: "resume", jobTitle: "Store Manager" } as any);
 check(v2.totals.unsupported > 0, "a credential in neither the résumé nor the note is still flagged");
+
+check(recoverReworded("Opened and closed the store, reconciled tills and handled customer escalations", "- Ran store opening and closing, reconciled tills, and resolved customer escalations") !== null, "a sentence rewritten with other word forms (opened -> opening) is still the same evidence");
+check(recoverReworded("Opened and closed the store, reconciled tills and handled customer escalations", "- Managed a team of 18 associates across two locations") === null, "an unrelated sentence is not");
 
 console.log(fails ? `${fails} FAILED` : "ALL RESTORE CHECKS PASS");
 process.exitCode = fails ? 1 : 0;

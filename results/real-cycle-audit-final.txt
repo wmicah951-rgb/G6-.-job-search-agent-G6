@@ -3,11 +3,11 @@ Real-posting audit against https://g6-job-search-agent-g6.vercel.app: 9 candidat
 [classkit] PASS  profile created from the real résumé  (HTTP 200)
 [teaching] PASS  profile created from the real résumé  (HTTP 200)
 [demo] PASS  profile created from the real résumé  (HTTP 200)
-[teaching] baseline   42% rejected_low_fit           Adjunct - Mathematics/Statistics
 [classkit] baseline   31% rejected_low_fit           Business Data Analyst I - Predictive Modeling, Statistics, F
+[teaching] baseline   42% rejected_low_fit           Adjunct - Mathematics/Statistics
 [demo] baseline   33% rejected_low_fit           Data Analyst II
-[teaching] baseline   60% awaiting_approval          Middle School Math Teacher (Metro Schools)
 [classkit] baseline   56% rejected_low_fit           Data Analyst II
+[teaching] baseline   60% awaiting_approval          Middle School Math Teacher (Metro Schools)
 [demo] baseline   67% awaiting_approval          Associate Data Analyst
 [teaching] baseline   76% awaiting_approval          2026 - 2027 Middle School Math Teacher at Whitehall Preparat
 [classkit] baseline  100% awaiting_approval          Data Analyst - Speed to Customer
@@ -15,43 +15,37 @@ Real-posting audit against https://g6-job-search-agent-g6.vercel.app: 9 candidat
 [teaching] baseline   60% awaiting_approval          2026 - 27 HIGH SCHOOL MATH TEACHER (9-12)
 [demo] baseline   n/a rejected_hard_constraint   Data Analyst, Clinical Analytics and Reporting
 [classkit] baseline   58% awaiting_approval          Business Data Analyst I, Google Global Infrastructure, Strat
-[teaching] baseline   n/a rejected_hard_constraint   Software Engineer II, Backend - Platform Team  [other field]
 [demo] baseline   n/a rejected_hard_constraint   HVAC - Service Technician  [other field]
 [classkit] baseline   n/a rejected_hard_constraint   Registered Nurse - Med Surg Ortho  [other field]
-[teaching] baseline   n/a rejected_hard_constraint   Software Engineer, Backend (All Teams)  [other field]
-[demo] baseline   n/a rejected_hard_constraint   HVAC Service Technician  [other field]
+[teaching] baseline   n/a rejected_hard_constraint   Software Engineer II, Backend - Platform Team  [other field]
 [classkit] baseline   n/a rejected_hard_constraint   Telemetry Registered Nurse (RN) – Hospital  [other field]
-[teaching] baseline   n/a rejected_hard_constraint   Backend Engineer, Intelligent Commerce  [other field]
+[demo] baseline   n/a rejected_hard_constraint   HVAC Service Technician  [other field]
+[teaching] baseline   n/a rejected_hard_constraint   Software Engineer, Backend (All Teams)  [other field]
 [classkit] baseline   n/a rejected_hard_constraint   Registered Nurse (RN) / MS / Telemetry (Tele)  [other field]
 [demo] baseline   n/a rejected_hard_constraint   HVAC Service Tech  [other field]
-[teaching] baseline   n/a rejected_hard_constraint   Software Engineer - Backend  [other field]
+[teaching] baseline   n/a rejected_hard_constraint   Backend Engineer, Intelligent Commerce  [other field]
 [classkit] baseline   n/a rejected_hard_constraint   Registered Nurse (RN) - Full-time  [other field]
-[teaching] --- target: Adjunct - Mathematics/Statistics  (baseline 42%, 5 gap(s): Master's degree in Mathematics, Statistics, or Mathematical Sciences | Master's degree in a related field plus 18 semester credit hours of graduate-level Mathematics and/or Statistics | Master's concentration or Ph.D. concentration in Mathematics or Statistics | Two (2) years of college Mathematics and/or Statistics instruction | At least one course in the area the applicant will be teaching)
 [demo] baseline   n/a rejected_hard_constraint   HVAC Service Technician II  [other field]
-[teaching] PASS  round 1: reaches the approval gate  (stage=awaiting_approval)
-[classkit] baseline   n/a rejected_hard_constraint   Registered Nurse (RN) - IR  [other field]
+[teaching] baseline   n/a rejected_hard_constraint   Software Engineer - Backend  [other field]
+[teaching] --- target: Adjunct - Mathematics/Statistics  (baseline 42%, 5 gap(s): Master's degree in Mathematics, Statistics, or Mathematical Sciences | Master's degree in a related field plus 18 semester credit hours of graduate-level Mathematics and/or Statistics | Master's concentration or Ph.D. concentration in Mathematics or Statistics | Two (2) years of college Mathematics and/or Statistics instruction | At least one course in the area the applicant will be teaching)
 [demo] baseline   n/a rejected_hard_constraint   HVAC Service Technician III - Senior Chiller Mechanic  [other field]
-[classkit] baseline   n/a rejected_hard_constraint   Registered Nurse (RN) - Neuro ICU  [other field]
+[classkit] baseline   n/a rejected_hard_constraint   Registered Nurse (RN) - IR  [other field]
+[teaching] PASS  round 1: reaches the approval gate  (stage=awaiting_approval)
 [demo] baseline   n/a rejected_hard_constraint   HVAC - Install Technician - Lead  [other field]
+[classkit] baseline   n/a rejected_hard_constraint   Registered Nurse (RN) - Neuro ICU  [other field]
 [demo] --- target: Data Analyst II  (baseline 33%, 9 gap(s): SQL Server | Programming (SML, JavaScript, or ETL frameworks) | SPSS | SAS | Tableau | Chartio | Business Objects reporting packages | SSIS | Data models, database design development, data mining and segmentation techniques)
 [classkit] baseline   n/a rejected_hard_constraint   Nurse Practitioner, Advanced Practice Provider  [other field]
+[demo] PASS  round 1: reaches the approval gate  (stage=awaiting_approval)
+[classkit] --- target: Business Data Analyst I - Predictive Modeling, Statistics, Finance & Strategic Planning  (baseline 31%, 9 gap(s): Predictive modeling experience | Statistics / statistical analysis experience | Trend analysis experience | Snowflake | R | Relational database structures | Research methods and sampling techniques | System testing | Large-scale business data sets)
 [teaching] PASS  round 1: tailored résumé drafted  (HTTP 200 )
 [teaching] PASS  round 1: in-app re-score used the same requirement list
 [teaching] FAIL  round 1: in-app re-score counts every YES gap as closed  (Master's degree in Mathematics, Statistics, or Mathematical Sciences | Master's concentration or Ph.D. concentration in Mathematics or Statistics | At least one course in the area the applicant will be teaching)
 [teaching] PASS  round 1: in-app re-score never credits a NO gap the draft claimed
-[teaching] round 1: agent repaired its draft: 0 original line(s) put back, 3 confirmed answer(s) added
+[teaching] round 1: agent repaired its draft: 1 original line(s) put back, 3 confirmed answer(s) added
 [teaching] PASS  round 1: draft keeps everything the original proved
 [teaching] PASS  round 1: no score gain rests on an untraceable sentence
-[classkit] --- target: Business Data Analyst I - Predictive Modeling, Statistics, Finance & Strategic Planning  (baseline 31%, 9 gap(s): Predictive modeling experience | Statistics / statistical analysis experience | Trend analysis experience | Snowflake | R | Relational database structures | Research methods and sampling techniques | System testing | Large-scale business data sets)
 [teaching] PASS  round 1: downloaded file reads back exactly  (HTTP 200)
-[demo] PASS  round 1: reaches the approval gate  (stage=awaiting_approval)
 [classkit] PASS  round 1: reaches the approval gate  (stage=awaiting_approval)
-[teaching] PASS  round 1: scored fresh from the tailored résumé  (score=42%)
-[teaching] PASS  round 1: real score not below the original  (42% -> 42%)
-[teaching] PASS  round 1: the in-app re-score predicted the real score  (predicted 42%, real 42%)
-[teaching] PASS  round 1: nothing the original matched is now missing
-[teaching] PASS  round 1: the tailored résumé never claims a skill the person said NO to
-[teaching] round 1: real 42% | YES closed 0/3 | NO still missing 2/2 | open: Master's degree in Mathematics, Statistics, or Mathematical Sciences | Master's concentration or Ph.D. concentration in Mathematics or Statistics | At least one course in the area the applicant will be teaching
 [demo] PASS  round 1: tailored résumé drafted  (HTTP 200 )
 [demo] PASS  round 1: in-app re-score used the same requirement list
 [demo] PASS  round 1: in-app re-score counts every YES gap as closed
@@ -60,12 +54,19 @@ Real-posting audit against https://g6-job-search-agent-g6.vercel.app: 9 candidat
 [demo] PASS  round 1: draft keeps everything the original proved
 [demo] PASS  round 1: no score gain rests on an untraceable sentence
 [demo] PASS  round 1: downloaded file reads back exactly  (HTTP 200)
+[teaching] PASS  round 1: scored fresh from the tailored résumé  (score=46%)
+[teaching] PASS  round 1: real score not below the original  (42% -> 46%)
+[teaching] PASS  round 1: the in-app re-score predicted the real score  (predicted 46%, real 46%)
+[teaching] PASS  round 1: nothing the original matched is now missing
+[teaching] PASS  round 1: the tailored résumé never claims a skill the person said NO to
+[teaching] round 1: real 46% | YES closed 0/3 | NO still missing 2/2 | open: Master's degree in Mathematics, Statistics, or Mathematical Sciences | Master's concentration or Ph.D. concentration in Mathematics or Statistics | At least one course in the area the applicant will be teaching
 [teaching] PASS  round 2: reaches the approval gate  (stage=awaiting_approval)
 [classkit] PASS  round 1: tailored résumé drafted  (HTTP 200 )
 [classkit] PASS  round 1: in-app re-score used the same requirement list
 [classkit] PASS  round 1: in-app re-score counts every YES gap as closed
 [classkit] PASS  round 1: in-app re-score never credits a NO gap the draft claimed
 [classkit] WARN  round 1: in-app re-score inferred the NO gap "Statistics / statistical analysis experience" from another line
+[classkit] WARN  round 1: in-app re-score inferred the NO gap "Relational database structures" from another line
 [classkit] round 1: agent repaired its draft: 1 original line(s) put back, 0 confirmed answer(s) added
 [classkit] PASS  round 1: draft keeps everything the original proved
 [classkit] PASS  round 1: no score gain rests on an untraceable sentence
@@ -77,77 +78,78 @@ Real-posting audit against https://g6-job-search-agent-g6.vercel.app: 9 candidat
 [demo] PASS  round 1: the tailored résumé never claims a skill the person said NO to
 [demo] round 1: real 71% | YES closed 5/5 | NO still missing 4/4
 [demo] PASS  every YES gap closed within 3 round(s)
-[classkit] PASS  round 1: scored fresh from the tailored résumé  (score=77%)
-[classkit] PASS  round 1: real score not below the original  (31% -> 77%)
-[classkit] PASS  round 1: the in-app re-score predicted the real score  (predicted 77%, real 77%)
+[classkit] PASS  round 1: scored fresh from the tailored résumé  (score=83%)
+[classkit] PASS  round 1: real score not below the original  (31% -> 83%)
+[classkit] PASS  round 1: the in-app re-score predicted the real score  (predicted 83%, real 83%)
 [classkit] PASS  round 1: nothing the original matched is now missing
 [classkit] PASS  round 1: the tailored résumé never claims a skill the person said NO to
-[classkit] WARN  round 1: scorer inferred the NO gap "Statistics / statistical analysis experience" from another line  ("predictive modeling, trend analysis, research methods and sampling techniques")
-[classkit] round 1: real 77% | YES closed 5/5 | NO still missing 3/4
+[classkit] WARN  round 1: scorer inferred the NO gap "Statistics / statistical analysis experience" from another line  ("applied research methods and sampling techniques to validate findings before sharing them with business partners")
+[classkit] WARN  round 1: scorer inferred the NO gap "Relational database structures" from another line  ("Relevant coursework: Data Management, Business Analytics, Python for Business, Systems Analysis")
+[classkit] round 1: real 83% | YES closed 5/5 | NO still missing 2/4
 [classkit] PASS  every YES gap closed within 3 round(s)
-[teaching] PASS  round 2: tailored résumé drafted  (HTTP 200 )
-[teaching] PASS  round 2: in-app re-score used the same requirement list
-[teaching] FAIL  round 2: in-app re-score counts every YES gap as closed  (Master's degree in Mathematics, Statistics, or Mathematical Sciences | Master's concentration or Ph.D. concentration in Mathematics or Statistics | At least one course in the area the applicant will be teaching)
-[teaching] PASS  round 2: in-app re-score never credits a NO gap the draft claimed
-[teaching] round 2: agent repaired its draft: 0 original line(s) put back, 3 confirmed answer(s) added
-[teaching] PASS  round 2: draft keeps everything the original proved
-[teaching] PASS  round 2: no score gain rests on an untraceable sentence
-[teaching] PASS  round 2: downloaded file reads back exactly  (HTTP 200)
 [demo] cross (same field) 78% -> 80%  Data Analyst
 [demo] PASS  cross same field: tailored résumé keeps every requirement the original matched  (Data Analyst: )
 [demo] PASS  cross same field: score not lower than with the original  (78% -> 80%)
-[classkit] cross (same field) 100% -> 81%  Data Analyst - Speed to Customer
-[classkit] PASS  cross same field: tailored résumé keeps every requirement the original matched  (Data Analyst - Speed to Customer: )
-[classkit] FAIL  cross same field: score not lower than with the original  (100% -> 81%)
-[teaching] PASS  round 2: scored fresh from the tailored résumé  (score=46%)
-[teaching] PASS  round 2: real score not below the original  (42% -> 46%)
-[teaching] PASS  round 2: the in-app re-score predicted the real score  (predicted 46%, real 46%)
-[teaching] PASS  round 2: nothing the original matched is now missing
-[teaching] PASS  round 2: the tailored résumé never claims a skill the person said NO to
-[teaching] round 2: real 46% | YES closed 0/3 | NO still missing 2/2 | open: Master's degree in Mathematics, Statistics, or Mathematical Sciences | Master's concentration or Ph.D. concentration in Mathematics or Statistics | At least one course in the area the applicant will be teaching
+[teaching] PASS  round 2: tailored résumé drafted  (HTTP 200 )
+[teaching] PASS  round 2: in-app re-score used the same requirement list
+[teaching] FAIL  round 2: in-app re-score counts every YES gap as closed  (Master's degree in Mathematics, Statistics, or Mathematical Sciences)
+[teaching] PASS  round 2: in-app re-score never credits a NO gap the draft claimed
+[teaching] round 2: agent repaired its draft: 1 original line(s) put back, 3 confirmed answer(s) added
+[teaching] PASS  round 2: draft keeps everything the original proved
+[teaching] PASS  round 2: no score gain rests on an untraceable sentence
+[teaching] PASS  round 2: downloaded file reads back exactly  (HTTP 200)
 [demo] cross (same field) n/a -> n/a  Data Analyst, Clinical Analytics and Reporting
 [demo] PASS  cross same field: tailored résumé keeps every requirement the original matched  (Data Analyst, Clinical Analytics and Rep: )
 [demo] --- target: Associate Data Analyst  (baseline 67%, 5 gap(s): Understanding of relational databases, data warehousing and ETL concepts | Must be authorized to work in the USA and available to work from the client location | Exposure to cloud data platforms (AWS, Azure or GCP) or modern data stacks (Snowflake, Databricks) | Familiarity with US healthcare / payer domain data | Relevant certification in Tableau, Power BI or SQL)
 [demo] PASS  round 1: reaches the approval gate  (stage=awaiting_approval)
+[classkit] cross (same field) 100% -> 100%  Data Analyst - Speed to Customer
+[classkit] PASS  cross same field: tailored résumé keeps every requirement the original matched  (Data Analyst - Speed to Customer: )
+[classkit] PASS  cross same field: score not lower than with the original  (100% -> 100%)
+[teaching] PASS  round 2: scored fresh from the tailored résumé  (score=62%)
+[teaching] PASS  round 2: real score not below the original  (42% -> 62%)
+[teaching] PASS  round 2: the in-app re-score predicted the real score  (predicted 62%, real 62%)
+[teaching] PASS  round 2: nothing the original matched is now missing
+[teaching] PASS  round 2: the tailored résumé never claims a skill the person said NO to
+[teaching] round 2: real 62% | YES closed 2/3 | NO still missing 2/2 | open: Master's degree in Mathematics, Statistics, or Mathematical Sciences
 [teaching] PASS  round 3: reaches the approval gate  (stage=awaiting_approval)
-[classkit] cross (same field) 58% -> 62%  Business Data Analyst I, Google Global Infrastructure, Strat
-[classkit] PASS  cross same field: tailored résumé keeps every requirement the original matched  (Business Data Analyst I, Google Global I: )
-[classkit] PASS  cross same field: score not lower than with the original  (58% -> 62%)
-[classkit] --- target: Data Analyst II  (baseline 56%, 4 gap(s): Creating automated reporting processes that do not require cutting & pasting | Building data collection tools using systems such as Microsoft Forms and REDCap | Microsoft Forms | REDCap)
 [demo] PASS  round 1: tailored résumé drafted  (HTTP 200 )
 [demo] PASS  round 1: in-app re-score used the same requirement list
-[demo] PASS  round 1: in-app re-score counts every YES gap as closed
+[demo] FAIL  round 1: in-app re-score counts every YES gap as closed  (Exposure to cloud data platforms (AWS, Azure or GCP) or modern data stacks (Snowflake, Databricks) | Relevant certification in Tableau, Power BI or SQL)
 [demo] PASS  round 1: in-app re-score never credits a NO gap the draft claimed
 [demo] WARN  round 1: in-app re-score inferred the NO gap "Must be authorized to work in the USA and available to work from the client location" from another line
 [demo] round 1: agent repaired its draft: 1 original line(s) put back, 2 confirmed answer(s) added
 [demo] PASS  round 1: draft keeps everything the original proved
 [demo] PASS  round 1: no score gain rests on an untraceable sentence
 [demo] PASS  round 1: downloaded file reads back exactly  (HTTP 200)
+[classkit] cross (same field) 58% -> 62%  Business Data Analyst I, Google Global Infrastructure, Strat
+[classkit] PASS  cross same field: tailored résumé keeps every requirement the original matched  (Business Data Analyst I, Google Global I: )
+[classkit] PASS  cross same field: score not lower than with the original  (58% -> 62%)
+[classkit] --- target: Data Analyst II  (baseline 56%, 4 gap(s): Creating automated reporting processes that do not require cutting & pasting | Building data collection tools using systems such as Microsoft Forms and REDCap | Microsoft Forms | REDCap)
 [classkit] PASS  round 1: reaches the approval gate  (stage=awaiting_approval)
 [teaching] PASS  round 3: tailored résumé drafted  (HTTP 200 )
 [teaching] PASS  round 3: in-app re-score used the same requirement list
 [teaching] PASS  round 3: in-app re-score counts every YES gap as closed
 [teaching] PASS  round 3: in-app re-score never credits a NO gap the draft claimed
 [teaching] WARN  round 3: in-app re-score inferred the NO gap "Master's degree in a related field plus 18 semester credit hours of graduate-level Mathematics and/or Statistics" from another line
-[teaching] round 3: agent repaired its draft: 5 original line(s) put back, 0 confirmed answer(s) added
+[teaching] round 3: agent repaired its draft: 2 original line(s) put back, 0 confirmed answer(s) added
 [teaching] PASS  round 3: draft keeps everything the original proved
 [teaching] PASS  round 3: no score gain rests on an untraceable sentence
 [teaching] PASS  round 3: downloaded file reads back exactly  (HTTP 200)
-[demo] PASS  round 1: scored fresh from the tailored résumé  (score=95%)
-[demo] PASS  round 1: real score not below the original  (67% -> 95%)
-[demo] PASS  round 1: the in-app re-score predicted the real score  (predicted 95%, real 95%)
+[demo] PASS  round 1: scored fresh from the tailored résumé  (score=86%)
+[demo] PASS  round 1: real score not below the original  (67% -> 86%)
+[demo] PASS  round 1: the in-app re-score predicted the real score  (predicted 86%, real 86%)
 [demo] PASS  round 1: nothing the original matched is now missing
 [demo] PASS  round 1: the tailored résumé never claims a skill the person said NO to
 [demo] WARN  round 1: scorer inferred the NO gap "Must be authorized to work in the USA and available to work from the client location" from another line  ("Atlanta, GA")
-[demo] round 1: real 95% | YES closed 3/3 | NO still missing 1/2
-[demo] PASS  every YES gap closed within 3 round(s)
-[teaching] PASS  round 3: scored fresh from the tailored résumé  (score=85%)
-[teaching] PASS  round 3: real score not below the original  (42% -> 85%)
-[teaching] PASS  round 3: the in-app re-score predicted the real score  (predicted 85%, real 85%)
+[demo] round 1: real 86% | YES closed 1/3 | NO still missing 1/2 | open: Exposure to cloud data platforms (AWS, Azure or GCP) or modern data stacks (Snowflake, Databricks) | Relevant certification in Tableau, Power BI or SQL
+[demo] PASS  round 2: reaches the approval gate  (stage=awaiting_approval)
+[teaching] PASS  round 3: scored fresh from the tailored résumé  (score=92%)
+[teaching] PASS  round 3: real score not below the original  (42% -> 92%)
+[teaching] PASS  round 3: the in-app re-score predicted the real score  (predicted 92%, real 92%)
 [teaching] PASS  round 3: nothing the original matched is now missing
 [teaching] PASS  round 3: the tailored résumé never claims a skill the person said NO to
-[teaching] WARN  round 3: scorer inferred the NO gap "Master's degree in a related field plus 18 semester credit hours of graduate-level Mathematics and/or Statistics" from another line  ("Master's degree completed 2021 with a concentration in Mathematics/Statistics, certificate or transcript available to sh")
-[teaching] round 3: real 85% | YES closed 3/3 | NO still missing 1/2
+[teaching] WARN  round 3: scorer inferred the NO gap "Master's degree in a related field plus 18 semester credit hours of graduate-level Mathematics and/or Statistics" from another line  ("Master's degree completed in 2021, including graduate-level mathematics and statistics coursework")
+[teaching] round 3: real 92% | YES closed 3/3 | NO still missing 1/2
 [teaching] PASS  every YES gap closed within 3 round(s)
 [classkit] PASS  round 1: tailored résumé drafted  (HTTP 200 )
 [classkit] PASS  round 1: in-app re-score used the same requirement list
@@ -158,137 +160,146 @@ Real-posting audit against https://g6-job-search-agent-g6.vercel.app: 9 candidat
 [classkit] PASS  round 1: draft keeps everything the original proved
 [classkit] PASS  round 1: no score gain rests on an untraceable sentence
 [classkit] PASS  round 1: downloaded file reads back exactly  (HTTP 200)
+[demo] PASS  round 2: tailored résumé drafted  (HTTP 200 )
+[demo] PASS  round 2: in-app re-score used the same requirement list
+[demo] PASS  round 2: in-app re-score counts every YES gap as closed
+[demo] PASS  round 2: in-app re-score never credits a NO gap the draft claimed
+[demo] round 2: agent repaired its draft: 2 original line(s) put back, 2 confirmed answer(s) added
+[demo] PASS  round 2: draft keeps everything the original proved
+[demo] PASS  round 2: no score gain rests on an untraceable sentence
+[demo] PASS  round 2: downloaded file reads back exactly  (HTTP 200)
+[teaching] cross (same field) 76% -> 100%  2026 - 2027 Middle School Math Teacher at Whitehall Preparat
+[teaching] PASS  cross same field: tailored résumé keeps every requirement the original matched  (2026 - 2027 Middle School Math Teacher a: )
+[teaching] PASS  cross same field: score not lower than with the original  (76% -> 100%)
 [classkit] PASS  round 1: scored fresh from the tailored résumé  (score=92%)
 [classkit] PASS  round 1: real score not below the original  (56% -> 92%)
 [classkit] PASS  round 1: the in-app re-score predicted the real score  (predicted 92%, real 92%)
 [classkit] PASS  round 1: nothing the original matched is now missing
 [classkit] PASS  round 1: the tailored résumé never claims a skill the person said NO to
-[classkit] WARN  round 1: scorer inferred the NO gap "Building data collection tools using systems such as Microsoft Forms and REDCap" from another line  ("built data collection tools using Microsoft Forms to standardize weekly reporting inputs")
+[classkit] WARN  round 1: scorer inferred the NO gap "Building data collection tools using systems such as Microsoft Forms and REDCap" from another line  ("Used Microsoft Forms to build a data collection tool for gathering operational input, supporting the team's weekly repor")
 [classkit] round 1: real 92% | YES closed 2/2 | NO still missing 1/2
 [classkit] PASS  every YES gap closed within 3 round(s)
+[demo] PASS  round 2: scored fresh from the tailored résumé  (score=95%)
+[demo] PASS  round 2: real score not below the original  (67% -> 95%)
+[demo] PASS  round 2: the in-app re-score predicted the real score  (predicted 95%, real 95%)
+[demo] PASS  round 2: nothing the original matched is now missing
+[demo] PASS  round 2: the tailored résumé never claims a skill the person said NO to
+[demo] WARN  round 2: scorer inferred the NO gap "Must be authorized to work in the USA and available to work from the client location" from another line  ("Based in Atlanta and seeking an Associate Data Analyst role supporting analysis and reporting delivery.")
+[demo] round 2: real 95% | YES closed 3/3 | NO still missing 1/2
+[demo] PASS  every YES gap closed within 3 round(s)
+[teaching] cross (same field) 60% -> 100%  2026 - 27 HIGH SCHOOL MATH TEACHER (9-12)
+[teaching] PASS  cross same field: tailored résumé keeps every requirement the original matched  (2026 - 27 HIGH SCHOOL MATH TEACHER (9-12: )
+[teaching] PASS  cross same field: score not lower than with the original  (60% -> 100%)
+[classkit] cross (same field) 100% -> 100%  Data Analyst - Speed to Customer
+[classkit] PASS  cross same field: tailored résumé keeps every requirement the original matched  (Data Analyst - Speed to Customer: )
+[classkit] PASS  cross same field: score not lower than with the original  (100% -> 100%)
+[teaching] --- target: Middle School Math Teacher (Metro Schools)  (baseline 60%, 3 gap(s): Excellent scores on Praxis content examinations | Experience with ELL learners | Flexibility)
+[teaching] PASS  round 1: reaches the approval gate  (stage=awaiting_approval)
 [demo] cross (same field) 78% -> 80%  Data Analyst
 [demo] PASS  cross same field: tailored résumé keeps every requirement the original matched  (Data Analyst: )
 [demo] PASS  cross same field: score not lower than with the original  (78% -> 80%)
-[teaching] cross (same field) 76% -> 83%  2026 - 2027 Middle School Math Teacher at Whitehall Preparat
-[teaching] PASS  cross same field: tailored résumé keeps every requirement the original matched  (2026 - 2027 Middle School Math Teacher a: )
-[teaching] PASS  cross same field: score not lower than with the original  (76% -> 83%)
-[demo] cross (same field) n/a -> n/a  Data Analyst, Clinical Analytics and Reporting
-[demo] PASS  cross same field: tailored résumé keeps every requirement the original matched  (Data Analyst, Clinical Analytics and Rep: )
-[finance-entry] PASS  profile created from the real résumé  (HTTP 200)
-[classkit] cross (same field) 100% -> 81%  Data Analyst - Speed to Customer
-[classkit] PASS  cross same field: tailored résumé keeps every requirement the original matched  (Data Analyst - Speed to Customer: )
-[classkit] FAIL  cross same field: score not lower than with the original  (100% -> 81%)
-[teaching] cross (same field) 60% -> 67%  2026 - 27 HIGH SCHOOL MATH TEACHER (9-12)
-[teaching] PASS  cross same field: tailored résumé keeps every requirement the original matched  (2026 - 27 HIGH SCHOOL MATH TEACHER (9-12: )
-[teaching] PASS  cross same field: score not lower than with the original  (60% -> 67%)
-[teaching] --- target: Middle School Math Teacher (Metro Schools)  (baseline 60%, 3 gap(s): Excellent scores on Praxis content examinations | Experience with ELL learners | Flexibility)
-[teaching] PASS  round 1: reaches the approval gate  (stage=awaiting_approval)
-[finance-entry] baseline   63% awaiting_approval          Financial Analyst - Core FP&A
 [teaching] PASS  round 1: tailored résumé drafted  (HTTP 200 )
 [teaching] PASS  round 1: in-app re-score used the same requirement list
 [teaching] PASS  round 1: in-app re-score counts every YES gap as closed
-[teaching] FAIL  round 1: in-app re-score never credits a NO gap the draft claimed  (Experience with ELL learners)
+[teaching] PASS  round 1: in-app re-score never credits a NO gap the draft claimed
 [teaching] round 1: agent repaired its draft: 2 original line(s) put back, 0 confirmed answer(s) added
 [teaching] PASS  round 1: draft keeps everything the original proved
 [teaching] PASS  round 1: no score gain rests on an untraceable sentence
 [teaching] PASS  round 1: downloaded file reads back exactly  (HTTP 200)
-[classkit] cross (same field) 58% -> 50%  Business Data Analyst I, Google Global Infrastructure, Strat
+[classkit] cross (same field) 58% -> 62%  Business Data Analyst I, Google Global Infrastructure, Strat
 [classkit] PASS  cross same field: tailored résumé keeps every requirement the original matched  (Business Data Analyst I, Google Global I: )
-[classkit] FAIL  cross same field: score not lower than with the original  (58% -> 50%)
+[classkit] PASS  cross same field: score not lower than with the original  (58% -> 62%)
+[demo] cross (same field) n/a -> n/a  Data Analyst, Clinical Analytics and Reporting
+[demo] PASS  cross same field: tailored résumé keeps every requirement the original matched  (Data Analyst, Clinical Analytics and Rep: )
+[finance-entry] PASS  profile created from the real résumé  (HTTP 200)
 [marketing-ops] PASS  profile created from the real résumé  (HTTP 200)
-[finance-entry] baseline   64% awaiting_approval          Financial Analyst - Fixed Income, Currency & Commodities
-[teaching] PASS  round 1: scored fresh from the tailored résumé  (score=100%)
-[teaching] PASS  round 1: real score not below the original  (60% -> 100%)
-[teaching] PASS  round 1: the in-app re-score predicted the real score  (predicted 100%, real 100%)
+[teaching] PASS  round 1: scored fresh from the tailored résumé  (score=87%)
+[teaching] PASS  round 1: real score not below the original  (60% -> 87%)
+[teaching] PASS  round 1: the in-app re-score predicted the real score  (predicted 87%, real 87%)
 [teaching] PASS  round 1: nothing the original matched is now missing
-[teaching] FAIL  round 1: the tailored résumé never claims a skill the person said NO to  (Experience with ELL learners)
-[teaching] round 1: real 100% | YES closed 2/2 | NO still missing 0/1
+[teaching] PASS  round 1: the tailored résumé never claims a skill the person said NO to
+[teaching] round 1: real 87% | YES closed 2/2 | NO still missing 1/1
 [teaching] PASS  every YES gap closed within 3 round(s)
 [marketing-ops] baseline   65% awaiting_approval          Marketing Project & Operations Coordinator
-[finance-entry] baseline   88% awaiting_approval          Financial Analyst
-[finance-entry] baseline   n/a rejected_hard_constraint   FP&A Senior Financial Analyst
-[teaching] cross (same field) 76% -> 88%  2026 - 2027 Middle School Math Teacher at Whitehall Preparat
+[finance-entry] baseline   63% awaiting_approval          Financial Analyst - Core FP&A
+[teaching] cross (same field) 76% -> 100%  2026 - 2027 Middle School Math Teacher at Whitehall Preparat
 [teaching] PASS  cross same field: tailored résumé keeps every requirement the original matched  (2026 - 2027 Middle School Math Teacher a: )
-[teaching] PASS  cross same field: score not lower than with the original  (76% -> 88%)
+[teaching] PASS  cross same field: score not lower than with the original  (76% -> 100%)
 [marketing-ops] baseline   90% awaiting_approval          Senior Marketing Operations Manager (Reporting and Analytics
-[finance-entry] baseline   n/a rejected_hard_constraint   2026 - 2027 Middle School Math Teacher at Whitehall Preparat  [other field]
+[finance-entry] baseline   64% awaiting_approval          Financial Analyst - Fixed Income, Currency & Commodities
 [marketing-ops] baseline   n/a rejected_hard_constraint   Senior Marketing Operations Analyst
-[finance-entry] baseline   n/a rejected_hard_constraint   Middle School Math Teacher (Metro Schools)  [other field]
-[teaching] cross (same field) 60% -> 67%  2026 - 27 HIGH SCHOOL MATH TEACHER (9-12)
+[teaching] cross (same field) 60% -> 100%  2026 - 27 HIGH SCHOOL MATH TEACHER (9-12)
 [teaching] PASS  cross same field: tailored résumé keeps every requirement the original matched  (2026 - 27 HIGH SCHOOL MATH TEACHER (9-12: )
-[teaching] PASS  cross same field: score not lower than with the original  (60% -> 67%)
+[teaching] PASS  cross same field: score not lower than with the original  (60% -> 100%)
 [marketing-ops] baseline   n/a rejected_hard_constraint   Manager, Marketing Operations
 [trades] PASS  profile created from the real résumé  (HTTP 200)
-[finance-entry] baseline   n/a rejected_hard_constraint   2026 - 27 HIGH SCHOOL MATH TEACHER (9-12)  [other field]
+[finance-entry] baseline   88% awaiting_approval          Financial Analyst
+[finance-entry] baseline   n/a rejected_hard_constraint   FP&A Senior Financial Analyst
 [marketing-ops] baseline   n/a rejected_hard_constraint   HVAC - Service Technician  [other field]
 [trades] baseline   46% rejected_low_fit           HVAC - Service Technician
+[finance-entry] baseline   n/a rejected_hard_constraint   2026 - 2027 Middle School Math Teacher at Whitehall Preparat  [other field]
 [marketing-ops] baseline   n/a rejected_hard_constraint   HVAC Service Technician  [other field]
+[finance-entry] baseline   n/a rejected_hard_constraint   Middle School Math Teacher (Metro Schools)  [other field]
+[marketing-ops] baseline   n/a rejected_hard_constraint   HVAC Service Tech  [other field]
+[trades] baseline   60% awaiting_approval          HVAC Service Technician II
+[finance-entry] baseline   n/a rejected_hard_constraint   2026 - 27 HIGH SCHOOL MATH TEACHER (9-12)  [other field]
+[marketing-ops] baseline   n/a rejected_hard_constraint   HVAC Service Technician II  [other field]
+[trades] baseline   91% awaiting_approval          HVAC Service Technician
+[marketing-ops] baseline   n/a rejected_hard_constraint   HVAC Service Technician III - Senior Chiller Mechanic  [other field]
 [finance-entry] baseline   n/a rejected_hard_constraint   Adjunct - Mathematics/Statistics  [other field]
 [finance-entry] --- target: Financial Analyst - Core FP&A  (baseline 63%, 5 gap(s): Review of capital projects / financial projections | Experience with Oracle | Experience with Hyperion Planning | Experience with Onestream | Preferred Certifications: CPA, CMA)
 [finance-entry] PASS  round 1: reaches the approval gate  (stage=awaiting_approval)
-[marketing-ops] baseline   n/a rejected_hard_constraint   HVAC Service Tech  [other field]
-[trades] baseline   60% awaiting_approval          HVAC Service Technician II
-[marketing-ops] baseline   n/a rejected_hard_constraint   HVAC Service Technician II  [other field]
+[trades] baseline   75% awaiting_approval          HVAC Service Tech
+[marketing-ops] baseline   n/a rejected_hard_constraint   HVAC - Install Technician - Lead  [other field]
+[marketing-ops] --- target: Marketing Project & Operations Coordinator  (baseline 65%, 4 gap(s): Demonstrated fluency with generative AI tools and the ability to incorporate AI effectively into everyday workflows | Ability to develop effective prompts, evaluate AI-generated outputs, and determine when AI can and should not be used to complete a task | Interest in continuously learning and applying emerging AI and automation capabilities | Experience coordinating external vendors or production partners is a plus)
+[marketing-ops] PASS  round 1: reaches the approval gate  (stage=awaiting_approval)
+[trades] baseline   n/a rejected_hard_constraint   Financial Analyst  [other field]
 [finance-entry] PASS  round 1: tailored résumé drafted  (HTTP 200 )
 [finance-entry] PASS  round 1: in-app re-score used the same requirement list
-[finance-entry] PASS  round 1: in-app re-score counts every YES gap as closed
+[finance-entry] FAIL  round 1: in-app re-score counts every YES gap as closed  (Preferred Certifications: CPA, CMA)
 [finance-entry] PASS  round 1: in-app re-score never credits a NO gap the draft claimed
 [finance-entry] round 1: agent repaired its draft: 1 original line(s) put back, 1 confirmed answer(s) added
 [finance-entry] PASS  round 1: draft keeps everything the original proved
 [finance-entry] PASS  round 1: no score gain rests on an untraceable sentence
 [finance-entry] PASS  round 1: downloaded file reads back exactly  (HTTP 200)
-[marketing-ops] baseline   n/a rejected_hard_constraint   HVAC Service Technician III - Senior Chiller Mechanic  [other field]
-[trades] baseline   91% awaiting_approval          HVAC Service Technician
-[marketing-ops] baseline   n/a rejected_hard_constraint   HVAC - Install Technician - Lead  [other field]
-[marketing-ops] --- target: Marketing Project & Operations Coordinator  (baseline 65%, 4 gap(s): Demonstrated fluency with generative AI tools and the ability to incorporate AI effectively into everyday workflows | Ability to develop effective prompts, evaluate AI-generated outputs, and determine when AI can and should not be used to complete a task | Interest in continuously learning and applying emerging AI and automation capabilities | Experience coordinating external vendors or production partners is a plus)
-[marketing-ops] PASS  round 1: reaches the approval gate  (stage=awaiting_approval)
-[trades] baseline   75% awaiting_approval          HVAC Service Tech
-[finance-entry] PASS  round 1: scored fresh from the tailored résumé  (score=74%)
-[finance-entry] PASS  round 1: real score not below the original  (63% -> 74%)
-[finance-entry] PASS  round 1: the in-app re-score predicted the real score  (predicted 74%, real 74%)
-[finance-entry] PASS  round 1: nothing the original matched is now missing
-[finance-entry] PASS  round 1: the tailored résumé never claims a skill the person said NO to
-[finance-entry] round 1: real 74% | YES closed 3/3 | NO still missing 2/2
-[finance-entry] PASS  every YES gap closed within 3 round(s)
-[trades] baseline   n/a rejected_hard_constraint   Financial Analyst  [other field]
-[finance-entry] cross (same field) 88% -> 75%  Financial Analyst
-[finance-entry] PASS  cross same field: tailored résumé keeps every requirement the original matched  (Financial Analyst: )
-[finance-entry] FAIL  cross same field: score not lower than with the original  (88% -> 75%)
 [trades] baseline   n/a rejected_hard_constraint   Financial Analyst - Core FP&A  [other field]
 [marketing-ops] PASS  round 1: tailored résumé drafted  (HTTP 200 )
 [marketing-ops] PASS  round 1: in-app re-score used the same requirement list
 [marketing-ops] PASS  round 1: in-app re-score counts every YES gap as closed
 [marketing-ops] PASS  round 1: in-app re-score never credits a NO gap the draft claimed
-[marketing-ops] round 1: agent repaired its draft: 1 original line(s) put back, 0 confirmed answer(s) added
+[marketing-ops] WARN  round 1: in-app re-score inferred the NO gap "Ability to develop effective prompts, evaluate AI-generated outputs, and determine when AI can and should not be used to complete a task" from another line
 [marketing-ops] PASS  round 1: draft keeps everything the original proved
 [marketing-ops] PASS  round 1: no score gain rests on an untraceable sentence
 [marketing-ops] PASS  round 1: downloaded file reads back exactly  (HTTP 200)
-[finance-entry] cross (same field) n/a -> n/a  FP&A Senior Financial Analyst
-[finance-entry] PASS  cross same field: tailored résumé keeps every requirement the original matched  (FP&A Senior Financial Analyst: )
-[finance-entry] --- target: Financial Analyst - Fixed Income, Currency & Commodities  (baseline 64%, 5 gap(s): Experience supporting capital markets, corporate banking, investment banking, trading, or treasury-related businesses | Financial analysis and FP&A experience in a banking/capital markets function | Ability to synthesize complex data into concise, actionable insights | Strong organizational skills and attention to detail | Excellent verbal and written communication skills)
-[finance-entry] PASS  round 1: reaches the approval gate  (stage=awaiting_approval)
 [trades] baseline   n/a rejected_hard_constraint   Financial Analyst - Fixed Income, Currency & Commodities  [other field]
-[marketing-ops] PASS  round 1: scored fresh from the tailored résumé  (score=85%)
-[marketing-ops] PASS  round 1: real score not below the original  (65% -> 85%)
-[marketing-ops] PASS  round 1: the in-app re-score predicted the real score  (predicted 85%, real 85%)
-[marketing-ops] PASS  round 1: nothing the original matched is now missing
-[marketing-ops] PASS  round 1: the tailored résumé never claims a skill the person said NO to
-[marketing-ops] round 1: real 85% | YES closed 2/2 | NO still missing 2/2
-[marketing-ops] PASS  every YES gap closed within 3 round(s)
+[finance-entry] PASS  round 1: scored fresh from the tailored résumé  (score=81%)
+[finance-entry] PASS  round 1: real score not below the original  (63% -> 81%)
+[finance-entry] PASS  round 1: the in-app re-score predicted the real score  (predicted 81%, real 81%)
+[finance-entry] PASS  round 1: nothing the original matched is now missing
+[finance-entry] PASS  round 1: the tailored résumé never claims a skill the person said NO to
+[finance-entry] round 1: real 81% | YES closed 2/3 | NO still missing 2/2 | open: Preferred Certifications: CPA, CMA
+[finance-entry] PASS  round 2: reaches the approval gate  (stage=awaiting_approval)
 [trades] baseline   n/a rejected_hard_constraint   Senior Financial Analyst  [other field]
 [trades] --- target: HVAC - Service Technician  (baseline 46%, 4 gap(s): Eligible to work in the US | Must be 21 or older | Willingness to submit to a pre-employment drug test and background check | Service Titan knowledge)
+[marketing-ops] PASS  round 1: scored fresh from the tailored résumé  (score=95%)
+[marketing-ops] PASS  round 1: real score not below the original  (65% -> 95%)
+[marketing-ops] PASS  round 1: the in-app re-score predicted the real score  (predicted 95%, real 95%)
+[marketing-ops] PASS  round 1: nothing the original matched is now missing
+[marketing-ops] PASS  round 1: the tailored résumé never claims a skill the person said NO to
+[marketing-ops] WARN  round 1: scorer inferred the NO gap "Ability to develop effective prompts, evaluate AI-generated outputs, and determine when AI can and should not be used to complete a task" from another line  ("Apply generative AI tools to real work every week, using them for documentation, status reporting and research, and stay")
+[marketing-ops] round 1: real 95% | YES closed 2/2 | NO still missing 1/2
+[marketing-ops] PASS  every YES gap closed within 3 round(s)
+[trades] PASS  round 1: reaches the approval gate  (stage=awaiting_approval)
 [marketing-ops] cross (same field) n/a -> n/a  Senior Marketing Operations Analyst
 [marketing-ops] PASS  cross same field: tailored résumé keeps every requirement the original matched  (Senior Marketing Operations Analyst: )
-[trades] PASS  round 1: reaches the approval gate  (stage=awaiting_approval)
-[finance-entry] PASS  round 1: tailored résumé drafted  (HTTP 200 )
-[finance-entry] PASS  round 1: in-app re-score used the same requirement list
-[finance-entry] PASS  round 1: in-app re-score counts every YES gap as closed
-[finance-entry] PASS  round 1: in-app re-score never credits a NO gap the draft claimed
-[finance-entry] WARN  round 1: in-app re-score inferred the NO gap "Financial analysis and FP&A experience in a banking/capital markets function" from another line
-[finance-entry] round 1: agent repaired its draft: 2 original line(s) put back, 2 confirmed answer(s) added
-[finance-entry] PASS  round 1: draft keeps everything the original proved
-[finance-entry] PASS  round 1: no score gain rests on an untraceable sentence
-[finance-entry] PASS  round 1: downloaded file reads back exactly  (HTTP 200)
+[finance-entry] PASS  round 2: tailored résumé drafted  (HTTP 200 )
+[finance-entry] PASS  round 2: in-app re-score used the same requirement list
+[finance-entry] FAIL  round 2: in-app re-score counts every YES gap as closed  (Preferred Certifications: CPA, CMA)
+[finance-entry] PASS  round 2: in-app re-score never credits a NO gap the draft claimed
+[finance-entry] round 2: agent repaired its draft: 2 original line(s) put back, 1 confirmed answer(s) added
+[finance-entry] PASS  round 2: draft keeps everything the original proved
+[finance-entry] PASS  round 2: no score gain rests on an untraceable sentence
+[finance-entry] PASS  round 2: downloaded file reads back exactly  (HTTP 200)
 [marketing-ops] cross (same field) n/a -> n/a  Manager, Marketing Operations
 [marketing-ops] PASS  cross same field: tailored résumé keeps every requirement the original matched  (Manager, Marketing Operations: )
 [marketing-ops] --- target: Senior Marketing Operations Manager (Reporting and Analytics)  (baseline 90%, 2 gap(s): Experience in financial services, technology, or another regulated industry | Familiarity with product or behavioral analytics tools such as Amplitude, Mixpanel, or Pendo)
@@ -300,14 +311,13 @@ Real-posting audit against https://g6-job-search-agent-g6.vercel.app: 9 candidat
 [trades] PASS  round 1: draft keeps everything the original proved
 [trades] PASS  round 1: no score gain rests on an untraceable sentence
 [trades] PASS  round 1: downloaded file reads back exactly  (HTTP 200)
-[finance-entry] PASS  round 1: scored fresh from the tailored résumé  (score=94%)
-[finance-entry] PASS  round 1: real score not below the original  (64% -> 94%)
-[finance-entry] PASS  round 1: the in-app re-score predicted the real score  (predicted 94%, real 94%)
-[finance-entry] PASS  round 1: nothing the original matched is now missing
-[finance-entry] PASS  round 1: the tailored résumé never claims a skill the person said NO to
-[finance-entry] WARN  round 1: scorer inferred the NO gap "Financial analysis and FP&A experience in a banking/capital markets function" from another line  ("Financial Analyst Co-op — Carrowmore Industrial Supply")
-[finance-entry] round 1: real 94% | YES closed 3/3 | NO still missing 1/2
-[finance-entry] PASS  every YES gap closed within 3 round(s)
+[finance-entry] PASS  round 2: scored fresh from the tailored résumé  (score=81%)
+[finance-entry] PASS  round 2: real score not below the original  (63% -> 81%)
+[finance-entry] PASS  round 2: the in-app re-score predicted the real score  (predicted 81%, real 81%)
+[finance-entry] PASS  round 2: nothing the original matched is now missing
+[finance-entry] PASS  round 2: the tailored résumé never claims a skill the person said NO to
+[finance-entry] round 2: real 81% | YES closed 2/3 | NO still missing 2/2 | open: Preferred Certifications: CPA, CMA
+[finance-entry] PASS  round 3: reaches the approval gate  (stage=awaiting_approval)
 [trades] PASS  round 1: scored fresh from the tailored résumé  (score=77%)
 [trades] PASS  round 1: real score not below the original  (46% -> 77%)
 [trades] PASS  round 1: the in-app re-score predicted the real score  (predicted 77%, real 77%)
@@ -317,60 +327,62 @@ Real-posting audit against https://g6-job-search-agent-g6.vercel.app: 9 candidat
 [trades] PASS  every YES gap closed within 3 round(s)
 [marketing-ops] PASS  round 1: tailored résumé drafted  (HTTP 200 )
 [marketing-ops] PASS  round 1: in-app re-score used the same requirement list
-[marketing-ops] FAIL  round 1: in-app re-score counts every YES gap as closed  (Experience in financial services, technology, or another regulated industry)
+[marketing-ops] PASS  round 1: in-app re-score counts every YES gap as closed
 [marketing-ops] PASS  round 1: in-app re-score never credits a NO gap the draft claimed
-[marketing-ops] round 1: agent repaired its draft: 1 original line(s) put back, 1 confirmed answer(s) added
+[marketing-ops] round 1: agent repaired its draft: 3 original line(s) put back, 1 confirmed answer(s) added
 [marketing-ops] PASS  round 1: draft keeps everything the original proved
 [marketing-ops] PASS  round 1: no score gain rests on an untraceable sentence
 [marketing-ops] PASS  round 1: downloaded file reads back exactly  (HTTP 200)
-[finance-entry] cross (same field) 88% -> 88%  Financial Analyst
-[finance-entry] PASS  cross same field: tailored résumé keeps every requirement the original matched  (Financial Analyst: )
-[finance-entry] PASS  cross same field: score not lower than with the original  (88% -> 88%)
-[finance-entry] cross (same field) n/a -> n/a  FP&A Senior Financial Analyst
-[finance-entry] PASS  cross same field: tailored résumé keeps every requirement the original matched  (FP&A Senior Financial Analyst: )
 [trades] cross (same field) 91% -> 91%  HVAC Service Technician
 [trades] PASS  cross same field: tailored résumé keeps every requirement the original matched  (HVAC Service Technician: )
 [trades] PASS  cross same field: score not lower than with the original  (91% -> 91%)
-[nursing] PASS  profile created from the real résumé  (HTTP 200)
-[marketing-ops] PASS  round 1: scored fresh from the tailored résumé  (score=77%)
-[marketing-ops] FAIL  round 1: real score not below the original  (90% -> 77%)
-[marketing-ops] PASS  round 1: the in-app re-score predicted the real score  (predicted 77%, real 77%)
+[finance-entry] PASS  round 3: tailored résumé drafted  (HTTP 200 )
+[finance-entry] PASS  round 3: in-app re-score used the same requirement list
+[finance-entry] FAIL  round 3: in-app re-score counts every YES gap as closed  (Preferred Certifications: CPA, CMA)
+[finance-entry] PASS  round 3: in-app re-score never credits a NO gap the draft claimed
+[finance-entry] round 3: agent repaired its draft: 2 original line(s) put back, 1 confirmed answer(s) added
+[finance-entry] PASS  round 3: draft keeps everything the original proved
+[finance-entry] PASS  round 3: no score gain rests on an untraceable sentence
+[finance-entry] PASS  round 3: downloaded file reads back exactly  (HTTP 200)
+[marketing-ops] PASS  round 1: scored fresh from the tailored résumé  (score=96%)
+[marketing-ops] PASS  round 1: real score not below the original  (90% -> 96%)
+[marketing-ops] PASS  round 1: the in-app re-score predicted the real score  (predicted 96%, real 96%)
 [marketing-ops] PASS  round 1: nothing the original matched is now missing
 [marketing-ops] PASS  round 1: the tailored résumé never claims a skill the person said NO to
-[marketing-ops] round 1: real 77% | YES closed 0/1 | NO still missing 1/1 | open: Experience in financial services, technology, or another regulated industry
-[marketing-ops] PASS  round 2: reaches the approval gate  (stage=awaiting_approval)
-[trades] cross (same field) 75% -> 100%  HVAC Service Tech
+[marketing-ops] round 1: real 96% | YES closed 1/1 | NO still missing 1/1
+[marketing-ops] PASS  every YES gap closed within 3 round(s)
+[trades] cross (same field) 75% -> 88%  HVAC Service Tech
 [trades] PASS  cross same field: tailored résumé keeps every requirement the original matched  (HVAC Service Tech: )
-[trades] PASS  cross same field: score not lower than with the original  (75% -> 100%)
+[trades] PASS  cross same field: score not lower than with the original  (75% -> 88%)
+[marketing-ops] cross (same field) n/a -> n/a  Senior Marketing Operations Analyst
+[marketing-ops] PASS  cross same field: tailored résumé keeps every requirement the original matched  (Senior Marketing Operations Analyst: )
 [trades] --- target: HVAC Service Technician II  (baseline 60%, 4 gap(s): Required license(s) and/or training card as required by local law district | Rotational Emergency Call Support availability as required | Associates Degree or technical school HVAC certification | Current first aid / CPR card)
 [trades] PASS  round 1: reaches the approval gate  (stage=awaiting_approval)
-[nursing] baseline   58% rejected_low_fit           Telemetry Registered Nurse (RN) – Hospital
-[marketing-ops] PASS  round 2: tailored résumé drafted  (HTTP 200 )
-[marketing-ops] PASS  round 2: in-app re-score used the same requirement list
-[marketing-ops] PASS  round 2: in-app re-score counts every YES gap as closed
-[marketing-ops] PASS  round 2: in-app re-score never credits a NO gap the draft claimed
-[marketing-ops] round 2: agent repaired its draft: 2 original line(s) put back, 0 confirmed answer(s) added
-[marketing-ops] PASS  round 2: draft keeps everything the original proved
-[marketing-ops] PASS  round 2: no score gain rests on an untraceable sentence
-[marketing-ops] PASS  round 2: downloaded file reads back exactly  (HTTP 200)
+[finance-entry] PASS  round 3: scored fresh from the tailored résumé  (score=81%)
+[finance-entry] PASS  round 3: real score not below the original  (63% -> 81%)
+[finance-entry] PASS  round 3: the in-app re-score predicted the real score  (predicted 81%, real 81%)
+[finance-entry] PASS  round 3: nothing the original matched is now missing
+[finance-entry] PASS  round 3: the tailored résumé never claims a skill the person said NO to
+[finance-entry] round 3: real 81% | YES closed 2/3 | NO still missing 2/2 | open: Preferred Certifications: CPA, CMA
+[finance-entry] FAIL  every YES gap closed within 3 round(s)  (Preferred Certifications: CPA, CMA)
+[marketing-ops] cross (same field) n/a -> n/a  Manager, Marketing Operations
+[marketing-ops] PASS  cross same field: tailored résumé keeps every requirement the original matched  (Manager, Marketing Operations: )
+[nursing] PASS  profile created from the real résumé  (HTTP 200)
 [trades] PASS  round 1: tailored résumé drafted  (HTTP 200 )
 [trades] PASS  round 1: in-app re-score used the same requirement list
 [trades] PASS  round 1: in-app re-score counts every YES gap as closed
 [trades] PASS  round 1: in-app re-score never credits a NO gap the draft claimed
-[trades] round 1: agent repaired its draft: 2 original line(s) put back, 0 confirmed answer(s) added
 [trades] PASS  round 1: draft keeps everything the original proved
 [trades] PASS  round 1: no score gain rests on an untraceable sentence
 [trades] PASS  round 1: downloaded file reads back exactly  (HTTP 200)
-[marketing-ops] PASS  round 2: scored fresh from the tailored résumé  (score=81%)
-[marketing-ops] FAIL  round 2: real score not below the original  (90% -> 81%)
-[marketing-ops] PASS  round 2: the in-app re-score predicted the real score  (predicted 81%, real 81%)
-[marketing-ops] PASS  round 2: nothing the original matched is now missing
-[marketing-ops] PASS  round 2: the tailored résumé never claims a skill the person said NO to
-[marketing-ops] round 2: real 81% | YES closed 1/1 | NO still missing 1/1
-[marketing-ops] PASS  every YES gap closed within 3 round(s)
-[nursing] baseline   69% awaiting_approval          Registered Nurse (RN) - IR
-[marketing-ops] cross (same field) n/a -> n/a  Senior Marketing Operations Analyst
-[marketing-ops] PASS  cross same field: tailored résumé keeps every requirement the original matched  (Senior Marketing Operations Analyst: )
+[finance-entry] cross (same field) 88% -> 100%  Financial Analyst
+[finance-entry] PASS  cross same field: tailored résumé keeps every requirement the original matched  (Financial Analyst: )
+[finance-entry] PASS  cross same field: score not lower than with the original  (88% -> 100%)
+[finance-entry] cross (same field) n/a -> n/a  FP&A Senior Financial Analyst
+[finance-entry] PASS  cross same field: tailored résumé keeps every requirement the original matched  (FP&A Senior Financial Analyst: )
+[nursing] baseline   58% rejected_low_fit           Telemetry Registered Nurse (RN) – Hospital
+[finance-entry] --- target: Financial Analyst - Fixed Income, Currency & Commodities  (baseline 64%, 5 gap(s): Experience supporting capital markets, corporate banking, investment banking, trading, or treasury-related businesses | Financial analysis and FP&A experience in a banking/capital markets function | Ability to synthesize complex data into concise, actionable insights | Strong organizational skills and attention to detail | Excellent verbal and written communication skills)
+[finance-entry] PASS  round 1: reaches the approval gate  (stage=awaiting_approval)
 [trades] PASS  round 1: scored fresh from the tailored résumé  (score=80%)
 [trades] PASS  round 1: real score not below the original  (60% -> 80%)
 [trades] PASS  round 1: the in-app re-score predicted the real score  (predicted 80%, real 80%)
@@ -378,32 +390,89 @@ Real-posting audit against https://g6-job-search-agent-g6.vercel.app: 9 candidat
 [trades] PASS  round 1: the tailored résumé never claims a skill the person said NO to
 [trades] round 1: real 80% | YES closed 2/2 | NO still missing 2/2
 [trades] PASS  every YES gap closed within 3 round(s)
-[nursing] baseline   83% awaiting_approval          Registered Nurse - Med Surg Ortho
-[marketing-ops] cross (same field) n/a -> n/a  Manager, Marketing Operations
-[marketing-ops] PASS  cross same field: tailored résumé keeps every requirement the original matched  (Manager, Marketing Operations: )
-[retail] PASS  profile created from the real résumé  (HTTP 200)
+[nursing] baseline   69% awaiting_approval          Registered Nurse (RN) - IR
 [trades] cross (same field) 91% -> 91%  HVAC Service Technician
 [trades] PASS  cross same field: tailored résumé keeps every requirement the original matched  (HVAC Service Technician: )
 [trades] PASS  cross same field: score not lower than with the original  (91% -> 91%)
-[nursing] baseline   86% awaiting_approval          Registered Nurse (RN) / MS / Telemetry (Tele)
-[nursing] baseline   n/a rejected_hard_constraint   Software Engineer II, Backend - Platform Team  [other field]
-[retail] baseline   13% rejected_low_fit           Inventory Management & Pricing Analyst
+[finance-entry] PASS  round 1: tailored résumé drafted  (HTTP 200 )
+[finance-entry] PASS  round 1: in-app re-score used the same requirement list
+[finance-entry] PASS  round 1: in-app re-score counts every YES gap as closed
+[finance-entry] PASS  round 1: in-app re-score never credits a NO gap the draft claimed
+[finance-entry] WARN  round 1: in-app re-score inferred the NO gap "Financial analysis and FP&A experience in a banking/capital markets function" from another line
+[finance-entry] round 1: agent repaired its draft: 1 original line(s) put back, 2 confirmed answer(s) added
+[finance-entry] PASS  round 1: draft keeps everything the original proved
+[finance-entry] PASS  round 1: no score gain rests on an untraceable sentence
+[finance-entry] PASS  round 1: downloaded file reads back exactly  (HTTP 200)
+[nursing] baseline   83% awaiting_approval          Registered Nurse - Med Surg Ortho
 [trades] cross (same field) 75% -> 75%  HVAC Service Tech
 [trades] PASS  cross same field: tailored résumé keeps every requirement the original matched  (HVAC Service Tech: )
 [trades] PASS  cross same field: score not lower than with the original  (75% -> 75%)
-[software] PASS  profile created from the real résumé  (HTTP 200)
+[retail] PASS  profile created from the real résumé  (HTTP 200)
+[nursing] baseline   86% awaiting_approval          Registered Nurse (RN) / MS / Telemetry (Tele)
+[finance-entry] PASS  round 1: scored fresh from the tailored résumé  (score=95%)
+[finance-entry] PASS  round 1: real score not below the original  (64% -> 95%)
+[finance-entry] PASS  round 1: the in-app re-score predicted the real score  (predicted 95%, real 95%)
+[finance-entry] PASS  round 1: nothing the original matched is now missing
+[finance-entry] PASS  round 1: the tailored résumé never claims a skill the person said NO to
+[finance-entry] WARN  round 1: scorer inferred the NO gap "Financial analysis and FP&A experience in a banking/capital markets function" from another line  ("Built and owned the monthly departmental budget-vs-actual reporting pack across 18 cost centers, cutting the close repor")
+[finance-entry] round 1: real 95% | YES closed 3/3 | NO still missing 1/2
+[finance-entry] PASS  every YES gap closed within 3 round(s)
+[nursing] baseline   n/a rejected_hard_constraint   Software Engineer II, Backend - Platform Team  [other field]
+[retail] baseline   13% rejected_low_fit           Inventory Management & Pricing Analyst
+[finance-entry] cross (same field) 88% -> 88%  Financial Analyst
+[finance-entry] PASS  cross same field: tailored résumé keeps every requirement the original matched  (Financial Analyst: )
+[finance-entry] PASS  cross same field: score not lower than with the original  (88% -> 88%)
 [nursing] baseline   n/a rejected_hard_constraint   Software Engineer, Backend (All Teams)  [other field]
 [retail] baseline   54% rejected_low_fit           Store Manager
+[finance-entry] cross (same field) n/a -> n/a  FP&A Senior Financial Analyst
+[finance-entry] PASS  cross same field: tailored résumé keeps every requirement the original matched  (FP&A Senior Financial Analyst: )
 [nursing] baseline   n/a rejected_hard_constraint   Backend Engineer, Intelligent Commerce  [other field]
-[software] baseline   77% awaiting_approval          Backend Engineer, Intelligent Commerce
+[software] PASS  profile created from the real résumé  (HTTP 200)
 [retail] baseline   77% awaiting_approval          Store Manager- Sally Beauty- 03334
 [nursing] baseline   n/a rejected_hard_constraint   Software Engineer - Backend  [other field]
 [nursing] --- target: Telemetry Registered Nurse (RN) – Hospital  (baseline 58%, 5 gap(s): Analyzing telemetry data to identify trends, abnormalities and potential problems | Cardiac-focused patient care and education | Recognizing and responding to cardiac emergencies such as cardiac arrest | Basic EKG training | Assisting with procedures such as cardioversions and transesophageal echocardiograms)
-[software] baseline   83% awaiting_approval          Software Engineer, Backend (All Teams)
+[software] baseline   77% awaiting_approval          Backend Engineer, Intelligent Commerce
 [nursing] PASS  round 1: reaches the approval gate  (stage=awaiting_approval)
 [retail] baseline   75% awaiting_approval          store manager - Orlando East, FL
-[software] baseline  100% awaiting_approval          Software Engineer II, Backend - Platform Team
+[software] baseline   83% awaiting_approval          Software Engineer, Backend (All Teams)
 [retail] baseline   n/a rejected_hard_constraint   Registered Nurse - Med Surg Ortho  [other field]
+[nursing] PASS  round 1: tailored résumé drafted  (HTTP 200 )
+[nursing] PASS  round 1: in-app re-score used the same requirement list
+[nursing] PASS  round 1: in-app re-score counts every YES gap as closed
+[nursing] PASS  round 1: in-app re-score never credits a NO gap the draft claimed
+[nursing] PASS  round 1: draft keeps everything the original proved
+[nursing] PASS  round 1: no score gain rests on an untraceable sentence
+[nursing] PASS  round 1: downloaded file reads back exactly  (HTTP 200)
+[retail] baseline   n/a rejected_hard_constraint   Telemetry Registered Nurse (RN) – Hospital  [other field]
+[software] baseline  100% awaiting_approval          Software Engineer II, Backend - Platform Team
+[retail] baseline   n/a rejected_hard_constraint   Registered Nurse (RN) / MS / Telemetry (Tele)  [other field]
+[nursing] PASS  round 1: scored fresh from the tailored résumé  (score=84%)
+[nursing] PASS  round 1: real score not below the original  (58% -> 84%)
+[nursing] PASS  round 1: the in-app re-score predicted the real score  (predicted 84%, real 84%)
+[nursing] PASS  round 1: nothing the original matched is now missing
+[nursing] PASS  round 1: the tailored résumé never claims a skill the person said NO to
+[nursing] round 1: real 84% | YES closed 3/3 | NO still missing 2/2
+[nursing] PASS  every YES gap closed within 3 round(s)
+[software] baseline   93% awaiting_clarification     Software Engineer - Backend
+[retail] baseline   n/a rejected_hard_constraint   Registered Nurse (RN) - Full-time  [other field]
+[software] baseline   n/a rejected_hard_constraint   Store Manager- Sally Beauty- 03334  [other field]
+[retail] baseline   n/a rejected_hard_constraint   Registered Nurse (RN) - IR  [other field]
+[nursing] cross (same field) 83% -> 100%  Registered Nurse - Med Surg Ortho
+[nursing] PASS  cross same field: tailored résumé keeps every requirement the original matched  (Registered Nurse - Med Surg Ortho: )
+[nursing] PASS  cross same field: score not lower than with the original  (83% -> 100%)
+[software] baseline   n/a rejected_hard_constraint   store manager - Orlando East, FL  [other field]
+[retail] baseline   n/a rejected_hard_constraint   Registered Nurse (RN) - Neuro ICU  [other field]
+[software] baseline   n/a rejected_hard_constraint   Store Manager  [other field]
+[nursing] cross (same field) 86% -> 86%  Registered Nurse (RN) / MS / Telemetry (Tele)
+[nursing] PASS  cross same field: tailored résumé keeps every requirement the original matched  (Registered Nurse (RN) / MS / Telemetry (: )
+[nursing] PASS  cross same field: score not lower than with the original  (86% -> 86%)
+[nursing] --- target: Registered Nurse (RN) - IR  (baseline 69%, 4 gap(s): Continuing education requirements as defined within the CARE program | Bachelor of Science in Nursing | Pediatric Advanced Life Support (PALS) | Neonatal Resuscitation Program (NRP))
+[nursing] PASS  round 1: reaches the approval gate  (stage=awaiting_approval)
+[retail] baseline   n/a rejected_hard_constraint   Nurse Practitioner, Advanced Practice Provider  [other field]
+[retail] --- target: Inventory Management & Pricing Analyst  (baseline 13%, 7 gap(s): Inventory management and pricing analysis experience (core function of the role) | At least 2 years relevant experience; hospitality, pricing or yield management or other closely related field | Ability to use multiple data sources to drive decision making | Excellent understanding of the theory of supply and demand and pricing of perishable goods | Intermediate Excel skills: pivoting internal and external data, v-lookup and data manipulations | Computer/statistical modeling and analysis | Knowledge of SQL, Snowflake and PowerBI)
+[software] baseline   n/a rejected_hard_constraint   Store Manager 10632  [other field]
+[retail] PASS  round 1: reaches the approval gate  (stage=awaiting_approval)
+[software] baseline   n/a rejected_hard_constraint   store manager, Orlando Tourism, FL  [other field]
 [nursing] PASS  round 1: tailored résumé drafted  (HTTP 200 )
 [nursing] PASS  round 1: in-app re-score used the same requirement list
 [nursing] PASS  round 1: in-app re-score counts every YES gap as closed
@@ -412,44 +481,7 @@ Real-posting audit against https://g6-job-search-agent-g6.vercel.app: 9 candidat
 [nursing] PASS  round 1: draft keeps everything the original proved
 [nursing] PASS  round 1: no score gain rests on an untraceable sentence
 [nursing] PASS  round 1: downloaded file reads back exactly  (HTTP 200)
-[retail] baseline   n/a rejected_hard_constraint   Telemetry Registered Nurse (RN) – Hospital  [other field]
-[software] baseline   93% awaiting_clarification     Software Engineer - Backend
-[retail] baseline   n/a rejected_hard_constraint   Registered Nurse (RN) / MS / Telemetry (Tele)  [other field]
-[software] baseline   n/a rejected_hard_constraint   Store Manager- Sally Beauty- 03334  [other field]
-[nursing] PASS  round 1: scored fresh from the tailored résumé  (score=84%)
-[nursing] PASS  round 1: real score not below the original  (58% -> 84%)
-[nursing] PASS  round 1: the in-app re-score predicted the real score  (predicted 84%, real 84%)
-[nursing] PASS  round 1: nothing the original matched is now missing
-[nursing] PASS  round 1: the tailored résumé never claims a skill the person said NO to
-[nursing] round 1: real 84% | YES closed 3/3 | NO still missing 2/2
-[nursing] PASS  every YES gap closed within 3 round(s)
-[retail] baseline   n/a rejected_hard_constraint   Registered Nurse (RN) - Full-time  [other field]
-[software] baseline   n/a rejected_hard_constraint   store manager - Orlando East, FL  [other field]
-[retail] baseline   n/a rejected_hard_constraint   Registered Nurse (RN) - IR  [other field]
-[nursing] cross (same field) 83% -> 100%  Registered Nurse - Med Surg Ortho
-[nursing] PASS  cross same field: tailored résumé keeps every requirement the original matched  (Registered Nurse - Med Surg Ortho: )
-[nursing] PASS  cross same field: score not lower than with the original  (83% -> 100%)
-[software] baseline   n/a rejected_hard_constraint   Store Manager  [other field]
-[retail] baseline   n/a rejected_hard_constraint   Registered Nurse (RN) - Neuro ICU  [other field]
-[software] baseline   n/a rejected_hard_constraint   Store Manager 10632  [other field]
-[retail] baseline   n/a rejected_hard_constraint   Nurse Practitioner, Advanced Practice Provider  [other field]
-[nursing] cross (same field) 86% -> 86%  Registered Nurse (RN) / MS / Telemetry (Tele)
-[nursing] PASS  cross same field: tailored résumé keeps every requirement the original matched  (Registered Nurse (RN) / MS / Telemetry (: )
-[nursing] PASS  cross same field: score not lower than with the original  (86% -> 86%)
-[retail] --- target: Inventory Management & Pricing Analyst  (baseline 13%, 7 gap(s): Inventory management and pricing analysis experience (core function of the role) | At least 2 years relevant experience; hospitality, pricing or yield management or other closely related field | Ability to use multiple data sources to drive decision making | Excellent understanding of the theory of supply and demand and pricing of perishable goods | Intermediate Excel skills: pivoting internal and external data, v-lookup and data manipulations | Computer/statistical modeling and analysis | Knowledge of SQL, Snowflake and PowerBI)
-[nursing] --- target: Registered Nurse (RN) - IR  (baseline 69%, 4 gap(s): Continuing education requirements as defined within the CARE program | Bachelor of Science in Nursing | Pediatric Advanced Life Support (PALS) | Neonatal Resuscitation Program (NRP))
-[nursing] PASS  round 1: reaches the approval gate  (stage=awaiting_approval)
-[software] baseline   n/a rejected_hard_constraint   store manager, Orlando Tourism, FL  [other field]
-[retail] PASS  round 1: reaches the approval gate  (stage=awaiting_approval)
-[nursing] PASS  round 1: tailored résumé drafted  (HTTP 200 )
-[nursing] PASS  round 1: in-app re-score used the same requirement list
-[nursing] PASS  round 1: in-app re-score counts every YES gap as closed
-[nursing] PASS  round 1: in-app re-score never credits a NO gap the draft claimed
-[nursing] round 1: agent repaired its draft: 2 original line(s) put back, 0 confirmed answer(s) added
-[nursing] PASS  round 1: draft keeps everything the original proved
-[nursing] PASS  round 1: no score gain rests on an untraceable sentence
 [software] baseline   13% rejected_low_fit           Inventory Management & Pricing Analyst  [other field]
-[nursing] PASS  round 1: downloaded file reads back exactly  (HTTP 200)
 [software] --- target: Backend Engineer, Intelligent Commerce  (baseline 77%, 3 gap(s): Experience designing multi-tenant platforms or systems that need to generalize across many similar-but-different use cases | Familiarity with payments infrastructure or payment method integrations | Experience building for external partner ecosystems where you don't control the other side of the integration)
 [software] PASS  round 1: reaches the approval gate  (stage=awaiting_approval)
 [retail] PASS  round 1: tailored résumé drafted  (HTTP 200 )
@@ -457,6 +489,7 @@ Real-posting audit against https://g6-job-search-agent-g6.vercel.app: 9 candidat
 [retail] PASS  round 1: in-app re-score counts every YES gap as closed
 [retail] PASS  round 1: in-app re-score never credits a NO gap the draft claimed
 [retail] WARN  round 1: in-app re-score inferred the NO gap "At least 2 years relevant experience; hospitality, pricing or yield management or other closely related field" from another line
+[retail] round 1: agent repaired its draft: 1 original line(s) put back, 0 confirmed answer(s) added
 [retail] PASS  round 1: draft keeps everything the original proved
 [retail] PASS  round 1: no score gain rests on an untraceable sentence
 [retail] PASS  round 1: downloaded file reads back exactly  (HTTP 200)
@@ -501,25 +534,25 @@ Real-posting audit against https://g6-job-search-agent-g6.vercel.app: 9 candidat
 [software] cross (same field) 100% -> 100%  Software Engineer II, Backend - Platform Team
 [software] PASS  cross same field: tailored résumé keeps every requirement the original matched  (Software Engineer II, Backend - Platform: )
 [software] PASS  cross same field: score not lower than with the original  (100% -> 100%)
-[retail] cross (same field) 75% -> 75%  store manager - Orlando East, FL
+[retail] cross (same field) 75% -> 63%  store manager - Orlando East, FL
 [retail] FAIL  cross same field: tailored résumé keeps every requirement the original matched  (store manager - Orlando East, FL: Ability to work full time (in excess of 40 hours per week) including variable hours including early mornings, evenings, weekends and/or holidays)
-[retail] PASS  cross same field: score not lower than with the original  (75% -> 75%)
+[retail] FAIL  cross same field: score not lower than with the original  (75% -> 63%)
 [retail] --- target: Store Manager  (baseline 54%, 3 gap(s): Food Safety: Serve Safe certified | Restaurant / food-service store management experience | Flexibility to move to a store within a radius of 50 miles from home)
 [retail] PASS  round 1: reaches the approval gate  (stage=awaiting_approval)
-[software] cross (same field) 93% -> 80%  Software Engineer - Backend
+[software] cross (same field) 93% -> 92%  Software Engineer - Backend
 [software] PASS  cross same field: tailored résumé keeps every requirement the original matched  (Software Engineer - Backend: )
-[software] FAIL  cross same field: score not lower than with the original  (93% -> 80%)
+[software] PASS  cross same field: score not lower than with the original  (93% -> 92%)
 [retail] PASS  round 1: tailored résumé drafted  (HTTP 200 )
 [retail] PASS  round 1: in-app re-score used the same requirement list
 [retail] PASS  round 1: in-app re-score counts every YES gap as closed
 [retail] PASS  round 1: in-app re-score never credits a NO gap the draft claimed
 [retail] round 1: agent repaired its draft: 3 original line(s) put back, 0 confirmed answer(s) added
 [retail] PASS  round 1: draft keeps everything the original proved
-[retail] FAIL  round 1: no score gain rests on an untraceable sentence  (Food Safety: Serve Safe certified)
+[retail] PASS  round 1: no score gain rests on an untraceable sentence
 [retail] PASS  round 1: downloaded file reads back exactly  (HTTP 200)
-[software] cross (other-field control) 13% -> 21%  Inventory Management & Pricing Analyst
+[software] cross (other-field control) 13% -> 26%  Inventory Management & Pricing Analyst
 [software] PASS  cross other-field control: tailored résumé keeps every requirement the original matched  (Inventory Management & Pricing Analyst: )
-[software] PASS  cross other-field control: an unrelated posting is not inflated  (13% -> 21%)
+[software] PASS  cross other-field control: an unrelated posting is not inflated  (13% -> 26%)
 [software] --- target: Software Engineer, Backend (All Teams)  (baseline 83%, 1 gap(s): Proficiency in using AI coding tools (e.g., Claude Code, Codex, Cursor) in the full software development lifecycle, including designing, generating code, testing, monitoring and releasing software)
 [software] PASS  round 1: reaches the approval gate  (stage=awaiting_approval)
 [retail] PASS  round 1: scored fresh from the tailored résumé  (score=86%)
@@ -552,34 +585,34 @@ Real-posting audit against https://g6-job-search-agent-g6.vercel.app: 9 candidat
 [software] cross (same field) 100% -> 100%  Software Engineer II, Backend - Platform Team
 [software] PASS  cross same field: tailored résumé keeps every requirement the original matched  (Software Engineer II, Backend - Platform: )
 [software] PASS  cross same field: score not lower than with the original  (100% -> 100%)
-[software] cross (same field) 93% -> 80%  Software Engineer - Backend
+[software] cross (same field) 93% -> 92%  Software Engineer - Backend
 [software] PASS  cross same field: tailored résumé keeps every requirement the original matched  (Software Engineer - Backend: )
-[software] FAIL  cross same field: score not lower than with the original  (93% -> 80%)
-[software] cross (other-field control) 13% -> 18%  Inventory Management & Pricing Analyst
+[software] PASS  cross same field: score not lower than with the original  (93% -> 92%)
+[software] cross (other-field control) 13% -> 26%  Inventory Management & Pricing Analyst
 [software] PASS  cross other-field control: tailored résumé keeps every requirement the original matched  (Inventory Management & Pricing Analyst: )
-[software] PASS  cross other-field control: an unrelated posting is not inflated  (13% -> 18%)
+[software] PASS  cross other-field control: an unrelated posting is not inflated  (13% -> 26%)
 
 ==================== SUMMARY ====================
+classkit      Business Data Analyst I - Predictive Modelin  31% ->  83% in 1 round(s) | YES closed 5/5 | expected gaps kept 4 | cross: 100%->100% 58%->62%
+classkit      Data Analyst II                               56% ->  92% in 1 round(s) | YES closed 2/2 | expected gaps kept 2 | cross: 100%->100% 58%->62%
 demo          Data Analyst II                               33% ->  71% in 1 round(s) | YES closed 5/5 | expected gaps kept 4 | cross: 78%->80% n/a->n/a
-demo          Associate Data Analyst                        67% ->  95% in 1 round(s) | YES closed 3/3 | expected gaps kept 2 | cross: 78%->80% n/a->n/a
-classkit      Business Data Analyst I - Predictive Modelin  31% ->  77% in 1 round(s) | YES closed 5/5 | expected gaps kept 4 | cross: 100%->81% 58%->62%
-classkit      Data Analyst II                               56% ->  92% in 1 round(s) | YES closed 2/2 | expected gaps kept 2 | cross: 100%->81% 58%->50%
-teaching      Adjunct - Mathematics/Statistics              42% ->  85% in 3 round(s) | YES closed 3/3 | expected gaps kept 2 | cross: 76%->83% 60%->67%
-teaching      Middle School Math Teacher (Metro Schools)    60% -> 100% in 1 round(s) | YES closed 2/2 | expected gaps kept 1 | cross: 76%->88% 60%->67%
-finance-entry Financial Analyst - Core FP&A                 63% ->  74% in 1 round(s) | YES closed 3/3 | expected gaps kept 2 | cross: 88%->75% n/a->n/a
-finance-entry Financial Analyst - Fixed Income, Currency &  64% ->  94% in 1 round(s) | YES closed 3/3 | expected gaps kept 2 | cross: 88%->88% n/a->n/a
-marketing-ops Marketing Project & Operations Coordinator    65% ->  85% in 1 round(s) | YES closed 2/2 | expected gaps kept 2 | cross: n/a->n/a n/a->n/a
-marketing-ops Senior Marketing Operations Manager (Reporti  90% ->  81% in 2 round(s) | YES closed 1/1 | expected gaps kept 1 | cross: n/a->n/a n/a->n/a
-trades        HVAC - Service Technician                     46% ->  77% in 1 round(s) | YES closed 2/2 | expected gaps kept 2 | cross: 91%->91% 75%->100%
+demo          Associate Data Analyst                        67% ->  95% in 2 round(s) | YES closed 3/3 | expected gaps kept 2 | cross: 78%->80% n/a->n/a
+teaching      Adjunct - Mathematics/Statistics              42% ->  92% in 3 round(s) | YES closed 3/3 | expected gaps kept 2 | cross: 76%->100% 60%->100%
+teaching      Middle School Math Teacher (Metro Schools)    60% ->  87% in 1 round(s) | YES closed 2/2 | expected gaps kept 1 | cross: 76%->100% 60%->100%
+marketing-ops Marketing Project & Operations Coordinator    65% ->  95% in 1 round(s) | YES closed 2/2 | expected gaps kept 2 | cross: n/a->n/a n/a->n/a
+marketing-ops Senior Marketing Operations Manager (Reporti  90% ->  96% in 1 round(s) | YES closed 1/1 | expected gaps kept 1 | cross: n/a->n/a n/a->n/a
+trades        HVAC - Service Technician                     46% ->  77% in 1 round(s) | YES closed 2/2 | expected gaps kept 2 | cross: 91%->91% 75%->88%
 trades        HVAC Service Technician II                    60% ->  80% in 1 round(s) | YES closed 2/2 | expected gaps kept 2 | cross: 91%->91% 75%->75%
+finance-entry Financial Analyst - Core FP&A                 63% ->  81% in 3 round(s) | YES closed 2/3 | expected gaps kept 2 | cross: 88%->100% n/a->n/a
+finance-entry Financial Analyst - Fixed Income, Currency &  64% ->  95% in 1 round(s) | YES closed 3/3 | expected gaps kept 2 | cross: 88%->88% n/a->n/a
 nursing       Telemetry Registered Nurse (RN) – Hospital    58% ->  84% in 1 round(s) | YES closed 3/3 | expected gaps kept 2 | cross: 83%->100% 86%->86%
 nursing       Registered Nurse (RN) - IR                    69% ->  88% in 1 round(s) | YES closed 2/2 | expected gaps kept 2 | cross: 83%->89% 86%->86%
-retail        Inventory Management & Pricing Analyst        13% ->  73% in 1 round(s) | YES closed 4/4 | expected gaps kept 3 | cross: 77%->77% 75%->75%
+retail        Inventory Management & Pricing Analyst        13% ->  73% in 1 round(s) | YES closed 4/4 | expected gaps kept 3 | cross: 77%->77% 75%->63%
 retail        Store Manager                                 54% ->  86% in 1 round(s) | YES closed 2/2 | expected gaps kept 1 | cross: 77%->77% 75%->88%
-software      Backend Engineer, Intelligent Commerce        77% ->  93% in 1 round(s) | YES closed 2/2 | expected gaps kept 1 | cross: 100%->100% 93%->80% 13%->21%*
-software      Software Engineer, Backend (All Teams)        83% -> 100% in 1 round(s) | YES closed 1/1 | expected gaps kept 0 | cross: 100%->100% 93%->80% 13%->18%*
+software      Backend Engineer, Intelligent Commerce        77% ->  93% in 1 round(s) | YES closed 2/2 | expected gaps kept 1 | cross: 100%->100% 93%->92% 13%->26%*
+software      Software Engineer, Backend (All Teams)        83% -> 100% in 1 round(s) | YES closed 1/1 | expected gaps kept 0 | cross: 100%->100% 93%->92% 13%->26%*
 
 (* = posting from another field, a control)
-365/380 checks passed in 10.4 min
-12 warning(s): the scorer inferred a skill the person denied from a line they confirmed
-15 CHECK(S) FAILED
+402/411 checks passed in 11.0 min
+17 warning(s): the scorer inferred a skill the person denied from a line they confirmed
+9 CHECK(S) FAILED
