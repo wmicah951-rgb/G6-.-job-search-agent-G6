@@ -1,0 +1,36 @@
+Live verification against https://g6-job-search-agent-g6.vercel.app
+
+PASS  database is connected and saving  (postgres)
+PASS  an AI model is configured  (deepseek:deepseek-chat)
+PASS  sample catalogue is served  (9 candidates)
+PASS  Class kit — Jordan Lee: 6 posting(s) through the agent  (awaiting_approval 100% | awaiting_approval 73% | rejected_hard_constraint | rejected_low_fit 50% | awaiting_approval 76% | rejected_hard_constraint)
+PASS  class kit J001 outcome  (awaiting_approval)
+PASS  class kit J002 outcome  (awaiting_approval)
+PASS  class kit J003 outcome  (rejected_hard_constraint)
+PASS  class kit J004 outcome  (rejected_low_fit)
+PASS  class kit J005 outcome  (awaiting_approval)
+PASS  class kit J006 outcome  (rejected_hard_constraint)
+PASS  Demo — Jordan Ellis: 4 posting(s) through the agent  (awaiting_approval 100% | rejected_low_fit 23% | rejected_hard_constraint | awaiting_approval 100%)
+PASS  Nursing — Alicia Moreno: 3 posting(s) through the agent  (awaiting_approval 100% | rejected_low_fit 33% | rejected_hard_constraint)
+PASS  Teaching — Daniel Okafor: 3 posting(s) through the agent  (awaiting_approval 100% | rejected_low_fit 27% | rejected_hard_constraint)
+PASS  Software — Wei Chen: 3 posting(s) through the agent  (awaiting_approval 100% | rejected_low_fit 25% | rejected_hard_constraint)
+PASS  Skilled trades — Marcus Bell: 3 posting(s) through the agent  (awaiting_approval 100% | rejected_low_fit 31% | rejected_hard_constraint)
+PASS  Retail — Sofia Ramirez: 3 posting(s) through the agent  (awaiting_approval 100% | rejected_low_fit 23% | rejected_hard_constraint)
+PASS  Finance — Priya Raghavan: 1 posting(s) through the agent  (awaiting_approval 100%)
+PASS  Marketing ops — Marcus Okonkwo: 1 posting(s) through the agent  (awaiting_approval 84%)
+PASS  everything landed on this browser's board  (27 jobs)
+PASS  Test Lab: all 21 cases pass live  (21/21)
+
+THE LIVE SITE IS READY
+exit 0
+SAME  marketing-ops Senior Marketing Operations Analyst          listed  n/a rejected_hard_constraint live  n/a rejected_hard_constraint
+
+27/27 featured links give the listed result on the live site.
+exit 0
+w2: 63% with the original résumé -> 100% after 4 tailor/re-upload rounds
+w3: 63% with the original résumé -> 86% after 4 tailor/re-upload rounds
+w1: 63% with the original résumé -> 81% after 4 tailor/re-upload rounds
+
+3 worker(s) x 4 round(s) in 102.1s
+3 CHECK(S) FAILED
+exit 0

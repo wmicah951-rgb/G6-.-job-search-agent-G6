@@ -952,8 +952,14 @@ export interface FitEvaluation {
 // "requirement: their words", which the re-score then reads as the person's own evidence. A
 // negative answer ("no", "not yet", "never did but can learn") is not experience and is left out.
 export function confirmedExperienceFromNote(note: string | null | undefined): string[] {
+  return confirmedPairs(note).map((p) => (p.skill ? `${p.skill}: ${p.answer}` : p.answer));
+}
+
+/** The affirmative answers as { skill, answer }, kept apart so a requirement that itself contains
+ *  a colon ("Preferred Certifications: CPA, CMA") is not split in the wrong place. */
+function confirmedPairs(note: string | null | undefined): { skill: string; answer: string }[] {
   if (!note) return [];
-  const out: string[] = [];
+  const out: { skill: string; answer: string }[] = [];
   const negative = (answer: string) =>
     /^\s*(no|nope|not yet|never|none|haven'?t|have not|don'?t|do not)\b/i.test(answer) ||
     /\b(never (did|done|used|worked)|can learn|willing to learn|want to learn|no experience|not familiar)\b/i.test(answer);
@@ -986,7 +992,7 @@ export function confirmedExperienceFromNote(note: string | null | undefined): st
       continue; // drafting instructions ("Open the summary by…") are not claims of experience
     }
     if (!answer || negative(answer)) continue;
-    out.push(skill ? `${skill}: ${answer}` : answer);
+    out.push({ skill, answer });
   }
   return out;
 }
@@ -998,12 +1004,10 @@ export function confirmedExperienceFromNote(note: string | null | undefined): st
  * as full experience; a bare "yes" counts as partial.
  */
 export function confirmedAnswers(note: string | null | undefined): { requirement: string; answer: string; detailed: boolean }[] {
-  return confirmedExperienceFromNote(note)
-    .map((line) => {
-      const i = line.indexOf(": ");
-      if (i < 0) return null;
-      const requirement = line.slice(0, i).replace(/^Experience with /i, "").replace(/ \(or equivalent\)$/i, "").trim();
-      const answer = line.slice(i + 2).trim();
+  return confirmedPairs(note)
+    .map(({ skill, answer }) => {
+      if (!skill) return null;
+      const requirement = skill.replace(/^Experience with /i, "").replace(/ \(or equivalent\)$/i, "").trim();
       const described = answer
         .replace(/\b(yes|yeah|yep|y|easy|i|do|did|can|have|this|and|it|sure|definitely|absolutely)\b/gi, " ")
         .split(/\s+/)
@@ -1086,8 +1090,20 @@ function recoverQuote(quote: string, resumeText: string): string | null {
 // the original's own lines back, and add the person's confirmed answers, without inventing a word.
 
 /** A dropped original line worth restoring: real content, not a disclaimer, contact line or label. */
-export function keepWorthyLine(line: string): boolean {
+export function keepWorthyLine(line: string, original?: string): boolean {
   const l = line.trim();
+  // The tailored résumé writes its own summary; the old one pasted back would repeat it.
+  if (/^(\*\*)?(summary|profile|objective|about me|professional summary)\b/i.test(l)) return false;
+  if (original) {
+    const lines = original.split(/\r?\n/);
+    const idx = lines.findIndex((x) => x.trim() === l);
+    for (let i = idx - 1; idx >= 0 && i >= 0; i--) {
+      if (/^\s*#{1,6}\s/.test(lines[i])) {
+        if (/summary|profile|objective|about/i.test(lines[i])) return false;
+        break;
+      }
+    }
+  }
   if (/^\*[^*\s]/.test(l) && /\*$/.test(l)) return false; // "*Fictional résumé created for…*"
   if (/@|\(\d{3}\)|linkedin\.com|^#/.test(l)) return false;
   return l.replace(/[^a-z]/gi, "").length >= 15;
@@ -1184,19 +1200,31 @@ export function mergeKnownEvidence(fit: FitEvaluation, document: string, known: 
   if (!known.length || !ledger.length || fit.method !== "llm") return fit;
   const doc = squash(document);
   const found: Record<string, { quote: string; strength: "full" | "partial" }> = {};
+  const upgraded: string[] = [];
+  const matchStrength = { ...(fit.matchStrength ?? {}) };
+  const matchedEvidence = { ...fit.matchedEvidence };
   for (const k of known) {
     const item = ledger.find((l) => l.requirement === k.requirement);
-    if (!item || fit.matched.includes(item.requirement) || !k.quote || k.quote.trim().length < 8) continue;
+    if (!item || !k.quote || k.quote.trim().length < 8) continue;
+    const already = fit.matched.includes(item.requirement);
+    // Already matched at full strength: nothing to add.
+    if (already && (matchStrength[item.requirement] ?? "full") === "full") continue;
+    if (already && k.strength !== "full") continue;
     const here = doc.includes(squash(k.quote)) ? k.quote : recoverQuote(k.quote, document);
     if (!here) continue;
+    if (already) {
+      // Matched now only as "partial", on a sentence already judged as full experience.
+      matchStrength[item.requirement] = "full";
+      matchedEvidence[item.requirement] = here;
+      if (!upgraded.includes(item.requirement)) upgraded.push(item.requirement);
+      continue;
+    }
     const had = found[item.requirement];
     if (!had || (had.strength === "partial" && k.strength === "full")) found[item.requirement] = { quote: here, strength: k.strength };
   }
   const add = Object.keys(found);
-  if (!add.length) return fit;
+  if (!add.length && !upgraded.length) return fit;
   const matched = [...fit.matched, ...add];
-  const matchedEvidence = { ...fit.matchedEvidence };
-  const matchStrength = { ...(fit.matchStrength ?? {}) };
   for (const m of add) {
     matchedEvidence[m] = found[m].quote;
     matchStrength[m] = found[m].strength;
@@ -1214,8 +1242,8 @@ export function mergeKnownEvidence(fit: FitEvaluation, document: string, known: 
     matchedEvidence,
     matchStrength,
     score: total === 0 ? 0 : Math.round((Math.min(got, total) / total) * 100) / 100,
-    keptFromMemory: add,
-    note: `${fit.note} Kept ${add.length} requirement(s) (${add.join("; ")}) proved by résumé sentence(s) already judged for this posting that this résumé still contains.`,
+    keptFromMemory: [...add, ...upgraded],
+    note: `${fit.note} Kept ${add.length + upgraded.length} requirement(s) (${[...add, ...upgraded].join("; ")}) proved by résumé sentence(s) already judged for this posting that this résumé still contains.`,
   };
 }
 
@@ -3047,7 +3075,7 @@ export async function applyHumanDecision(
       const restored: string[] = [];
       const addedFromNote: string[] = [];
       // 1. Lines of the original résumé the draft did not carry over at all.
-      const leftOut = (state.draftVerification?.droppedFromOriginal ?? []).filter(keepWorthyLine);
+      const leftOut = (state.draftVerification?.droppedFromOriginal ?? []).filter((l) => keepWorthyLine(l, resumeText ?? undefined));
       if (resumeText && leftOut.length) {
         document = restoreOriginalLines(document, resumeText, leftOut);
         restored.push(...leftOut);

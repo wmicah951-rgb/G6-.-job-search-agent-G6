@@ -2,7 +2,7 @@
 // out go back verbatim, in the right place, exactly once; confirmed answers are added once.
 //   npx tsx scripts/restore-lines-tests.ts
 import fs from "fs";
-import { restoreOriginalLines, addQualifications, keepWorthyLine, mergeKnownEvidence, evidenceOf } from "../src/lib/agent";
+import { restoreOriginalLines, addQualifications, keepWorthyLine, mergeKnownEvidence, evidenceOf, confirmedAnswers } from "../src/lib/agent";
 
 const original = fs.readFileSync("src/data/classkit/resume.md", "utf-8");
 let fails = 0;
@@ -55,6 +55,15 @@ const rw = mergeKnownEvidence(base, reworded, [{ requirement: "Databases", quote
 check(rw.matched.includes("Databases") && rw.matchedEvidence.Databases.includes("Answered recurring"), "a lightly reworded sentence still counts, with the document's own words as evidence");
 const gone = mergeKnownEvidence(base, ["# Someone", "- Managed a bakery"].join(String.fromCharCode(10)), [{ requirement: "Tableau", quote: "Built a Tableau dashboard tracking product sell-through", strength: "full" }], ledger);
 check(gone === base, "evidence the document does not contain is not credited");
+
+
+const partial = { ...base, matched: ["SQL", "Tableau"], missing: ["Databases"], matchStrength: { SQL: "full" as const, Tableau: "partial" as const }, score: 0.5 };
+const up = mergeKnownEvidence(partial, fixed, [{ requirement: "Tableau", quote: "Built a Tableau dashboard tracking product sell-through", strength: "full" }], ledger);
+check(up.matchStrength?.Tableau === "full" && Math.abs(up.score - 2 / 3) < 0.01, "a sentence already judged as full experience is not downgraded to partial");
+const colon = confirmedAnswers("- Preferred Certifications: CPA, CMA: YES — I hold the CPA, passed in 2021");
+check(colon.length === 1 && colon[0].requirement === "Preferred Certifications: CPA, CMA" && colon[0].answer.startsWith("I hold the CPA"), "a requirement containing a colon is read whole");
+check(!keepWorthyLine("**Summary** Licensed middle-school mathematics teacher with 4 years in the classroom, leading a team."), "an old summary paragraph is not pasted back");
+check(!keepWorthyLine("Comfortable building budget models in Excel and preparing month-end packages.", ["# X", "## Summary", "Comfortable building budget models in Excel and preparing month-end packages.", "## Experience", ""].join(String.fromCharCode(10))), "lines from the Summary section are not pasted back");
 
 console.log(fails ? `${fails} FAILED` : "ALL RESTORE CHECKS PASS");
 process.exitCode = fails ? 1 : 0;

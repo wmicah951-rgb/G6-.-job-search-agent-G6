@@ -104,6 +104,7 @@ async function runProfile(profile) {
       matched: st?.matchedSkills ?? [], missing: st?.missingSkills ?? [], preferred: st?.missingPreferredSkills ?? [],
       violations: st?.hardConstraintViolations ?? [],
       evidence: st?.matchedEvidence ?? null,
+      strength: st?.matchStrength ?? null,
     };
   };
 
@@ -153,7 +154,7 @@ async function runProfile(profile) {
     // A posting with a single gap gets a YES, so something is always there to close.
     base.missing.forEach((g, i) => (i % 2 === 0 ? t.yes : t.no).push(g));
     // A credential is held, not "applied": answer the way a person holding it would.
-    const CREDENTIAL = /(degree|master'?s|bachelor'?s|ph.?d|doctorate|certifw*|licen[cs]w*|cpa|cma|cfa|credential|diploma|registered|praxis)/i;
+    const CREDENTIAL = /\b(degree|master'?s|bachelor'?s|ph\.?d|doctorate|certif\w*|licen[cs]\w*|cpa|cma|cfa|credential|diploma|praxis)\b/i;
     const answer = (g) =>
       CREDENTIAL.test(g)
         ? `- ${g}: YES — I hold this; I completed it in 2021 and can show the certificate or transcript`
@@ -251,7 +252,7 @@ async function runProfile(profile) {
       const lostX = b.matched.filter((m) => !has(c.matched, m));
       const tag = l.control ? "other-field control" : "same field";
       say(`cross (${tag}) ${pct(b.fitScore)} -> ${pct(c.fitScore)}  ${l.title.slice(0, 60)}`);
-      (t.cross ??= []).push({ title: l.title, control: !!l.control, before: b.fitScore, after: c.fitScore, lost: lostX, evidenceBefore: b.evidence, evidenceAfter: c.evidence, gained: c.matched.filter((m) => !has(b.matched, m)) });
+      (t.cross ??= []).push({ title: l.title, control: !!l.control, before: b.fitScore, after: c.fitScore, lost: lostX, evidenceBefore: b.evidence, evidenceAfter: c.evidence, strengthBefore: b.strength, strengthAfter: c.strength, gained: c.matched.filter((m) => !has(b.matched, m)) });
       check(lostX.length === 0, `cross ${tag}: tailored résumé keeps every requirement the original matched`, `${l.title.slice(0, 40)}: ${lostX.join(" | ")}`);
       if (typeof b.fitScore === "number" && typeof c.fitScore === "number") {
         if (l.control) check(c.fitScore - b.fitScore <= 0.25, `cross ${tag}: an unrelated posting is not inflated`, `${pct(b.fitScore)} -> ${pct(c.fitScore)}`);
